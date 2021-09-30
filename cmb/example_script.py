@@ -16,7 +16,7 @@ fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
 
 # Cerebellar specific
-cerebellar_data_path = '/autofs/cluster/fusion/Exchange/cerebellum-meeg/'
+cerebellar_data_path = '/workspace/' #'/autofs/cluster/fusion/Exchange/cerebellum-meeg/'
 cb_data = pickle.load(open(cerebellar_data_path+'data/cerebellum_geo', 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 

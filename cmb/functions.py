@@ -805,7 +805,7 @@ def setup_cerebellum_source_space(subjects_dir, subject, cerb_dir, cerebellum_su
     
     # Get subject segmentation
     print('Doing segmentation...')
-    subj_segm = np.asanyarray(get_segmentation(subjects_dir, subject, data_dir+'segm_folder/',
+    subj_segm = np.asanyarray(get_segmentation(subjects_dir, subject, data_dir+'segm_folder',
                                                post_process=post_process, debug_mode=debug_mode).dataobj)
     subj_mask = np.asanyarray(nib.load(data_dir+'segm_folder/'+subject+'_mask.nii.gz').dataobj)
     subj = np.asanyarray(nib.load(subjects_dir+subject+'/mri/orig.mgz').dataobj)
@@ -1190,7 +1190,11 @@ def get_segmentation(subjects_dir, subject, data_dir, region_removal_limit=0.2,
                      post_process=True, print_progress=False, debug_mode=False):
     import warnings
     import subprocess
-    subjects_dir = subjects_dir + '/'
+    subjects_dir = subjects_dir #+ '/'
+
+    if not os.path.exists(data_dir):
+        os.system('mkdir '+data_dir)
+
     # Check that all prerequisite programs are ready 
     if not os.system('mri_convert --help >/dev/null 2>&1') == 0:
         warnings.warn('mri_convert not found. FreeSurfer has to be compiled for segmentation to work.')
@@ -1209,7 +1213,7 @@ def get_segmentation(subjects_dir, subject, data_dir, region_removal_limit=0.2,
         for dirs in [data_dir+rel_path for rel_path in rel_paths]:
             if not os.path.exists(dirs):
                 os.system('mkdir '+dirs)
-        output_folder = data_dir+'/tmp/'
+        output_folder = data_dir+'/tmp'
         orig_fname = subjects_dir+subject+'/mri/orig.mgz '
         os.system('cp '+orig_fname+output_folder+'/mask/')
         current_ori = str(subprocess.check_output('mri_info --orientation '+orig_fname, shell=True))[2:-3]
