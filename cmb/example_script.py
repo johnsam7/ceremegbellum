@@ -1,9 +1,11 @@
 import os.path as op
+import os
 import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
 from functions import setup_full_source_space, plot_cerebellum_data
+from pooch import retrieve
 data_path = sample.data_path()
 
 # Paths to subject data
@@ -14,6 +16,14 @@ subject = 'sample'
 trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
+nnunet_results_path = os.environ['RESULTS_FOLDER']
+
+# Get data
+if not os.path.isdir(nnunet_results_path+'/nnUNet/3d_fullres/Task001_mask_cerebellum'):
+    retrieve(url='https://www.dropbox.com/s/ni3jxjog264s996/cerebellum_geo?dl=0',
+             known_hash=None, fname='Task001_mask_cerebellum',
+             path=nnunet_results_path+'/nnUNet/3d_fullres/')
+
 
 # Cerebellar specific
 cerebellar_data_path = '/workspace/' #'/autofs/cluster/fusion/Exchange/cerebellum-meeg/'
