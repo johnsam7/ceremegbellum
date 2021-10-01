@@ -14,7 +14,7 @@ import pickle
 import os
 import evaler
 from scipy import signal
-from helpers import *
+from .helpers import *
 
 def save_nifti_from_3darray(vol, fname, rotate=False, affine=None):
     if rotate:
@@ -185,7 +185,7 @@ def split_cerebellar_hemis(subjects_dir, subject, output_folder):
     mask[np.where(lh_rh_vol == 2)] = 1
     mask[np.where(lh_rh_vol == 1)] = 1
 
-    save_nifti_from_3darray(mask, output_folder+'../'+subject+'_mask.nii.gz', rotate=False, affine=image.affine)
+    save_nifti_from_3darray(mask, output_folder+'/../'+subject+'_mask.nii.gz', rotate=False, affine=image.affine)
     save_nifti_from_3darray(lh_split, output_folder+'/lh/cerebellum_001_0000.nii.gz', rotate=False, affine=image.affine)
     save_nifti_from_3darray(rh_split, output_folder+'/rh/cerebellum_001_0000.nii.gz', rotate=False, affine=image.affine)
 
@@ -1213,21 +1213,21 @@ def get_segmentation(subjects_dir, subject, data_dir, region_removal_limit=0.2,
         for dirs in [data_dir+rel_path for rel_path in rel_paths]:
             if not os.path.exists(dirs):
                 os.system('mkdir '+dirs)
-        output_folder = data_dir+'/tmp'
+        output_folder = data_dir+'/tmp/'
         orig_fname = subjects_dir+subject+'/mri/orig.mgz '
-        os.system('cp '+orig_fname+output_folder+'/mask/')
+        os.system('cp '+orig_fname+output_folder+'mask/')
         current_ori = str(subprocess.check_output('mri_info --orientation '+orig_fname, shell=True))[2:-3]
         os.system('mri_convert --in_orientation '+current_ori+' --out_orientation LIA '+
-                  output_folder+'/mask/orig.mgz '+output_folder+'/mask/'+'cerebellum_001_0000.nii.gz')
+                  output_folder+'mask/orig.mgz '+output_folder+'mask/'+'cerebellum_001_0000.nii.gz')
         # os.system('mri_convert --in_orientation LIA --out_orientation LIA '+output_folder+
         #           '/mask/orig.mgz '+output_folder+'/mask/'+'cerebellum_001_0000.nii.gz')
-        os.system('nnUNet_predict -i '+output_folder+'/mask/ -o '+output_folder+'/mask/output/ -t 7 -m 3d_fullres -tr nnUNetTrainerV2 >/dev/null 2>&1')
+        os.system('nnUNet_predict -i '+output_folder+'mask/ -o '+output_folder+'mask/output/ -t 1 -m 3d_fullres -tr nnUNetTrainerV2')#' >/dev/null 2>&1')
         split_cerebellar_hemis(subjects_dir, subject, output_folder=output_folder)
-        os.system('nnUNet_predict -i '+output_folder+'/lh/ -o '+output_folder+'/lh/segmentations/ -t 6 -m 3d_fullres -tr nnUNetTrainerV2 >/dev/null 2>&1')
-        os.system('nnUNet_predict -i '+output_folder+'/rh/ -o '+output_folder+'/rh/segmentations/ -t 5 -m 3d_fullres -tr nnUNetTrainerV2 >/dev/null 2>&1')
+        os.system('nnUNet_predict -i '+output_folder+'lh/ -o '+output_folder+'lh/segmentations/ -t 2 -m 3d_fullres -tr nnUNetTrainerV2')# >/dev/null 2>&1')
+        os.system('nnUNet_predict -i '+output_folder+'rh/ -o '+output_folder+'rh/segmentations/ -t 3 -m 3d_fullres -tr nnUNetTrainerV2')# >/dev/null 2>&1')
         
         if post_process:
-            for input_folder in [output_folder+'/rh/segmentations/', output_folder+'/lh/segmentations/']:
+            for input_folder in [output_folder+'rh/segmentations/', output_folder+'lh/segmentations/']:
                 postprocessed_folder = input_folder+'postprocessed/'
                 nib_in = nib.load(input_folder+'cerebellum_001.nii.gz')
                 vol = np.array(nib_in.dataobj).astype('uint8')

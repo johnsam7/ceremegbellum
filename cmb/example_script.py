@@ -4,11 +4,12 @@ import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
-from functions import setup_full_source_space, plot_cerebellum_data
+from cmb.functions import setup_full_source_space, plot_cerebellum_data
 from pooch import retrieve
 data_path = sample.data_path()
 
 # Paths to subject data
+cmb_path = '/vast/fusion/john/ceremegbellum_git/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -18,22 +19,33 @@ fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
 nnunet_results_path = os.environ['RESULTS_FOLDER']
 
-# Get data
-if not os.path.isdir(nnunet_results_path+'/nnUNet/3d_fullres/Task001_mask_cerebellum'):
-    retrieve(url='https://www.dropbox.com/s/ni3jxjog264s996/cerebellum_geo?dl=0',
-             known_hash=None, fname='Task001_mask_cerebellum',
-             path=nnunet_results_path+'/nnUNet/3d_fullres/')
+# Get data - dropbox link does not work - need to get a real database
+# if not op.isdir(nnunet_results_path+'/nnUNet/3d_fullres/Task001_mask_cerebellum'):
+#     retrieve(url='https://www.dropbox.com/sh/5zredn0zzsw73dp/AADw4eJ00lBqDbp2i16a2D8Da?dl=0',
+#              known_hash=None, fname='Task001_mask_cerebellum',
+#              path=nnunet_results_path+'/nnUNet/3d_fullres/')
+# if not op.isdir(nnunet_results_path+'/nnUNet/3d_fullres/Task002_segment_lh'):
+#     retrieve(url='https://www.dropbox.com/sh/bulg7quz7kxc9ov/AACtl0q-NPgy8vxVFR3Xf7GUa?dl=0',
+#              known_hash=None, fname='Task002_segment_lh',
+#              path=nnunet_results_path+'/nnUNet/3d_fullres/')
+# if not op.isdir(nnunet_results_path+'/nnUNet/3d_fullres/Task003_segment_rh'):
+#     retrieve(url='https://www.dropbox.com/sh/0l15jua1dolpmvb/AABCkz9EPvKdM4yTFJgNhvg0a?dl=0',
+#              known_hash=None, fname='Task003_segment_rh',
+#              path=nnunet_results_path+'/nnUNet/3d_fullres/')
+# if not op.exists(cmb_path+'data/cerebellum_geo'):
+    # retrieve(url='https://www.dropbox.com/s/ni3jxjog264s996/cerebellum_geo?dl=0',
+    #           known_hash=None, fname='cerebellum_geo',
+    #           path=cmb_path+'data/')
 
 
 # Cerebellar specific
-cerebellar_data_path = '/workspace/' #'/autofs/cluster/fusion/Exchange/cerebellum-meeg/'
-cb_data = pickle.load(open(cerebellar_data_path+'data/cerebellum_geo', 'rb'))
+cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
 # Setup source space
 cerebellum_subsampling = 'dense'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
-src_whole = setup_full_source_space(subject, subjects_dir, cerebellar_data_path, cerebellum_subsampling,
+src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
                                     plot_cerebellum=False, spacing=spacing)
 
 # Compute forward and inverse operators
