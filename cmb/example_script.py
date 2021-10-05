@@ -9,7 +9,7 @@ from pooch import retrieve
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/vast/fusion/john/ceremegbellum_git/' # path to the folder
+cmb_path = '/workspace/ceremegbellum/'#'/vast/fusion/john/ceremegbellum_git/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
