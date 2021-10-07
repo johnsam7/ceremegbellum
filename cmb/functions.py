@@ -16,6 +16,38 @@ import evaler
 from scipy import signal
 from .helpers import *
 
+def get_cerebellum_data(cmb_path):
+    """
+    Checks if the required cerebellum data are available and download if not.
+    
+    Parameters
+    ----------
+    cmb_path : str
+        Path to the ceremegbellum folder.
+    """
+    if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
+        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task001_mask_cerebellum') and \
+        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task001_mask_cerebellum') and \
+        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task001_mask_cerebellum'):
+            print('The required atlas data and segmentation models seem to be downloaded.')
+    else:
+        from pooch import retrieve
+        import zipfile
+        print('Seems like some data are missing. No problem, fetching...')
+        os.system('mkdir ' + cmb_path + 'tmp')
+        retrieve(url='https://osf.io/x5ryb/download',
+                 known_hash=None, fname='ceremegbellum',
+                 path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
+        with zipfile.ZipFile(cmb_path + 'tmp/' + 'ceremegbellum.zip', 'r') as zip_ref:
+            zip_ref.extractall(cmb_path + 'tmp')
+        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/cerebellum_geo ' + cmb_path + \
+                  'data/cerebellum_geo')
+        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/Task* ' + os.environ['RESULTS_FOLDER'] + \
+                  '/nnUNet/3d_fullres/')
+        os.system('rm -r ' + cmb_path + 'tmp') # clean up
+        print('Done.')
+    return
+
 def save_nifti_from_3darray(vol, fname, rotate=False, affine=None):
     if rotate:
         vol = vol[:, ::-1, ::-1]
@@ -1216,7 +1248,7 @@ def get_segmentation(subjects_dir, subject, data_dir, region_removal_limit=0.2,
         output_folder = data_dir+'/tmp/'
         orig_fname = subjects_dir+subject+'/mri/orig.mgz '
         os.system('cp '+orig_fname+output_folder+'mask/')
-        current_ori = str(subprocess.check_output('mri_info --orientation '+orig_fname, shell=True))[2:-3]
+        current_ori = str(subprocess.check_output('mri_info --orientation '+orig_fname, shell=True))[-6:-3]
         os.system('mri_convert --in_orientation '+current_ori+' --out_orientation LIA '+
                   output_folder+'mask/orig.mgz '+output_folder+'mask/'+'cerebellum_001_0000.nii.gz')
         # os.system('mri_convert --in_orientation LIA --out_orientation LIA '+output_folder+
