@@ -1,5 +1,10 @@
-data
-/cmb/__pycache__
-/cmb/cmb.egg-info
+/data
+/build
+
+# Byte-compiled / optimized / DLL files
+__pycache__
+
+# Distribution / packaging
 /dist
 /cmb.egg-info
+/.eggs
