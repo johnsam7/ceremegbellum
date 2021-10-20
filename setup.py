@@ -55,14 +55,11 @@ if __name__ == "__main__":
     with open('README.md', 'r') as fid:
         long_description = fid.read()
 
-    hard_dependencies = ('numpy', 'scipy')
     install_requires = list()
     with open('requirements.txt', 'r') as fid:
         for line in fid:
             req = line.strip()
-            for hard_dep in hard_dependencies:
-                if req.startswith(hard_dep):
-                    install_requires.append(req)
+            install_requires.append(req)
             
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
