@@ -1,20 +1,12 @@
 
 # requirements for CMB
-numpy >= 1.21.2
-scipy >= 1.7.1
-mne >= 0.23.4
-matplotlib >= 3.4.3
+numpy >= 1.20.1
+scipy >= 1.6.0
+mne >= 0.22.0
+matplotlib >= 3.3.4
 nibabel >= 3.2.1
 nnunet >= 1.7.0
 plyfile >= 0.7.4
-antspyx >= 0.2.9
-pandas >= 1.3.3
-# numpy
-# scipy
-# mne
-# matplotlib
-# nibabel
-# nnunet
-# plyfile
-# antspyx
-# pandas
+antspyx >= 0.2.7
+pandas >= 1.2.2
+evaler >= 0.0.1
