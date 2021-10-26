@@ -3,8 +3,8 @@ import os
 import mne
 import pickle
 import numpy as np
+import cmb
 from mne.datasets import sample
-from cmb.functions import setup_full_source_space, plot_cerebellum_data
 from pooch import retrieve
 data_path = sample.data_path()
 
@@ -45,7 +45,7 @@ spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebr
 # Setup source space
 cerebellum_subsampling = 'dense'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
-src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
+src_whole = cmb.setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
                                     plot_cerebellum=False, spacing=spacing)
 
 # Compute forward and inverse operators
@@ -67,7 +67,7 @@ act_cerb = np.zeros((fwd['src'][1]['nuse']))
 act_cerb[active_verts] = 1
 
 # Plot activated patch
-plot_cerebellum_data(act_cerb, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr', mayavi_cmap='OrRd',
+cmb.plot_cerebellum_data(act_cerb, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr', mayavi_cmap='OrRd',
                      smoothing_steps=0, view='all', sub_sampling=cerebellum_subsampling, cmap_lims=[0,100])
 
 evo = mne.read_evokeds(evo_fname)[0]
@@ -78,7 +78,7 @@ evo._data[all_chs] = np.repeat(sens[all_chs].reshape((len(all_chs),1)), repeats=
 estimate = mne.minimum_norm.apply_inverse(evo, inverse_operator, 1/9, 'sLORETA', verbose='WARNING')
 estimate_cerb = np.linalg.norm(estimate.data[fwd['src'][0]['nuse']:estimate.shape[0], :], axis=1)
 cort_data = np.linalg.norm(estimate.data[:fwd['src'][0]['nuse'], :], axis=1)
-plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=cort_data, flatmap_cmap='bwr',
+cmb.plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=cort_data, flatmap_cmap='bwr',
                          mayavi_cmap='OrRd', smoothing_steps=0, view='all', sub_sampling=cerebellum_subsampling,
                          cmap_lims=[25,75])
 
