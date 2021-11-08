@@ -6,6 +6,9 @@ import numpy as np
 import cmb
 from mne.datasets import sample
 from pooch import retrieve
+
+# from cmb.functions import get_cerebellum_data
+
 data_path = sample.data_path()
 
 # Paths to subject data
@@ -36,6 +39,9 @@ nnunet_results_path = os.environ['RESULTS_FOLDER']
     # retrieve(url='https://www.dropbox.com/s/ni3jxjog264s996/cerebellum_geo?dl=0',
     #           known_hash=None, fname='cerebellum_geo',
     #           path=cmb_path+'data/')
+
+# Get data from OSF
+# get_cerebellum_data(cmb_path)
 
 
 # Cerebellar specific
