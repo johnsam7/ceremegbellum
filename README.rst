@@ -33,7 +33,7 @@ Usage
 
 Licensing
 ^^^^^^^^^
-CMNE is **MIT-licensed**:
+CMB is **MIT-licensed**:
 
     Copyright (c) 2021-2022, authors of CMB.
     All rights reserved.
