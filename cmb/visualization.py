@@ -4,31 +4,6 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 
-def is_float(in_value):
-    """Checks if a value is a valid float.
-    Parameters
-    ----------
-    in_value
-        A variable of any type that we want to check is a float.
-    Returns
-    -------
-    bool
-        True/False depending on whether it was a float.
-    Examples
-    --------
-    >>> is_float(1.5)
-    True
-    >>> is_float(1)
-    False
-    >>> is_float("1.5")
-    True
-    """
-    try:
-        return not float(in_value).is_integer()
-    except (ValueError, TypeError):
-        return False
-
-
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
                          smoothing_steps=0, view='all', sub_sampling='sparse', cmap_lims=[1,98]):
     """Plots data on the cerebellar cortical surface. Requires cerebellum geometry file

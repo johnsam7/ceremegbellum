@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from cmb import visualization
+from cmb import is_float
 
 
 def test_is_float():
