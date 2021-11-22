@@ -19,3 +19,5 @@
 from ._version import __version__
 
 #from .functions import (setup_full_source_space, plot_cerebellum_data)
+
+from .is_float import is_float
