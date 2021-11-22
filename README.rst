@@ -1,9 +1,13 @@
 .. -*- mode: rst -*-
 
-|PyPI|_
+|PyPI|_ |GH-CI|_
 
 .. |PyPI| image:: https://badge.fury.io/py/cmb.svg?label=PyPI%20downloads
 .. _PyPI: https://pypi.org/project/cmb/
+
+.. |GH-CI| image:: https://github.com/johnsam7/ceremegbellum/actions/workflows/ci.yml/badge.svg?branch=main
+.. _GH-CI: https://github.com/johnsam7/ceremegbellum/actions/workflows/ci.yml
+
 
 Cere-MEG-Bellum (CMB) Package
 =============================
