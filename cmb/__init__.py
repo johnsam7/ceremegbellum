@@ -18,6 +18,4 @@
 
 from ._version import __version__
 
-from .functions import (setup_full_source_space, plot_cerebellum_data)
-
-from .visualization import (is_float)
+#from .functions import (setup_full_source_space, plot_cerebellum_data)
