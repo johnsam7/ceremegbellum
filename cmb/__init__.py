@@ -20,4 +20,4 @@ from ._version import __version__
 
 #from .functions import (setup_full_source_space, plot_cerebellum_data)
 
-from .source_space import is_float
+from .test import is_float

@@ -64,6 +64,7 @@ def cartesian2vols(rr, scale, center):
     rr = rr + (center - np.mean(rr, axis=0))
     return rr
 
+
 def transform_to_vol_space(rr_high, cx_subj_vols):
     bound_box_vol = (np.max(cx_subj_vols[:, 0]) - np.min(cx_subj_vols[:, 0])) \
                     * (np.max(cx_subj_vols[:, 1]) - np.min(cx_subj_vols[:, 1])) \
@@ -75,6 +76,7 @@ def transform_to_vol_space(rr_high, cx_subj_vols):
     rr_0 = cartesian2vols(rr_high, (bound_box_vol / bound_box_vol_high)**(1/3), 
                                    center)
     return rr_0
+
 
 def contrast_fit(cx_subj_vols, cerb_wm_vols, high_vols_cx, high_vols_wm, weights):
     # Create fake contrasts in rgb, then weight by weights arg in cost function
@@ -96,9 +98,11 @@ def contrast_fit(cx_subj_vols, cerb_wm_vols, high_vols_cx, high_vols_wm, weights
                                                        high_vols_cx)).astype(int)
     return rr_fitted, res_nonlinear
 
+
 def vol2int(vol, max_vol):
     max_vol = max_vol*2 # Multiply by 2 to handle negative integers
     return max_vol**0+vol[0]+max_vol**1*vol[1]+max_vol**2*vol[2]
+
 
 def convert_to_lia_coords(vol, aseg, hemi, crop_pad):
 
@@ -114,6 +118,7 @@ def convert_to_lia_coords(vol, aseg, hemi, crop_pad):
     vol_lia_frame[lia_coords[:, 0], lia_coords[:, 1], lia_coords[:, 2]] = vol[np.nonzero(vol)]
     
     return vol_lia_frame
+
 
 def volumetric_segmentation(rr, cx_subj_vols, scale_factor=1):
     # Scale up to make sure no part of the cerebellum is "closed"
