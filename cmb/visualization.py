@@ -356,3 +356,72 @@ def tf_morlet_wavelet(t, sig, freq, fs, ax, threshold=0, sat_threshold=.98, w=6.
 #    ax.set_ylabel('frequency (Hz)')
 #    plt.legend()
     return 
+
+
+def plot_sagittal(vol, only_show_midline=False, **kwargs):
+    sag_ind = kwargs.get('sag_ind')
+    title = kwargs.get('title')
+    rr = kwargs.get('rr')
+    nn = kwargs.get('nn')
+    tris = kwargs.get('tris')
+    cmap = kwargs.get('cmap')
+    linewidth = kwargs.get('linewidth')
+    if type(cmap) == type(None):
+        cmap = 'gray_r'
+    if type(linewidth) == type(None):
+        linewidth = 1.
+    fig, ax = plt.subplots(3, 2)
+    fig.suptitle(title)
+
+    if type(sag_ind) == type(None):
+        x_width = vol.shape[0]
+        sag_ind = np.linspace(int(x_width*0.1), int(x_width*0.9), 6).astype(int)
+
+    if only_show_midline:
+        sag_ind = [sag_ind[3]]
+
+    for c, slice_ind in enumerate(sag_ind):
+        image = vol[slice_ind, :, :]
+        plt.subplot(3, 2, c+1)
+        plt.imshow(image, cmap=cmap)
+
+        if not type(tris) == type(None):
+            z_0 = slice_ind
+            cart_ind = 0
+            xy = [x for x in range(3) if not x==cart_ind] 
+            intersecting_tris = []
+            for tri in tris:
+                rr_0 = rr[tri[0], :]
+                rr_1 = rr[tri[1], :]
+                rr_2 = rr[tri[2], :]
+                if (np.array([np.sign((rr_0[cart_ind]-z_0)*(rr_1[cart_ind]-z_0)), 
+                              np.sign((rr_0[cart_ind]-z_0)*(rr_2[cart_ind]-z_0)), 
+                              np.sign((rr_1[cart_ind]-z_0)*(rr_2[cart_ind]-z_0))]) == -1).any():
+                    intersecting_tris.append(tri)
+            intersecting_tris=np.array(intersecting_tris)
+            for int_tri in intersecting_tris:
+                rr_0 = rr[int_tri[0], :]
+                rr_1 = rr[int_tri[1], :]
+                rr_2 = rr[int_tri[2], :]
+                t_0 = (z_0 - rr_0[cart_ind])/(rr_1[cart_ind] - rr_0[cart_ind])
+                t_1 = (z_0 - rr_0[cart_ind])/(rr_2[cart_ind] - rr_0[cart_ind])
+                t_2 = (z_0 - rr_1[cart_ind])/(rr_2[cart_ind] - rr_1[cart_ind])
+                xy_points = []
+                if t_0 > 0 and t_0 < 1:
+                    xy_points.append(t_0*rr_1[xy] + (1-t_0)*rr_0[xy])
+                if t_1 > 0 and t_1 < 1:
+                    xy_points.append(t_1*rr_2[xy] + (1-t_1)*rr_0[xy])
+                if t_2 > 0 and t_2 < 1:
+                    xy_points.append(t_2*rr_2[xy] + (1-t_2)*rr_1[xy])
+                xy_points = np.array(xy_points)
+                plt.plot(xy_points[:,1], xy_points[:,0], color='red', linewidth=linewidth)
+
+
+        if not type(nn) == type(None):
+            ptsp = np.where(np.abs(rr[:,0]-(slice_ind-0.5)) < 1.0)[0]
+            x_tp = rr[ptsp,2]
+            y_tp = rr[ptsp,1]
+#            plt.scatter(x_tp, y_tp, color='r', s=0.1)
+            plt.quiver(x_tp, y_tp, nn[ptsp,2], -nn[ptsp,1], scale=1, scale_units='inches')
+
+    return fig, ax
