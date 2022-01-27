@@ -27,8 +27,8 @@ To install the latest stable version of CMB, you can use pip_ in a terminal:
     pip install -U cmb
 
 
-Usage
-^^^^^
+Usage of the Dokcer Container
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
