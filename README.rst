@@ -27,9 +27,24 @@ To install the latest stable version of CMB, you can use pip_ in a terminal:
     pip install -U cmb
 
 
-Usage of the Dokcer Container
+Usage of the Docker Container
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+before building the image please place in this folder
+
+> freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
+
+and the freesurfer license file
+
+> license.txt
+
+than build the docker image with
+
+> docker build -t mne-tools/cmb:v0.01 .
+
+and run it subsequently with
+
+> docker run -ti -v <YOUR SUBJECTS DIR>:/workspace/subjects -v <YOUR PROCESSED nnUNet DIR>:/workspace/nnUNet -v <YOUR ceremegbellum GIT DIR>:/workspace/ceremegbellum --name CMB mne-tools/cmb:v0.01
 
 
 Licensing
