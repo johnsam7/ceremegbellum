@@ -38,7 +38,7 @@ Subsequently build the docker image with
 
     docker build -t mne-tools/cmb:v0.01 .
 
-and run it subsequently with
+and run it with
 
 .. code-block:: bash
 
