@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+# Created: November, 2021
+# License: MIT
+# ---------------------------------------------------------------------------
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+# Created: September, 2021
+# License: MIT
+# ---------------------------------------------------------------------------
+
 import numpy as np
 from scipy.optimize import minimize, basinhopping
 import matplotlib.pyplot as plt

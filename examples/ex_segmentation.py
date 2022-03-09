@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+# Created: October, 2021
+# License: MIT
+# ---------------------------------------------------------------------------
+
 import os.path as op
 import os
 import mne

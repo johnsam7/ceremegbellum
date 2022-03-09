@@ -1,12 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+# Created: October, 2021
+# License: MIT
+# ---------------------------------------------------------------------------
+
+
 import os.path as op
 import os
 import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
-from cmb.functions import get_cerebellum_data
-from cmb.source_space import setup_full_source_space
-from cmb.visualization import plot_cerebellum_data
+from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 data_path = sample.data_path()
 
 # Paths to subject data

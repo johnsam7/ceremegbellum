@@ -44,7 +44,7 @@ and run it with
 
     docker run -ti -v <YOUR SUBJECTS DIR>:/workspace/subjects -v <YOUR PROCESSED nnUNet DIR>:/workspace/nnUNet -v <YOUR ceremegbellum GIT DIR>:/workspace/ceremegbellum --name CMB mne-tools/cmb:v0.01
 
-For development cmb can be installed from the local repository. In the CLI of the Docker Ccntainer change the directory to to '/workspace/ceremegbellum' and run
+It is convinient to install CMB for development directly from the local repository. Change the directory to to '/workspace/ceremegbellum' in the CLI of the Docker Container and run
 
 .. code-block:: bash
 
