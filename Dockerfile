@@ -32,6 +32,6 @@ ENV RESULTS_FOLDER /workspace/nnUNet/nnUNet_trained_models
 RUN /bin/bash -c ' echo -e "source $FREESURFER_HOME/FreeSurferEnv.sh &>/dev/null" >> /root/.bashrc '
 
 # Configure CMB
-RUN pip install cmb
+# RUN pip install cmb
 
 # RUN pip install --upgrade .

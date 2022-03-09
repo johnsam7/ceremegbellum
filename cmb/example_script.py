@@ -4,11 +4,13 @@ import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
-from cmb.functions import setup_full_source_space, plot_cerebellum_data, get_cerebellum_data
+from cmb.functions import get_cerebellum_data
+from cmb.source_space import setup_full_source_space
+from cmb.visualization import plot_cerebellum_data
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/vast/fusion/john/ceremegbellum_git/' # path to the folder
+cmb_path = '/workspace/ceremegbellum/' #'/vast/fusion/john/ceremegbellum_git/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
