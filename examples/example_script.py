@@ -1,14 +1,23 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+# Created: October, 2021
+# License: MIT
+# ---------------------------------------------------------------------------
+
 import os.path as op
 import os
 import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
-from cmb.functions import setup_full_source_space, plot_cerebellum_data, get_cerebellum_data
+from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/vast/fusion/john/ceremegbellum_git/' # path to the folder
+cmb_path = '/workspace/ceremegbellum/' #'/vast/fusion/john/ceremegbellum_git/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')

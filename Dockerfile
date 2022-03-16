@@ -9,8 +9,6 @@
 # Start with nvidia pytorch configured ubuntu
 FROM nvcr.io/nvidia/pytorch:21.08-py3
 
-LABEL maintainer="Christoph Dinh christoph.dinh@mne-cpp.org"
-
 # ADD or Download FS_v6.0.0 from MGH and untar to /opt
 ADD freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz /usr/local/
 RUN apt-get update
@@ -34,6 +32,6 @@ ENV RESULTS_FOLDER /workspace/nnUNet/nnUNet_trained_models
 RUN /bin/bash -c ' echo -e "source $FREESURFER_HOME/FreeSurferEnv.sh &>/dev/null" >> /root/.bashrc '
 
 # Configure CMB
-RUN pip install cmb
+# RUN pip install cmb
 
 # RUN pip install --upgrade .
