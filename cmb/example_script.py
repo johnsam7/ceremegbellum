@@ -53,6 +53,7 @@ act_cerb[active_verts] = 1
 plot_cerebellum_data(act_cerb, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr', mayavi_cmap='OrRd',
                      smoothing_steps=0, view='all', sub_sampling=cerebellum_subsampling, cmap_lims=[0,100])
 
+# Plot estimated activation
 evo = mne.read_evokeds(evo_fname)[0]
 sens = np.zeros(evo.info['nchan'])
 all_chs = mne.pick_types(evo.info, meg=True, eeg=True, exclude=[])
