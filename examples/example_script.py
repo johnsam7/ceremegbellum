@@ -17,7 +17,7 @@ from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_da
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/workspace/ceremegbellum/' #'/vast/fusion/john/ceremegbellum_git/' # path to the folder
+cmb_path = '/vast/fusion/john/test/ceremegbellum/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -28,6 +28,7 @@ evo_fname = sample_dir + '/sample_audvis-ave.fif'
 nnunet_results_path = os.environ['RESULTS_FOLDER']
 
 # Check if the required data are available and download if not
+# Until cerebellar atlas data and segmentation models are public, you need to download this manually from here: https://osf.io/x5ryb/download and copy the zip file to (cmb_path)/tmp and THEN run get_cerebellum_data
 get_cerebellum_data(cmb_path)
 
 # Cerebellar specific
@@ -58,11 +59,11 @@ active_verts = np.where(np.isin(fwd['src'][1]['vertno'], active_verts))[0]
 act_cerb = np.zeros((fwd['src'][1]['nuse']))
 act_cerb[active_verts] = 1
 
-# Plot activated patch
+# Plot activated patch (set view to 'all' if not remote connecting)
 plot_cerebellum_data(act_cerb, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr', mayavi_cmap='OrRd',
-                     smoothing_steps=0, view='all', sub_sampling=cerebellum_subsampling, cmap_lims=[0,100])
+                     smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling, cmap_lims=[0,100])
 
-# Plot estimated activation
+# Plot estimated activation (set view to 'all' if not remote connecting)
 evo = mne.read_evokeds(evo_fname)[0]
 sens = np.zeros(evo.info['nchan'])
 all_chs = mne.pick_types(evo.info, meg=True, eeg=True, exclude=[])
@@ -72,6 +73,6 @@ estimate = mne.minimum_norm.apply_inverse(evo, inverse_operator, 1/9, 'sLORETA',
 estimate_cerb = np.linalg.norm(estimate.data[fwd['src'][0]['nuse']:estimate.shape[0], :], axis=1)
 cort_data = np.linalg.norm(estimate.data[:fwd['src'][0]['nuse'], :], axis=1)
 plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=cort_data, flatmap_cmap='bwr',
-                         mayavi_cmap='OrRd', smoothing_steps=0, view='all', sub_sampling=cerebellum_subsampling,
+                         mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
                          cmap_lims=[25,75])
 
