@@ -3,7 +3,6 @@
 import sys
 
 import os
-import pooch
 import os.path as op
 
 from setuptools import setup
@@ -26,20 +25,6 @@ with open(op.join('cmb', '_version.py'), 'r') as fid:
 if version is None:
     raise RuntimeError('Could not determine version')
 
-# Download and install AntsPy 0.2.9 from source
-from pooch import retrieve
-import zipfile
-print('Installing ANTsPy...')
-path = op.dirname(__file__)
-os.system('mkdir ' + path + '/tmp')
-retrieve(url='https://github.com/ANTsX/ANTsPy/archive/refs/tags/v0.2.9.zip',
-         known_hash=None, fname='antspy.zip', path=path + '/tmp')
-with zipfile.ZipFile(path + '/tmp/' + 'antspy.zip', 'r') as zip_ref:
-    zip_ref.extractall(path + '/tmp')
-workdir = os.popen('pwd').read()[:-1]
-os.system('cd ' + path + '/tmp/ANTsPy-0.2.9/')
-os.system('python setup.py install')
-os.system('cd ' + workdir)
 
 
 descr = """Cere-MEG-Bellum (CMB) - Cerebellum segmentation and forward solution calculation"""
@@ -109,3 +94,26 @@ if __name__ == "__main__":
         install_requires=install_requires,
         setup_requires=SETUP_REQUIRES,
         packages=package_tree('cmb'))
+    
+    # Download and install AntsPy 0.2.9 from source
+    from pooch import retrieve
+    import zipfile
+    print('Installing ANTsPy...')
+    path = op.dirname(__file__)
+    os.system('mkdir ' + path + '/tmp')
+    retrieve(url='https://github.com/ANTsX/ANTsPy/archive/refs/tags/v0.2.9.zip',
+             known_hash=None, fname='antspy.zip', path=path + '/tmp')
+    with zipfile.ZipFile(path + '/tmp/' + 'antspy.zip', 'r') as zip_ref:
+        zip_ref.extractall(path + '/tmp')
+#    os.system('python ' + path + '/tmp/ANTsPy-0.2.9/setup.py install')
+    workdir = os.popen('pwd').read()[:-1]
+#    os.system('cd ' + path + '/tmp/ANTsPy-0.2.9/')
+    os.chdir(path + '/tmp/ANTsPy-0.2.9/')
+    os.system('chmod 777 ./scripts/*')
+    newdir = os.popen('pwd').read()[:-1]
+    print(newdir)
+    os.system('python setup.py install')
+    os.chdir(workdir)
+
+
+
