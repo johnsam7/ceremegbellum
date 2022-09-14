@@ -1,4 +1,5 @@
 # requirements for CMB
+pooch
 numpy >= 1.20.1
 scipy >= 1.6.0
 mne >= 0.22.0
@@ -9,4 +10,3 @@ plyfile >= 0.7.4
 #antspyx >= 0.2.7
 pandas >= 1.2.2
 evaler >= 0.0.2
-pooch
