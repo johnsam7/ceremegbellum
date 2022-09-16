@@ -95,20 +95,20 @@ if __name__ == "__main__":
         setup_requires=SETUP_REQUIRES,
         packages=package_tree('cmb'))
     
-    # Download and install AntsPy 0.2.9 from source
+    # Download and install AntsPy 0.2.7 from source
     from pooch import retrieve
     import zipfile
     print('Installing ANTsPy...')
     path = op.dirname(__file__)
     os.system('mkdir ' + path + '/tmp')
-    retrieve(url='https://github.com/ANTsX/ANTsPy/archive/refs/tags/v0.2.9.zip',
+    retrieve(url='https://github.com/ANTsX/ANTsPy/archive/refs/tags/v0.2.7.zip',
              known_hash=None, fname='antspy.zip', path=path + '/tmp')
     with zipfile.ZipFile(path + '/tmp/' + 'antspy.zip', 'r') as zip_ref:
         zip_ref.extractall(path + '/tmp')
-#    os.system('python ' + path + '/tmp/ANTsPy-0.2.9/setup.py install')
+#    os.system('python ' + path + '/tmp/ANTsPy-0.2.7/setup.py install')
     workdir = os.popen('pwd').read()[:-1]
-#    os.system('cd ' + path + '/tmp/ANTsPy-0.2.9/')
-    os.chdir(path + '/tmp/ANTsPy-0.2.9/')
+#    os.system('cd ' + path + '/tmp/ANTsPy-0.2.7/')
+    os.chdir(path + '/tmp/ANTsPy-0.2.7/')
     os.system('chmod 777 ./scripts/*')
     newdir = os.popen('pwd').read()[:-1]
     print(newdir)
