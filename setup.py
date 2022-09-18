@@ -105,14 +105,11 @@ if __name__ == "__main__":
              known_hash=None, fname='antspy.zip', path=path + '/tmp')
     with zipfile.ZipFile(path + '/tmp/' + 'antspy.zip', 'r') as zip_ref:
         zip_ref.extractall(path + '/tmp')
-#    os.system('python ' + path + '/tmp/ANTsPy-0.2.7/setup.py install')
     workdir = os.popen('pwd').read()[:-1]
-#    os.system('cd ' + path + '/tmp/ANTsPy-0.2.7/')
     os.chdir(path + '/tmp/ANTsPy-0.2.7/')
     os.system('chmod 777 ./scripts/*')
-    newdir = os.popen('pwd').read()[:-1]
-    print(newdir)
     os.system('python setup.py install')
+    os.system('rm -rf ' + path + '/tmp')
     os.chdir(workdir)
 
 
