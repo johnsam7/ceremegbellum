@@ -120,7 +120,7 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
     from scipy import signal
     import ants
     import pandas as pd
-    import evaler
+#    import evaler
 
     subjects_dir = subjects_dir + '/'
     print('starting subject '+subject+'...')
@@ -233,7 +233,7 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
     
     if calc_nn:
         print('Calculating normals on deformed surface...', end='', flush=True)
-        (nn_def, area, area_list, nan_vertices) = evaler.calculate_normals(rr_p, tris, print_info=False)
+        (nn_def, area, area_list, nan_vertices) = calculate_normals(rr_p, tris, print_info=False)
         subj_cerb.update({'nn' : nn_def})
         subj_cerb.update({'nan_nn' : nan_vertices})
         print('Done.')
@@ -250,6 +250,69 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
         print('Saved to ' + data_dir + subject + '_cerb_cxw.fs')
         
     return subj_cerb
+
+
+def calculate_normals(rr, tris, solid_angle_calc=False, obs_point=np.zeros(3), print_info=True):
+    """Takes rr - an array of position of vertices and tris - indices of vertices that deliniates
+    triangle face and returns vertex normals based on an (unweighted) average of neighboring face normals."""
+    A = []
+    area_list = []
+    area = 0.0
+    count=0
+    nan_vertices = []
+    for x in range(len(rr)):
+        A.append([])
+    solid_angle = 0
+    for row in tris:
+        v1=rr[row[1],:]-rr[row[0],:]
+        v2=rr[row[2],:]-rr[row[0],:]
+        nml = np.cross(v1,v2)
+        area = area + np.linalg.norm(nml)/2.0
+        area_list.append(area)
+        nn_fc = nml/np.linalg.norm(nml)
+        A[row[0]].append(nn_fc)
+        A[row[1]].append(nn_fc)
+        A[row[2]].append(nn_fc)
+        if solid_angle_calc==True:
+            R1 = rr[row[0]] - obs_point
+            R2 = rr[row[1]] - obs_point
+            R3 = rr[row[2]] - obs_point
+            
+            solid_angle = solid_angle + 2*np.arctan(np.dot(R1,np.cross(R2,R3))/ \
+                (np.linalg.norm(R1)*np.linalg.norm(R2)*np.linalg.norm(R3) + np.dot(R1,R2)*np.linalg.norm(R3) + \
+                np.dot(R1,R3)*np.linalg.norm(R2) + np.dot(R2,R3)*np.linalg.norm(R1)))  
+    
+    if solid_angle_calc==True:
+        print('solid_angle at the point of observation estimated to:')
+        print(solid_angle)    
+        
+    nn = np.zeros((len(rr),3))
+    for c, ele in enumerate(A):
+        vert_norm = np.zeros(3)
+        for vec in ele:
+            vert_norm = vert_norm + vec
+        vert_norm = vert_norm/np.linalg.norm(vert_norm)
+        nn[c,:]=vert_norm
+        
+    for c, ele in enumerate(A):
+        if np.isnan(nn[c,:]).any(): #np.linalg.norm(nn[c,:]) == 0:
+            neighbor_rows = np.where(tris==c)[0]
+            neighbors = np.unique(tris[neighbor_rows])
+            neighbors = neighbors[np.where(neighbors!=c)]
+            normal = np.mean(nn[neighbors,:],axis=0)
+            nn[c,:] = normal/np.linalg.norm(normal)
+            count = count+1
+            
+            if np.isnan(nn[c,:]).any():
+                nan_vertices.append(c)
+            
+    if print_info:
+        print('number of nan normals that have been smoothed = ' + str(count))
+        print('Remaining NAN normals = ' + str(len(nan_vertices)))                
+        print('Total surface area: ' + np.str(area))
+    
+    return (nn,area,area_list,nan_vertices)
+
 
 
 def setup_full_source_space(subject, subjects_dir, cerb_dir, cerb_subsampling='sparse', spacing='oct6',
@@ -350,6 +413,8 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
     import warnings
     import subprocess
     import ants
+    
+    set_nnunet_paths()
 
     if not subjects_dir[-1] == '/':
         subjects_dir = subjects_dir +'/'

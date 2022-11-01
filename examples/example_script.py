@@ -12,12 +12,13 @@ import os
 import mne
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 from mne.datasets import sample
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/autofs/vast/fusion/john/test/new_test/ceremegbellum/' # path to the folder
+cmb_path = '/autofs/vast/fusion/john/test/ceremegbellum/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -25,7 +26,6 @@ subject = 'sample'
 trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
-nnunet_results_path = os.environ['RESULTS_FOLDER']
 
 # Check if the required data are available and download if not
 # Until cerebellar atlas data and segmentation models are public, you need to download this manually from here: https://osf.io/x5ryb/download and copy the zip file to (cmb_path)/tmp and THEN run get_cerebellum_data

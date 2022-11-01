@@ -14,7 +14,7 @@ from plyfile import PlyData, PlyElement
 import nibabel as nib
 import pickle
 import os
-import evaler
+#import evaler
 from scipy import signal
 from .helpers import *
 
@@ -28,10 +28,10 @@ def get_cerebellum_data(cmb_path):
         Path to the ceremegbellum folder.
     """
     if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
-        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task001_mask') and \
-        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task002_lh') and \
-        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task003_rh') and \
-        os.path.isdir(os.environ['RESULTS_FOLDER'] + '/nnUNet/3d_fullres/Task004_refine_lobsI_IV') and \
+        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task001_mask') and \
+        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task002_lh') and \
+        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task003_rh') and \
+        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task004_refine_lobsI_IV') and \
         os.path.exists(cmb_path + 'data/brain.nii')    :
             print('The required atlas data and segmentation models seem to be downloaded.')
     else:
@@ -40,20 +40,26 @@ def get_cerebellum_data(cmb_path):
         print('Seems like some data are missing. No problem, fetching...')
         os.system('mkdir ' + cmb_path + 'tmp')
         os.system('mkdir ' + cmb_path + 'data')
+        os.system('mkdir ' + cmb_path + 'nnUNet')
+        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER')
+        os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_preprocessed')
+        os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_raw_data_base')
+        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres')
         retrieve(url='https://osf.io/sdn9h/download',
                  known_hash=None, fname='ceremegbellum',
                  path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
         with zipfile.ZipFile(cmb_path + 'tmp/' + 'ceremegbellum.zip', 'r') as zip_ref:
             zip_ref.extractall(cmb_path + 'tmp')
-        os.system('mv ' + cmb_path + 'tmp/osf_data/cerebellum_geo ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/cerebellum_geo ' + cmb_path + \
                   'data/cerebellum_geo')
-        os.system('mv ' + cmb_path + 'tmp/osf_data/brain.nii ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/brain.nii ' + cmb_path + \
                   'data/brain.nii')
-        os.system('mv ' + cmb_path + 'tmp/osf_data/Task* ' + os.environ['RESULTS_FOLDER'] + \
-                  '/nnUNet/3d_fullres/')
+        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
+                  'nnUNet/3d_fullres/')
         os.system('rm -r ' + cmb_path + 'tmp') # clean up
         print('Done.')
     return
+
 
 def change_labels(vol, old_labels, new_labels):
     new_vol = vol.copy()

@@ -14,8 +14,13 @@ from plyfile import PlyData, PlyElement
 import nibabel as nib
 import pickle
 import os
-import evaler
+#import evaler
 from scipy import signal
+
+def set_nnunet_paths():
+    os.system("export nnUNet_raw_data_base=\"/vast/fusion/john/nnUNet/nnUNet_raw_data_base\"")
+    os.system("export nnUNet_preprocessed=\"/vast/fusion/john/nnUNet/nnUNet_preprocessed\"")
+    os.system("export RESULTS_FOLDER=\"/vast/fusion/john/nnUNet/RESULTS_FOLDER\"")
 
 def change_labels(vol, old_labels, new_labels):
     new_vol = vol.copy()
