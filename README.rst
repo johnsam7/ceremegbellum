@@ -26,7 +26,7 @@ To install the latest stable version of CMB, you can use pip_ in a terminal:
 
     pip install -U cmb
 
-For Martinos user, follow these guidelines:
+For Martinos users, follow these guidelines:
 
 1. Create new conda environment with correct version of Python:
 
