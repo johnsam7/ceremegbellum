@@ -44,19 +44,22 @@ def get_cerebellum_data(cmb_path):
         os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER')
         os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_preprocessed')
         os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_raw_data_base')
+        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet')
         os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres')
-        retrieve(url='https://osf.io/sdn9h/download',
-                 known_hash=None, fname='ceremegbellum',
-                 path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
+        os.system('cp /autofs/cluster/fusion/Exchange/cerebellum-meeg/ceremegbellum.zip ' + \
+                  cmb_path + 'tmp')
+#        retrieve(url='https://osf.io/sdn9h/download',
+#                 known_hash=None, fname='ceremegbellum',
+#                 path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
         with zipfile.ZipFile(cmb_path + 'tmp/' + 'ceremegbellum.zip', 'r') as zip_ref:
             zip_ref.extractall(cmb_path + 'tmp')
-        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/cerebellum_geo ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/osf_data//cerebellum_geo ' + cmb_path + \
                   'data/cerebellum_geo')
-        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/brain.nii ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/osf_data//brain.nii ' + cmb_path + \
                   'data/brain.nii')
-        os.system('mv ' + cmb_path + 'tmp/ceremegbellum/Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
-                  'nnUNet/3d_fullres/')
-        os.system('rm -r ' + cmb_path + 'tmp') # clean up
+        os.system('mv ' + cmb_path + 'tmp/osf_data//Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
+                  '/nnUNet/3d_fullres/')
+#        os.system('rm -r ' + cmb_path + 'tmp') # clean up
         print('Done.')
     return
 
