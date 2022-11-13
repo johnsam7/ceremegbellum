@@ -76,10 +76,18 @@ plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=co
                          mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
                          cmap_lims=[25,75])
 
-# Sensitivity map
+# Sensitivity maps - cerebellum only
 for ch_type in ['mag', 'grad', 'eeg']:
     ch_inds = mne.channel_indices_by_type(fwd['info'])
     signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], fwd['src'][0]['nuse']:], axis=0)
     plot_cerebellum_data(signal_norms, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr',
                              mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
                              cmap_lims=[25,75])
+# Sensitivity maps - with cortex
+for ch_type in ['mag', 'grad', 'eeg']:
+    ch_inds = mne.channel_indices_by_type(fwd['info'])
+    signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], :], axis=0)
+    plot_cerebellum_data(signal_norms[fwd['src'][0]['nuse']:], fwd['src'], src_whole, cb_data, cort_data=signal_norms[:fwd['src'][0]['nuse']], flatmap_cmap='bwr',
+                             mayavi_cmap='OrRd', smoothing_steps=0, view='normal', sub_sampling=cerebellum_subsampling,
+                             cmap_lims=[25,75])
+
