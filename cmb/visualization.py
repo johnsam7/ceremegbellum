@@ -40,7 +40,6 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     from mayavi import mlab
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
-#    from evaler import print_surf
     
     if not cort_data is None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'

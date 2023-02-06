@@ -14,7 +14,6 @@ from plyfile import PlyData, PlyElement
 import nibabel as nib
 import pickle
 import os
-#import evaler
 from scipy import signal
 from .helpers import *
 
@@ -53,13 +52,13 @@ def get_cerebellum_data(cmb_path):
 #                 path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
         with zipfile.ZipFile(cmb_path + 'tmp/' + 'ceremegbellum.zip', 'r') as zip_ref:
             zip_ref.extractall(cmb_path + 'tmp')
-        os.system('mv ' + cmb_path + 'tmp/osf_data//cerebellum_geo ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/osf_data/cerebellum_geo ' + cmb_path + \
                   'data/cerebellum_geo')
-        os.system('mv ' + cmb_path + 'tmp/osf_data//brain.nii ' + cmb_path + \
+        os.system('mv ' + cmb_path + 'tmp/osf_data/brain.nii ' + cmb_path + \
                   'data/brain.nii')
-        os.system('mv ' + cmb_path + 'tmp/osf_data//Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
+        os.system('mv ' + cmb_path + 'tmp/osf_data/Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
                   '/nnUNet/3d_fullres/')
-#        os.system('rm -r ' + cmb_path + 'tmp') # clean up
+        os.system('rm -r ' + cmb_path + 'tmp') # clean up
         print('Done.')
     return
 
