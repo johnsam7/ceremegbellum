@@ -26,6 +26,45 @@ To install the latest stable version of CMB, you can use pip_ in a terminal:
 
     pip install -U cmb
 
+For Martinos users, follow these guidelines:
+
+1. Create new conda environment with correct version of Python:
+
+.. code-block:: bash
+
+    conda create --name (your-environment-name) python=3.8.6
+
+2. clone git repo and switch to branch dev_nnunet:
+
+.. code-block:: bash
+
+    git clone https://github.com/johnsam7/ceremegbellum.git
+    cd ceremegbellum
+    git checkout dev_nnunet
+
+3. install required public packages:
+
+.. code-block:: bash
+
+    pip install -r requirements.txt
+
+4. install ceremegbellum package including antspy:
+
+.. code-block:: bash
+
+    python setup.py install
+
+5. setup pre-compiled freesurfer (needed for segmentation):
+
+.. code-block:: bash
+
+    setfsvers
+    setupfs
+
+6. run example.py in examples folder. If connecting with remote desktop, mayavi will likely fail to render for graphics hardware reasons so then view needs to be set to 'flatmap' in plot_cerebellum_data() (which is the default). If at site, all viewing options should work.
+7. Once you've confirmed that example.py runs until the end, you know the installation is successful and you can start using it for your own data. This is most easily done by modifying the example.py script by setting the paths to subject data to your own subject data.
+
+
 
 Usage of the Docker Container
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

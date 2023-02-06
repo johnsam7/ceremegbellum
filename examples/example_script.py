@@ -12,12 +12,13 @@ import os
 import mne
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 from mne.datasets import sample
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/vast/fusion/john/test/ceremegbellum/' # path to the folder
+cmb_path = '/path-to-your-cmb-folder/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -25,10 +26,9 @@ subject = 'sample'
 trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
-nnunet_results_path = os.environ['RESULTS_FOLDER']
 
 # Check if the required data are available and download if not
-# Until cerebellar atlas data and segmentation models are public, you need to download this manually from here: https://osf.io/x5ryb/download and copy the zip file to (cmb_path)/tmp and THEN run get_cerebellum_data
+# Until cerebellar atlas data and segmentation models are public, it will copy to the data from a local shared martinos exchange folder
 get_cerebellum_data(cmb_path)
 
 # Cerebellar specific
@@ -75,4 +75,19 @@ cort_data = np.linalg.norm(estimate.data[:fwd['src'][0]['nuse'], :], axis=1)
 plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=cort_data, flatmap_cmap='bwr',
                          mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
                          cmap_lims=[25,75])
+
+# Sensitivity maps - cerebellum only
+for ch_type in ['mag', 'grad', 'eeg']:
+    ch_inds = mne.channel_indices_by_type(fwd['info'])
+    signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], fwd['src'][0]['nuse']:], axis=0)
+    plot_cerebellum_data(signal_norms, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr',
+                             mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
+                             cmap_lims=[25,75])
+# Sensitivity maps - with cortex
+for ch_type in ['mag', 'grad', 'eeg']:
+    ch_inds = mne.channel_indices_by_type(fwd['info'])
+    signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], :], axis=0)
+    plot_cerebellum_data(signal_norms[fwd['src'][0]['nuse']:], fwd['src'], src_whole, cb_data, cort_data=signal_norms[:fwd['src'][0]['nuse']], flatmap_cmap='bwr',
+                             mayavi_cmap='OrRd', smoothing_steps=0, view='normal', sub_sampling=cerebellum_subsampling,
+                             cmap_lims=[25,75])
 

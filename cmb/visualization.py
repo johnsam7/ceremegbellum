@@ -40,7 +40,6 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     from mayavi import mlab
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
-    from evaler import print_surf
     
     if not cort_data is None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
@@ -81,13 +80,12 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
             cort_full_mantle[src_cort['vertno']] = cort_data
             nan_verts = np.where(np.isnan(cort_full_mantle))[0]
             tris_frame = org_src[0]['tris']
-#            cort_full_mantle[:] = np.nan
-#        while len(nan_verts) > 0:
-#            vert2tris = np.array([np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts])
-#            neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
-#            cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
-#            nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-#            print('Remaining source points: '+str(len(nan_verts)))
+        while len(nan_verts) > 0:
+            vert2tris = np.array([np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts])
+            neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
+            cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
+            nan_verts = np.where(np.isnan(cort_full_mantle))[0]
+            print('Remaining source points: '+str(len(nan_verts)))
 
     if mayavi_cmap is None:
         if cort_data is None:
@@ -127,7 +125,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
              figures.append(normal_fig)
              
 #            print_surf('/autofs/cluster/fusion/john/projects/cerebellum/inv/data/cort_estimate.ply',
-#                      src_cort['rr'][org_src[0]['vertno']], tris_frame, cmap=mayavi_cmap, scals=cort_full_mantle, color=np.array([True]))
+#                      rr_cx, tris_frame, cmap=mayavi_cmap, scals=cort_full_mantle, color=np.array([True]))
              
     if view in ['all', 'inflated']:
         # print_surf('/autofs/cluster/fusion/john/projects/cerebellum/inv/data/cerebellum_estimate_inflated.ply',
