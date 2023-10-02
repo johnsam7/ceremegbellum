@@ -24,42 +24,43 @@ To install the latest stable version of CMB, you can use pip_ in a terminal:
 
 .. code-block:: bash
 
-    pip install -U cmb
+    $ pip install -U cmb
 
-For Martinos users, follow these guidelines:
+For Martinos users
+~~~~~~~~~~~~~~~~~~
 
 1. Create new conda environment with correct version of Python:
 
 .. code-block:: bash
 
-    conda create --name (your-environment-name) python=3.8.6
+    $ conda create --name (your-environment-name) python=3.8
 
-2. clone git repo and switch to branch dev_nnunet:
+2. clone git repo:
 
 .. code-block:: bash
 
-    git clone https://github.com/johnsam7/ceremegbellum.git
-    cd ceremegbellum
-    git checkout dev_nnunet
+    $ git clone git@github.com:jasmainak/cbm.git
+    $ cd cbm/
 
 3. install required public packages:
 
 .. code-block:: bash
-    pip install -r pre-req.txt
 
-if on tcsh, use setenv instead of export.
+    $ pip install -r pre-req.txt
+
 4. install ceremegbellum package including antspy:
 
 .. code-block:: bash
-    pip install antspyx
-    pip install -e .
+
+    $ pip install antspyx
+    $ pip install -e .
 
 5. setup pre-compiled freesurfer (needed for segmentation):
 
 .. code-block:: bash
 
-    setfsvers
-    setupfs
+    $ setfsvers
+    $ setupfs
 
 Running the example
 ^^^^^^^^^^^^^^^^^^^
