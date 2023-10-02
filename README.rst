@@ -28,7 +28,7 @@ For Martinos users
 
 .. code-block:: bash
 
-    $ conda create --name (your-environment-name) python=3.8
+    $ conda create --name <your-environment-name> python=3.8
 
 2. clone git repo:
 
@@ -37,10 +37,11 @@ For Martinos users
     $ git clone git@github.com:jasmainak/cbm.git
     $ cd cbm/
 
-3. install required public packages:
+3. Activate the new environment and install required public packages:
 
 .. code-block:: bash
 
+    $ conda activate <your-environment-name>
     $ pip install -r pre-req.txt
 
 4. install ceremegbellum package including antspy:
