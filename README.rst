@@ -42,31 +42,19 @@ For Martinos users, follow these guidelines:
     cd ceremegbellum
     git checkout dev_nnunet
 
-3. set environment variable:
-
-The following works on bash and zsh:
+3. install required public packages:
 
 .. code-block:: bash
-
-    export SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
-
-use setenv instead of export if on tcsh
-
-4. install required public packages:
-
-.. code-block:: bash
-    export export SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
     pip install -r pre-req.txt
-    pip install -r requirements.txt
 
 if on tcsh, use setenv instead of export.
-5. install ceremegbellum package including antspy:
+4. install ceremegbellum package including antspy:
 
 .. code-block:: bash
     pip install antspyx
     pip install -e .
 
-6. setup pre-compiled freesurfer (needed for segmentation):
+5. setup pre-compiled freesurfer (needed for segmentation):
 
 .. code-block:: bash
 

@@ -50,6 +50,7 @@ def package_tree(pkgroot):
 
 
 if __name__ == "__main__":
+    os.environ['SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL'] = 'True'
     if op.exists('MANIFEST'):
         os.remove('MANIFEST')
 
