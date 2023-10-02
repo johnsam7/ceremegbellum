@@ -12,11 +12,6 @@
 Cere-MEG-Bellum (CMB) Package
 =============================
 
-For more information about CMB, please read the following paper:
-
-  Samuelsson J G , Rosen B, Hamalainen M S. *Automatic Reconstruction of Cerebellar Cortex from Standard MRI Using Diffeomorphic Registration of a High-Resolution Template (ARCUS).* bioRxiv 2020.11.30.405522; doi: https://doi.org/10.1101/2020.11.30.405522
-
-
 Installation
 ^^^^^^^^^^^^
 
@@ -91,5 +86,13 @@ It is convinient to install CMB for development directly from the local reposito
 .. code-block:: bash
 
     pip install -e .
+
+Cite
+^^^^
+
+1. Samuelsson J G , Rosen B, Hamalainen M S. *Automatic Reconstruction of
+Cerebellar Cortex from Standard MRI Using Diffeomorphic Registration of a
+High-Resolution Template (ARCUS).* bioRxiv 2020.11.30.405522;
+doi: https://doi.org/10.1101/2020.11.30.405522
 
 .. _pip: https://pip.pypa.io/en/stable/
