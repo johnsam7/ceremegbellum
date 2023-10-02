@@ -14,6 +14,40 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 
+class MLab:
+
+    def __init__(self, force_pyvista=True):
+        self.is_mayavi = False
+        try:
+            from mayavi import mlab as mayavi_mlab
+            self.mlab = mayavi_mlab
+            self.is_mayavi = True
+        except ImportError as e:
+            pass
+
+        if force_pyvista or e:
+            import pyvista as pv
+            self.pv = pv
+
+    def figure(self, bgcolor, fgcolor, size):
+        if self.is_mayavi:
+            return mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.),
+                               size=(1200,1200))
+        else:
+            import pyvistaqt as pvqt
+            self.plotter = pvqt.BackgroundPlotter()
+
+    def triangular_mesh(self, x, y, z, triangles):
+        if self.is_mayavi:
+            self.mlab.triangular_mesh(x, y, z, triangles)
+            return
+
+        vertices = np.r_[x, y, z]
+        faces = np.c_[np.full(len(triangles), 3), triangles]
+        surf = self.pv.PolyData(vertices, faces)
+        self.plotter.add_mesh(surf, opacity=1.0, color='b')
+
+
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
                          smoothing_steps=0, view='all', sub_sampling='sparse', cmap_lims=[1,98]):
     """Plots data on the cerebellar cortical surface. Requires cerebellum geometry file
@@ -37,10 +71,11 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     
     """
 
-    from mayavi import mlab
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
-    
+
+    mlab = MLab()
+
     if not cort_data is None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
     
