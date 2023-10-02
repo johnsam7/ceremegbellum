@@ -14,7 +14,10 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from mne.datasets import sample
+
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
+from cmb.source_space import get_segmentation
+
 data_path = sample.data_path()
 
 # Paths to subject data
@@ -39,7 +42,8 @@ spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebr
 cerebellum_subsampling = 'sparse'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
-                                    plot_cerebellum=False, spacing=spacing)
+                                    img_segm=img_segm, plot_cerebellum=False,
+                                    spacing=spacing)
 
 # Compute forward and inverse operators
 conductivity=(0.3, 0.006, 0.3)

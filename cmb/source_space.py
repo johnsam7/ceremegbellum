@@ -89,7 +89,7 @@ def keep_only_biggest_region(vol, region_removal_limit=0.2, print_progress=False
 
 def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_subsampling='sparse',
                                   calc_nn=True, print_fs=False, plot=False, mirror=False,
-                                  post_process=False, debug_mode=False):
+                                  debug_mode=False):
     """Sets up the cerebellar surface source space. Requires cerebellum geometry file
     to be downloaded.
     
@@ -139,11 +139,7 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
     old_labels = [12,  33,  36,  43,  46,  53,  56,  60,  63,  66,  70,  73, 74,  75,
                   76,  77,  78,  80,  83,  84,  86,  87,  90,  93,  96, 100, 103, 106]
     hr_segm = change_labels(hr_segm, old_labels=old_labels, new_labels=np.arange(29)[1:])
-    
-    # Get subject segmentation
-    print('Doing segmentation...')
-    subj_segm = np.asanyarray(get_segmentation(subjects_dir, subject, cmb_path,
-                                               post_process=post_process, debug_mode=debug_mode).dataobj)
+
     subj = np.asanyarray(nib.load(subjects_dir+subject+'/mri/orig.mgz').dataobj)
 
     # Mask cerebellum
@@ -539,7 +535,8 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
                 os.system('rm '+data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
                 os.system('rm '+data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
                 os.system('rm '+data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
-        return nib.load(data_dir+subject+'.nii.gz')
+        img = nib.load(data_dir+subject+'.nii.gz')
+        return np.asanyarray(img).dataobj
     
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
     mask_org = mask.copy()
