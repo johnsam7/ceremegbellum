@@ -1,4 +1,5 @@
 import os
+import os.path as op
 import numpy as np
 
 import nibabel as nib
@@ -130,7 +131,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False):
         seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
                                          interpolator='genericLabel').numpy()
 
-        cmb_fname = op.join(subjects_dir, subject, 'cmbseg.nii.gz')
+        cmb_fname = op.join(subjects_dir, subject, 'mri', 'cmbseg.nii.gz')
         save_nifti_from_3darray(seg_reg, cmb_fname,
                                 rotate=False, affine=subject_mri.affine)
 
