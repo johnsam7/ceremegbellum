@@ -26,7 +26,7 @@ def get_cerebellum_data(cmb_path):
     cmb_path : str
         Path to the ceremegbellum folder.
     """
-    
+
     if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task001_mask') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task002_lh') and \
