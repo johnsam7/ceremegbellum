@@ -1,17 +1,26 @@
 import os
 import os.path as op
-import numpy as np
+from warnings import warn
 
+import numpy as np
 import nibabel as nib
 
 from .helpers import set_nnunet_paths, save_nifti_from_3darray, change_labels
 
 
-def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False):
+def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False,
+                       force_segmentation=False):
     import warnings
     import subprocess
     import ants
-    
+
+    cmb_fname = op.join(subjects_dir, subject, 'mri', 'cmbseg.nii.gz')
+    if op.exists(cmb_fname) and not force_segmentation:
+        warn(f'Segmentation file {cmb_fname} already exists.'
+              ' Skipping segmentation. Please force_segmentation=True if you'
+              'want to recompute the segmentation.')
+        return
+
     set_nnunet_paths()
 
     if not subjects_dir[-1] == '/':
@@ -131,7 +140,6 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False):
         seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
                                          interpolator='genericLabel').numpy()
 
-        cmb_fname = op.join(subjects_dir, subject, 'mri', 'cmbseg.nii.gz')
         save_nifti_from_3darray(seg_reg, cmb_fname,
                                 rotate=False, affine=subject_mri.affine)
 
