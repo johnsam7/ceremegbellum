@@ -43,6 +43,49 @@ def print_fs_surf(rr, tris, fname, mirror=False):
     if mirror:
         ras[:,0] =  -ras[:,0] # Note this is for MNE which mirrors the source space - remove this for alignment with RAS freeview
     nib.freesurfer.io.write_geometry(fname, ras, tris)
+    
+def keep_only_biggest_region(vol, region_removal_limit=0.2, print_progress=False):
+    """
+    Keeps only the biggest connected region of each unique value in vol. 
+    If one smaller region is greater than region_removal_limit*len(biggest_region),
+    then do not remove it (set this to >1 if you want to definitely remove all 
+    smaller regions). The removed regions are interpolated by typevalue of
+    neighbors (spreading). Value 0 is considered background and not examined.
+    """
+    connected_regions = find_connected_regions(vol, print_progress=False)
+    neighbors = np.array([[[[x, y, z] for x in np.arange(-1, 2)] for y in np.arange(-1, 2)] for z in np.arange(-1, 2)]).reshape(27,3)
+    if print_progress:
+        for label in list(connected_regions.keys()):
+            print('label '+str(label)+':')
+            for k in range(len(connected_regions[label])):
+                print(len(connected_regions[label][k]))
+    for label in list(connected_regions.keys()):
+        biggest_region = np.argmax([len(connected_regions[label][k]) for k in range(len(connected_regions[label]))])
+        smaller_regions = list(range(len(connected_regions[label])))
+        smaller_regions.remove(biggest_region)
+        for smaller_region in smaller_regions:
+            if len(connected_regions[label][smaller_region]) > region_removal_limit*len(connected_regions[label][biggest_region]):
+                smaller_regions.remove(smaller_region)
+                print('Found a separate region for label '+str(label)+' that is > '+str(region_removal_limit*100)+'% of biggest region. Skipping.')
+        voxels_in_smaller_regions = np.array([[]]).reshape((0,3))
+        for k in smaller_regions:
+            voxels_in_smaller_regions = np.concatenate((voxels_in_smaller_regions, connected_regions[label][k]), axis=0).astype(int)
+        while len(voxels_in_smaller_regions)>0:
+            for vox in voxels_in_smaller_regions:
+                all_neighbors = neighbors+vox
+                all_neighbors = all_neighbors[np.concatenate((all_neighbors < np.array(vol.shape), all_neighbors > np.array([-1, -1, -1])), axis=1).all(axis=1)]
+                val_neighbors = vol[all_neighbors[:, 0], all_neighbors[:, 1], all_neighbors[:, 2]]
+                val_neighbors = val_neighbors[~(val_neighbors == vol[vox[0], vox[1], vox[2]])] # Remove label val to make sure it changes label
+                if len(val_neighbors) > 0:
+                    counts = np.bincount(val_neighbors)
+                    type_val = np.argmax(counts)
+                    if print_progress:
+                        print('Replacing '+str(vox)+', old val: '+str(vol[vox[0], vox[1], vox[2]])+' new val: '+str(type_val))
+                    vol[vox[0], vox[1], vox[2]] = type_val
+                    voxels_in_smaller_regions = voxels_in_smaller_regions[~np.stack([voxels_in_smaller_regions[:,0]==vox[0],
+                                                                                     voxels_in_smaller_regions[:,0]==vox[0], 
+                                                                                     voxels_in_smaller_regions[:,0]==vox[0]]).all(axis=0)]
+    return vol
 
 def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_subsampling='sparse',
                                   calc_nn=True, print_fs=False, plot=False, mirror=False,

@@ -14,13 +14,14 @@ from plyfile import PlyData, PlyElement
 import nibabel as nib
 import pickle
 import os
+import os.path as op
 #import evaler
 from scipy import signal
 
 def set_nnunet_paths(cmb_path):
-    os.environ['nnUNet_preprocessed'] = cmb_path + '/nnUNet/nnUNet_preprocessed'
-    os.environ['RESULTS_FOLDER'] = cmb_path + '/nnUNet/RESULTS_FOLDER'
-    os.environ['nnUNet_raw_data_base'] = cmb_path + '/nnUNet/nnUNet_raw_data_base'
+    os.environ['nnUNet_preprocessed'] = op.join(cmb_path,'/nnUNet/nnUNet_preprocessed')
+    os.environ['RESULTS_FOLDER'] = op.join(cmb_path,'/nnUNet/RESULTS_FOLDER')
+    os.environ['nnUNet_raw_data_base'] = op.join(cmb_path,'/nnUNet/nnUNet_raw_data_base')
 
 def change_labels(vol, old_labels, new_labels):
     new_vol = vol.copy()
