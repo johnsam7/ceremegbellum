@@ -4,7 +4,7 @@ webcolors == 1.11.1
 pyyaml == 5.4.1
 chart_studio == 1.1.0
 statsmodels == 0.12.2
-mayavi == 4.7.2
+mayavi
 scipy == 1.6.0
 mne == 0.22.0
 matplotlib == 3.3.4
@@ -13,5 +13,5 @@ nnunet == 1.7.0
 plyfile == 0.7.4
 pandas == 1.2.2
 #evaler == 0.0.2
-PyQt5 == 5.12.3
+PyQt5
 torch == 1.7.1
