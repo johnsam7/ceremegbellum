@@ -16,7 +16,7 @@ from scipy import signal
 
 class MLab:
 
-    def __init__(self, force_pyvista=False):
+    def __init__(self, force_pyvista=True):
         self.is_mayavi = False
         if not force_pyvista:
             try:
