@@ -16,3 +16,4 @@ pandas == 1.2.2
 PyQt5
 torch == 1.7.1
 pyvista
+pyvistaqt
