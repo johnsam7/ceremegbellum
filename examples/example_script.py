@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from mne.datasets import sample
 
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
-from cmb.source_space import get_segmentation
+from cmb.segmentation import segment_cerebellum
 
 data_path = sample.data_path()
 

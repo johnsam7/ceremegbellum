@@ -23,6 +23,17 @@ def set_nnunet_paths(cmb_path):
     os.environ['RESULTS_FOLDER'] = op.join(cmb_path,'nnUNet','RESULTS_FOLDER')
     os.environ['nnUNet_raw_data_base'] = op.join(cmb_path,'nnUNet','nnUNet_raw_data_base')
 
+
+def save_nifti_from_3darray(vol, fname, rotate=False, affine=None):
+    if rotate:
+        vol = vol[:, ::-1, ::-1]
+        vol = np.transpose(vol, axes=(0, 2, 1))
+    mgz = nib.Nifti1Image(vol, affine=affine)
+    nib.save(mgz, fname)
+    print('saved to '+fname)
+    return mgz
+
+
 def change_labels(vol, old_labels, new_labels):
     new_vol = vol.copy()
     for c, old_label in enumerate(old_labels):
