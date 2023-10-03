@@ -18,7 +18,7 @@ from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_da
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/path-to-your-cmb-folder/' # path to the folder
+cmb_path = '/local_mount/space/hypatia/2/users/Jasmine/github/cbm/data/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -26,6 +26,11 @@ subject = 'sample'
 trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = sample_dir + '/sample_audvis-cov.fif'
 evo_fname = sample_dir + '/sample_audvis-ave.fif'
+
+#get nnUNet folder names
+os.environ['nnUNet_preprocessed'] = cmb_path + '/nnUNet/nnUNet_preprocessed'
+os.environ['RESULTS_FOLDER'] = cmb_path + '/nnUNet/RESULTS_FOLDER'
+os.environ['nnUNet_raw_data_base'] = cmb_path + '/nnUNet/nnUNet_raw_data_base'
 
 # Check if the required data are available and download if not
 # Until cerebellar atlas data and segmentation models are public, it will copy to the data from a local shared martinos exchange folder
@@ -36,7 +41,7 @@ cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
 # Setup source space
-cerebellum_subsampling = 'dense'
+cerebellum_subsampling = 'sparse'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
                                     plot_cerebellum=False, spacing=spacing)
