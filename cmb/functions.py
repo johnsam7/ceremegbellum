@@ -17,7 +17,7 @@ import os
 from scipy import signal
 from .helpers import *
 
-def get_cerebellum_data(cmb_path, results_folder=None):
+def get_cerebellum_data(cmb_path):
     """
     Checks if the required cerebellum data are available and download if not.
     
