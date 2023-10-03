@@ -38,12 +38,16 @@ get_cerebellum_data(cmb_path)
 cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
-# Setup source space
-cerebellum_subsampling = 'sparse'
+# Get subject segmentation
+print('Doing segmentation...')
+segment_cerebellum(subjects_dir, subject, cmb_path,
+                   post_process=True, debug_mode=False)
+
+# Setup source space using the segmented data
+cerebellum_subsampling = 'dense'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
-                                    img_segm=img_segm, plot_cerebellum=False,
-                                    spacing=spacing)
+                                    plot_cerebellum=False, spacing=spacing)
 
 # Compute forward and inverse operators
 conductivity=(0.3, 0.006, 0.3)

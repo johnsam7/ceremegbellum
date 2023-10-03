@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import pickle
 import os
+import os.path as op
 
 from .helpers import *
 from .visualization import plot_sagittal
@@ -87,7 +88,9 @@ def keep_only_biggest_region(vol, region_removal_limit=0.2, print_progress=False
                                                                                      voxels_in_smaller_regions[:,0]==vox[0]]).all(axis=0)]
     return vol
 
-def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_subsampling='sparse',
+
+def setup_cerebellum_source_space(subjects_dir, subject, cmb_path,
+                                  cerebellum_subsampling='sparse',
                                   calc_nn=True, print_fs=False, plot=False, mirror=False,
                                   debug_mode=False):
     """Sets up the cerebellar surface source space. Requires cerebellum geometry file
@@ -118,7 +121,6 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
     from scipy import signal
     import ants
     import pandas as pd
-#    import evaler
 
     subjects_dir = subjects_dir + '/'
     print('starting subject '+subject+'...')
@@ -140,7 +142,9 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path, cerebellum_su
                   76,  77,  78,  80,  83,  84,  86,  87,  90,  93,  96, 100, 103, 106]
     hr_segm = change_labels(hr_segm, old_labels=old_labels, new_labels=np.arange(29)[1:])
 
-    subj = np.asanyarray(nib.load(subjects_dir+subject+'/mri/orig.mgz').dataobj)
+    mri_dir = op.join(subjects_dir, subject, 'mri')
+    subj = np.asanyarray(nib.load(op.join(mri_dir, 'orig.mgz')).dataobj)
+    subj_segm = np.asanyarray(nib.load(op.join(mri_dir, 'cmbseg.nii.gz')).dataobj)
 
     # Mask cerebellum
     pad = 3
@@ -402,8 +406,7 @@ def join_source_spaces(src_orig):
     return src_joined   
 
 
-def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
-                     post_process=True, print_progress=False, debug_mode=False):
+def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False):
     import warnings
     import subprocess
     import ants
@@ -526,8 +529,9 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
         # Go back to subject space
         seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
                                          interpolator='genericLabel').numpy()
-        
-        save_nifti_from_3darray(seg_reg, data_dir + subject + '.nii.gz',
+
+        cmb_fname = op.join(subjects_dir, subject, 'cmbseg.nii.gz')
+        save_nifti_from_3darray(seg_reg, cmb_fname,
                                 rotate=False, affine=subject_mri.affine)
 
         if not debug_mode:
@@ -535,8 +539,6 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
                 os.system('rm '+data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
                 os.system('rm '+data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
                 os.system('rm '+data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
-        img = nib.load(data_dir+subject+'.nii.gz')
-        return np.asanyarray(img).dataobj
     
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
     mask_org = mask.copy()
