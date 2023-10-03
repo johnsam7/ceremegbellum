@@ -17,7 +17,7 @@ import os
 from scipy import signal
 from .helpers import *
 
-def get_cerebellum_data(cmb_path):
+def get_cerebellum_data(cmb_path, results_folder=None):
     """
     Checks if the required cerebellum data are available and download if not.
     
@@ -26,6 +26,10 @@ def get_cerebellum_data(cmb_path):
     cmb_path : str
         Path to the ceremegbellum folder.
     """
+    if results_folder is None:
+        results_folder = 'sdfdfdf'
+    os.environ['RESULTS_FOLDER'] = results_folder
+
     if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task001_mask') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task002_lh') and \
