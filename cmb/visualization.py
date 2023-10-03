@@ -39,9 +39,9 @@ class MLab:
             import pyvistaqt as pvqt
             self.plotter = pvqt.BackgroundPlotter()
 
-    def triangular_mesh(self, x, y, z, triangles):
+    def triangular_mesh(self, x, y, z, triangles, scalars):
         if self.is_mayavi:
-            return self.mlab.triangular_mesh(x, y, z, triangles)
+            return self.mlab.triangular_mesh(x, y, z, triangles, scalars=scalars)
 
         vertices = np.r_[x, y, z]
         faces = np.c_[np.full(len(triangles), 3), triangles]
@@ -51,6 +51,10 @@ class MLab:
     def colorbar(self):
         if self.is_mayavi:
             self.mlab.colorbar()
+
+    def show(self):
+        if self.is_mayavi:
+            self.mlab.show()
 
 
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
