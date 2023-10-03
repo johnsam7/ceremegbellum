@@ -18,34 +18,39 @@ class MLab:
 
     def __init__(self, force_pyvista=True):
         self.is_mayavi = False
-        try:
-            from mayavi import mlab as mayavi_mlab
-            self.mlab = mayavi_mlab
-            self.is_mayavi = True
-        except ImportError as e:
-            pass
+        if not force_pyvista:
+            try:
+                from mayavi import mlab as mayavi_mlab
+                self.mlab = mayavi_mlab
+                self.is_mayavi = True
+            except ImportError:
+                force_pyvista = True
 
-        if force_pyvista or e:
+        if force_pyvista:
             import pyvista as pv
             self.pv = pv
 
     def figure(self, bgcolor, fgcolor, size):
         if self.is_mayavi:
-            return mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.),
-                               size=(1200,1200))
+            return self.mlab.figure(bgcolor=(1., 1., 1.),
+                                    fgcolor=(0., 0., 0.),
+                                    size=(1200, 1200))
         else:
             import pyvistaqt as pvqt
             self.plotter = pvqt.BackgroundPlotter()
 
     def triangular_mesh(self, x, y, z, triangles):
         if self.is_mayavi:
-            self.mlab.triangular_mesh(x, y, z, triangles)
-            return
+            return self.mlab.triangular_mesh(x, y, z, triangles)
 
         vertices = np.r_[x, y, z]
         faces = np.c_[np.full(len(triangles), 3), triangles]
         surf = self.pv.PolyData(vertices, faces)
         self.plotter.add_mesh(surf, opacity=1.0, color='b')
+
+    def colorbar(self):
+        if self.is_mayavi:
+            self.mlab.colorbar()
 
 
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
