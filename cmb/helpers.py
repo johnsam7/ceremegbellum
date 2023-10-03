@@ -17,10 +17,10 @@ import os
 #import evaler
 from scipy import signal
 
-def set_nnunet_paths():
-    os.system("export nnUNet_raw_data_base=\"/vast/fusion/john/nnUNet/nnUNet_raw_data_base\"")
-    os.system("export nnUNet_preprocessed=\"/vast/fusion/john/nnUNet/nnUNet_preprocessed\"")
-    os.system("export RESULTS_FOLDER=\"/vast/fusion/john/nnUNet/RESULTS_FOLDER\"")
+def set_nnunet_paths(cmb_path):
+    os.environ['nnUNet_preprocessed'] = cmb_path + '/nnUNet/nnUNet_preprocessed'
+    os.environ['RESULTS_FOLDER'] = cmb_path + '/nnUNet/RESULTS_FOLDER'
+    os.environ['nnUNet_raw_data_base'] = cmb_path + '/nnUNet/nnUNet_raw_data_base'
 
 def change_labels(vol, old_labels, new_labels):
     new_vol = vol.copy()
