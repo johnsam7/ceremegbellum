@@ -28,25 +28,29 @@ class MLab:
 
         if force_pyvista:
             import pyvista as pv
+            import pyvistaqt as pvqt
             self.pv = pv
+            self.pvqt = pvqt
+            self.is_pv = True
 
     def figure(self, bgcolor, fgcolor, size):
         if self.is_mayavi:
             return self.mlab.figure(bgcolor=(1., 1., 1.),
                                     fgcolor=(0., 0., 0.),
                                     size=(1200, 1200))
-        else:
-            import pyvistaqt as pvqt
-            self.plotter = pvqt.BackgroundPlotter()
+        elif self.is_pv:
+            self.plotter = self.pvqt.BackgroundPlotter()
 
-    def triangular_mesh(self, x, y, z, triangles, scalars):
+    def triangular_mesh(self, x, y, z, triangles, scalars, colormap):
         if self.is_mayavi:
-            return self.mlab.triangular_mesh(x, y, z, triangles, scalars=scalars)
+            return self.mlab.triangular_mesh(x, y, z, triangles, scalars=scalars, colormap=colormap)
+        elif self.is_pv:
+            vertices = np.c_[x, y, z]
 
-        vertices = np.r_[x, y, z]
-        faces = np.c_[np.full(len(triangles), 3), triangles]
-        surf = self.pv.PolyData(vertices, faces)
-        self.plotter.add_mesh(surf, opacity=1.0, color='b')
+            faces = np.c_[np.full(len(triangles), 3), triangles]
+            surf = self.pv.PolyData(vertices, faces)
+
+            self.plotter.add_mesh(surf, opacity=1.0, color='b', scalars=scalars, cmap=colormap)
 
     def colorbar(self):
         if self.is_mayavi:
@@ -55,6 +59,8 @@ class MLab:
     def show(self):
         if self.is_mayavi:
             self.mlab.show()
+        elif self.is_pv:
+            self.plotter.show()
 
 
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
