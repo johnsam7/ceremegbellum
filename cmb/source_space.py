@@ -413,7 +413,6 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
 
     data_dir = op.join(cmb_path,'data','segm_folder')
     os.makedirs(data_dir,exist_ok=True)
-    exit()
 
     # Check that all prerequisite programs are ready 
     if not os.system('mri_convert --help >/dev/null 2>&1') == 0:
@@ -428,14 +427,11 @@ def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
         return nib.load(data_dir+subject+'.nii.gz') # If yes, return
 
     else: # If not, make segmentation with trained nnUnet model
-        rel_paths = ['/tmp/', '/tmp/registered/', '/tmp/registered/whole',
-                     '/tmp/registered/lh', '/tmp/registered/rh', '/tmp/registered/mask',
-                     '/tmp/registered/lh_segmented', '/tmp/registered/rh_segmented',
-                     '/tmp/registered/lob_I_IV', '/tmp/registered/lob_I_IV_segmented',
-                     '/tmp/registered/mask_divide']
-        for dirs in [data_dir+rel_path for rel_path in rel_paths]:
-            if not os.path.exists(dirs):
-                os.system('mkdir '+dirs)
+        rel_paths = ['whole', 'lh', 'rh', 'mask',
+                     'lh_segmented', 'rh_segmented',
+                     'lob_I_IV', 'lob_I_IV_segmented', 'mask_divide']
+        for dir in rel_paths:
+            os.makedirs(op.join(data_dir, 'tmp', 'registered', dir), exist_ok=True)
 
         # Load brain template to get a common space
         brain_template_nib = nib.load(cmb_path + 'data/brain.nii')
