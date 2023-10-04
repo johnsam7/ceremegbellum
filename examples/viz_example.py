@@ -1,11 +1,11 @@
 import numpy as np
-from cmb import MLab
+from cmb import MLabEmulator
 
 print("Creating instance of viz wrapper...")
 
 
 def plot_ex(force_pyvista):
-    mlab = MLab(force_pyvista=force_pyvista)
+    mlab = MLabEmulator(force_pyvista=force_pyvista)
 
     print("Creating figure...")
     mlab.figure(bgcolor=(1., 1., 1.),
@@ -40,4 +40,3 @@ def plot_ex(force_pyvista):
 
 for opt in (True, False):
     plot_ex(opt)
-

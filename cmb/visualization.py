@@ -14,53 +14,31 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 
-class MLab:
+class MLabEmulator:
 
-    def __init__(self, force_pyvista=True):
-        self.is_mayavi = False
-        if not force_pyvista:
-            try:
-                from mayavi import mlab as mayavi_mlab
-                self.mlab = mayavi_mlab
-                self.is_mayavi = True
-            except ImportError:
-                force_pyvista = True
-
-        if force_pyvista:
-            import pyvista as pv
-            import pyvistaqt as pvqt
-            self.pv = pv
-            self.pvqt = pvqt
-            self.is_pv = True
+    def __init__(self):
+        import pyvista as pv
+        import pyvistaqt as pvqt
+        self.pv = pv
+        self.pvqt = pvqt
 
     def figure(self, bgcolor, fgcolor, size):
-        if self.is_mayavi:
-            return self.mlab.figure(bgcolor=(1., 1., 1.),
-                                    fgcolor=(0., 0., 0.),
-                                    size=(1200, 1200))
-        elif self.is_pv:
-            self.plotter = self.pvqt.BackgroundPlotter()
+        self.plotter = self.pvqt.BackgroundPlotter()
 
     def triangular_mesh(self, x, y, z, triangles, scalars, colormap):
-        if self.is_mayavi:
-            return self.mlab.triangular_mesh(x, y, z, triangles, scalars=scalars, colormap=colormap)
-        elif self.is_pv:
-            vertices = np.c_[x, y, z]
+        vertices = np.c_[x, y, z]
 
-            faces = np.c_[np.full(len(triangles), 3), triangles]
-            surf = self.pv.PolyData(vertices, faces)
+        faces = np.c_[np.full(len(triangles), 3), triangles]
+        surf = self.pv.PolyData(vertices, faces)
 
-            self.plotter.add_mesh(surf, opacity=1.0, color='b', scalars=scalars, cmap=colormap)
+        self.plotter.add_mesh(surf, opacity=1.0, color='b',
+                              scalars=scalars, cmap=colormap)
 
     def colorbar(self):
-        if self.is_mayavi:
-            self.mlab.colorbar()
+        pass
 
     def show(self):
-        if self.is_mayavi:
-            self.mlab.show()
-        elif self.is_pv:
-            self.plotter.show()
+        self.plotter.show()
 
 
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
@@ -89,7 +67,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
 
-    mlab = MLab()
+    mlab = MLabEmulator()
 
     if not cort_data is None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'

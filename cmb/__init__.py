@@ -20,6 +20,6 @@ from ._version import __version__
 
 from .functions import (get_cerebellum_data)
 from .source_space import (setup_full_source_space)
-from .visualization import (plot_cerebellum_data, MLab)
+from .visualization import (plot_cerebellum_data, MLabEmulator)
 
 from .test import is_float
