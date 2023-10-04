@@ -37,18 +37,16 @@ For Martinos users
     $ git clone git@github.com:jasmainak/cbm.git
     $ cd cbm/
 
-3. Activate the new environment and install required public packages:
+3. Activate the new environment:
 
 .. code-block:: bash
 
     $ conda activate <your-environment-name>
-    $ pip install -r pre-req.txt
 
-4. install ceremegbellum package including antspy:
+4. install ceremegbellum package:
 
 .. code-block:: bash
 
-    $ pip install antspyx
     $ pip install -e .
 
 5. setup pre-compiled freesurfer (needed for segmentation):

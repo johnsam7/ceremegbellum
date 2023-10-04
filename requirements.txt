@@ -18,3 +18,5 @@ numpy
 vtk
 pyvista
 pyvistaqt
+antspyx
+ipython
