@@ -399,4 +399,196 @@ def join_source_spaces(src_orig):
 
     return src_joined   
 
+
+def get_segmentation(subjects_dir, subject, cmb_path, region_removal_limit=0.2,
+                     post_process=True, print_progress=False, debug_mode=False):
+    import warnings
+    import subprocess
+    import ants
+    
+    set_nnunet_paths(cmb_path)
+
+    if not subjects_dir[-1] == '/':
+        subjects_dir = subjects_dir +'/'
+
+    data_dir = op.join(cmb_path,'data','segm_folder')
+    os.makedirs(data_dir,exist_ok=True)
+    exit()
+
+    # Check that all prerequisite programs are ready 
+    if not os.system('mri_convert --help >/dev/null 2>&1') == 0:
+        warnings.warn('WARNING: mri_convert not found. FreeSurfer has to be compiled for segmentation to work.')
+    if not os.path.exists(subjects_dir+subject+'/mri/orig.mgz'):
+        raise FileNotFoundError('Could not locate subject MRI at '+subjects_dir+subject+'/mri/orig.mgz')
+    if not os.system('nnUNet_predict --help >/dev/null 2>&1') == 0:
+        raise OSError('nnUNet_predict not found. Please make sure nnUNet is installed and its environment activated and try again.')
+        
+    if os.path.exists(data_dir+subject+'.nii.gz'): # check if segmentation exists
+        print('Previous segmentation found on subject '+subject+'. Returning old segmentation.')
+        return nib.load(data_dir+subject+'.nii.gz') # If yes, return
+
+    else: # If not, make segmentation with trained nnUnet model
+        rel_paths = ['/tmp/', '/tmp/registered/', '/tmp/registered/whole',
+                     '/tmp/registered/lh', '/tmp/registered/rh', '/tmp/registered/mask',
+                     '/tmp/registered/lh_segmented', '/tmp/registered/rh_segmented',
+                     '/tmp/registered/lob_I_IV', '/tmp/registered/lob_I_IV_segmented',
+                     '/tmp/registered/mask_divide']
+        for dirs in [data_dir+rel_path for rel_path in rel_paths]:
+            if not os.path.exists(dirs):
+                os.system('mkdir '+dirs)
+
+        # Load brain template to get a common space
+        brain_template_nib = nib.load(cmb_path + 'data/brain.nii')
+        brain_template = np.asanyarray(brain_template_nib.dataobj)
+        brain_template = brain_template/np.max(brain_template)
+        template_ants = ants.from_numpy(brain_template)
+
+        # Register
+        output_folder = data_dir+'/tmp/'
+        orig_fname = subjects_dir+subject+'/mri/brain.mgz'
+
+        subject_mri = nib.load(orig_fname)
+        subj_brain = np.asanyarray(subject_mri.dataobj)
+        subj_brain = subj_brain/np.max(subj_brain)
+        
+        # Find registration from subject to common space
+        subj_ants = ants.from_numpy(subj_brain)
+        
+        # Calculate registration 
+        reg = ants.registration(fixed=template_ants, moving=subj_ants, type_of_transform='SyNCC')
+
+        # Prepare for masking
+        subj_reg_ants = ants.apply_transforms(fixed=template_ants, moving=subj_ants,
+                                              transformlist=reg['fwdtransforms'],
+                                              interpolator='nearestNeighbor')
+        subj_reg = subj_reg_ants.numpy()
+        save_nifti_from_3darray(subj_reg, output_folder + 'registered/whole/' + subject + '_0000.nii.gz',
+                                affine=brain_template_nib.affine)
+        
+        # Mask
+        os.system('nnUNet_predict -i ' + output_folder + 'registered/whole/ -o ' + output_folder + 
+                  'registered/mask/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 001')
+        
+        # Split into LH and RH using ASEG
+        aseg = np.asanyarray(nib.load(subjects_dir + subject + '/mri/aseg.mgz').dataobj).astype('uint8')
+        aseg = ants.from_numpy(aseg)
+        aseg_reg = ants.apply_transforms(fixed=template_ants, moving=aseg, transformlist=reg['fwdtransforms'],
+                                         interpolator='genericLabel').numpy()
+
+        mask = np.asanyarray(nib.load(output_folder + 'registered/mask/' + subject + '.nii.gz').dataobj)
+        split_cerebellar_hemis_aseg(aseg_reg, subj_reg, mask, subject, output_folder + 'registered/',
+                                    brain_template_nib.affine)
+        
+        # Predict LH and RH
+        os.system('nnUNet_predict -i ' + output_folder + '/registered/lh/ -o ' + output_folder + 
+                  '/registered/lh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 002')
+        os.system('nnUNet_predict -i ' + output_folder + '/registered/rh/ -o ' + output_folder + 
+                  '/registered/rh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 003')
+        
+        # Refine lob I-IV into lobs I-III and IV
+        pred_nib = nib.load(output_folder + '/registered/lh_segmented/' + subject + '.nii.gz')
+        vol = np.asanyarray(pred_nib.dataobj)
+        image = np.asanyarray(nib.load(output_folder + '/registered/lh/' + subject + '_0000.nii.gz').dataobj)
+        lobI_IV = np.zeros(vol.shape)
+        lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
+        pred_nib = nib.load(output_folder + '/registered/rh_segmented/' + subject + '.nii.gz')
+        vol = np.asanyarray(pred_nib.dataobj)
+        image = np.asanyarray(nib.load(output_folder + '/registered/rh/' + subject + '_0000.nii.gz').dataobj)
+        lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
+        save_nifti_from_3darray(lobI_IV, output_folder + '/registered/lob_I_IV/' + subject + '_0000.nii.gz',
+                                rotate=False, affine=pred_nib.affine)
+        
+        os.system('nnUNet_predict -i ' + output_folder + '/registered/lob_I_IV/ -o ' + output_folder + 
+                  '/registered/lob_I_IV_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 004')
+        
+        # Correct labels
+        old_labels_ant = [1, 2, 3, 4]
+        new_labels_ant = [33, 43, 36, 46]
+        old_labels_hemi = np.arange(1, 17)
+        new_labels_lh = [12, 43, 53, 63, 73, 74, 75, 83, 84, 93, 103, 60, 70, 80, 90, 100]
+        new_labels_rh = [12, 46, 56, 66, 76, 77, 78, 86, 87, 96, 106, 60, 70, 80, 90, 100]
+        
+        # Assemble segmentations into one image
+        seg = np.asanyarray(nib.load(output_folder + '/registered/lh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg_lh = change_labels(seg, old_labels_hemi, new_labels_lh)
+        seg = np.asanyarray(nib.load(output_folder + '/registered/rh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg_rh = change_labels(seg, old_labels_hemi, new_labels_rh)
+        seg = np.asanyarray(nib.load(output_folder + '/registered/lob_I_IV_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg_ant = change_labels(seg, old_labels_ant, new_labels_ant)
+        seg_complete = np.zeros(seg.shape)
+        seg_complete[np.nonzero(seg_lh)] = seg_lh[np.nonzero(seg_lh)]
+        seg_complete[np.nonzero(seg_rh)] = seg_rh[np.nonzero(seg_rh)]
+        seg_complete[np.nonzero(seg_ant)] = seg_ant[np.nonzero(seg_ant)]
+        seg_ants = ants.from_numpy(seg_complete)
+    
+        # Go back to subject space
+        seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
+                                         interpolator='genericLabel').numpy()
+        
+        save_nifti_from_3darray(seg_reg, data_dir + subject + '.nii.gz',
+                                rotate=False, affine=subject_mri.affine)
+
+        if not debug_mode:
+            for rel_path in rel_paths:
+                os.system('rm '+data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
+                os.system('rm '+data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
+                os.system('rm '+data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
+        return nib.load(data_dir+subject+'.nii.gz')
+    
+def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
+    mask_org = mask.copy()
+    if not aseg.shape == mask.shape:
+        pads = ((np.array(aseg.shape)-np.array(mask.shape))/2).astype(int)
+        mask_aligned = np.zeros(aseg.shape)
+        mask_aligned[pads[0]:aseg.shape[0]-pads[0], pads[1]:aseg.shape[1]-pads[1],
+                     pads[2]:aseg.shape[3]-pads[2]] = mask
+        mask = np.array(np.nonzero(mask_aligned)).T
+    else:
+        mask = np.array(np.nonzero(mask)).T
+
+    lh = np.where(np.isin(aseg, [7, 8]))
+    rh = np.where(np.isin(aseg, [46, 47]))
+    lh_rh_vol = np.zeros(aseg.shape).astype(int)
+    lh_rh_vol[lh] = 1
+    lh_rh_vol[rh] = 2
+    aseg_cerb = np.concatenate((np.array(lh).T, np.array(rh).T), axis=0)
+    aseg_ints = np.dot(aseg_cerb, np.array([1, 256, 256**2]))
+    mask_ints = np.dot(mask, np.array([1, 256, 256**2]))
+    unsigned_voxels = mask[~(np.isin(mask_ints, aseg_ints))]
+    neighbors = np.array([[[[x, y, z] for x in np.arange(-1, 2)] for y in np.arange(-1, 2)] for z in np.arange(-1, 2)]).reshape(27,3)
+    
+    while len(unsigned_voxels)>0:
+        assigned = np.zeros(len(unsigned_voxels))
+        type_vals = []
+        for c, vox in enumerate(unsigned_voxels):
+            all_neighbors = neighbors+vox
+            all_neighbors = all_neighbors[np.concatenate((all_neighbors < np.array(lh_rh_vol.shape), all_neighbors > np.array([-1, -1, -1])), axis=1).all(axis=1)]
+            val_neighbors = lh_rh_vol[all_neighbors[:, 0], all_neighbors[:, 1], all_neighbors[:, 2]]
+            val_neighbors = val_neighbors[~(val_neighbors == 0)] # Remove background
+            if len(val_neighbors) > 0:
+                counts = np.bincount(val_neighbors)
+                type_val = np.argmax(counts)
+                type_vals.append(type_val)
+                assigned[c] = 1
+        vox_to_assign = unsigned_voxels[np.nonzero(assigned)]
+        lh_rh_vol[vox_to_assign[:,0], vox_to_assign[:,1], vox_to_assign[:,2]] = type_vals
+        unsigned_voxels = unsigned_voxels[np.where(assigned==0)]
+
+    final_split = np.zeros(lh_rh_vol.shape)
+    final_split[np.nonzero(mask_org)] = lh_rh_vol[np.nonzero(mask_org)]
+    lh_split = np.zeros(brain.shape)
+    lh_split[np.where(final_split == 1)] = brain[np.where(final_split == 1)]
+    rh_split = np.zeros(brain.shape)
+    rh_split[np.where(final_split == 2)] = brain[np.where(final_split == 2)]
+    mask = np.zeros(brain.shape)#.astype(int)
+    mask[np.where(final_split == 2)] = 2
+    mask[np.where(final_split == 1)] = 1
+
+    save_nifti_from_3darray(mask, output_folder+'/mask_divide/'+subject+'_mask_lh_rh.nii.gz', rotate=False, affine=affine)
+    save_nifti_from_3darray(lh_split, output_folder+'/lh/'+subject+'_0000.nii.gz', rotate=False, affine=affine)
+    save_nifti_from_3darray(rh_split, output_folder+'/rh/'+subject+'_0000.nii.gz', rotate=False, affine=affine)
+    
+    return
+
+    
     
