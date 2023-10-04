@@ -234,8 +234,9 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path,
         print('Saving cerebellar surface as fs files...')
         rr_def = rr_p.copy()
         for x in range(3): rr_def[:, x] = rr_p[:, x]
-        print_fs_surf(rr_def, tris, data_dir + subject + '_cerb_cxw.fs', mirror)
-        print('Saved to ' + data_dir + subject + '_cerb_cxw.fs')
+        surf_dir = op.join(subjects_dir, subject, 'surf')
+        print_fs_surf(rr_def, tris, op.join(surf_dir, 'both.cerebellum'), mirror)
+        print('Saved to ' + op.join(surf_dir, 'both.cerebellum'))
         
     return subj_cerb
 
@@ -346,7 +347,7 @@ def setup_full_source_space(subject, subjects_dir, cerb_dir, cerb_subsampling='s
     cerb_subj_data = setup_cerebellum_source_space(subjects_dir, subject, cerb_dir, calc_nn=True, cerebellum_subsampling=cerb_subsampling,
                                                    print_fs=True, plot=plot_cerebellum, mirror=False, debug_mode=debug_mode)
     cb_data = pickle.load(open(cerb_dir+'data/cerebellum_geo', 'rb'))
-    rr = mne.read_surface(cerb_dir + 'data/' + subject + '_cerb_cxw.fs')[0]/1000
+    rr = mne.read_surface(cerb_dir + 'data/' + subject + 'both.cerebellum')[0]/1000
     src_whole = src_cort.copy() 
     hemi_src = join_source_spaces(src_cort)
     src_whole[0] = hemi_src

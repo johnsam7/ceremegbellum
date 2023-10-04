@@ -44,7 +44,7 @@ segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
 
 # Setup source space using the segmented data
 cerebellum_subsampling = 'dense'
-# src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
+src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
                                     plot_cerebellum=False, spacing=spacing)
 
@@ -84,7 +84,7 @@ plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data, cort_data=co
                          cmap_lims=[25,75])
 
 # Sensitivity maps - cerebellum only
-for ch_type in ['mag']:
+for ch_type in ['mag', 'grad', 'eeg']:
     ch_inds = mne.channel_indices_by_type(fwd['info'])
     signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], fwd['src'][0]['nuse']:], axis=0)
     plot_cerebellum_data(signal_norms, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr',
