@@ -37,7 +37,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
               'want to recompute the segmentation.')
         return
 
-    set_nnunet_paths()
+    set_nnunet_paths(cmb_path)
 
     if not subjects_dir[-1] == '/':
         subjects_dir = subjects_dir +'/'
