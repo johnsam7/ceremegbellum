@@ -344,7 +344,7 @@ def setup_full_source_space(subject, subjects_dir, cerb_dir, cerb_subsampling='s
         src_cort[0]['use_tris'] = src_cort[0]['tris']
         src_cort[1]['use_tris'] = src_cort[1]['tris']
     cerb_subj_data = setup_cerebellum_source_space(subjects_dir, subject, cerb_dir, calc_nn=True, cerebellum_subsampling=cerb_subsampling,
-                                                   print_fs=True, plot=plot_cerebellum, mirror=False, post_process=True, debug_mode=debug_mode)
+                                                   print_fs=True, plot=plot_cerebellum, mirror=False, debug_mode=debug_mode)
     cb_data = pickle.load(open(cerb_dir+'data/cerebellum_geo', 'rb'))
     rr = mne.read_surface(cerb_dir + 'data/' + subject + '_cerb_cxw.fs')[0]/1000
     src_whole = src_cort.copy() 

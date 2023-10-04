@@ -15,7 +15,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False,
     import ants
 
     cmb_fname = op.join(subjects_dir, subject, 'mri', 'cmbseg.nii.gz')
-    if op.exists(cmb_fname) and not force_segmentation:
+    if not op.exists(cmb_fname) or (op.exists(cmb_fname) and not force_segmentation):
         warn(f'Segmentation file {cmb_fname} already exists.'
               ' Skipping segmentation. Please force_segmentation=True if you'
               'want to recompute the segmentation.')
