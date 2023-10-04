@@ -83,8 +83,11 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path,
                                   cerebellum_subsampling='sparse',
                                   calc_nn=True, print_fs=False, plot=False, mirror=False,
                                   debug_mode=False):
-    """Sets up the cerebellar surface source space. Requires cerebellum geometry file
-    to be downloaded.
+    """Sets up the cerebellar surface source space. 
+    
+    Requires cerebellum geometry file to be downloaded. Requires precomputed cerebellar segmentation 
+    (cmbseg.nii.gz) located in subjects_dir/subject/mri. Saves a freesurfer file for both cerebellar 
+    hemispheres (both.cerebellum) in subjects_dir/subject/surf. 
     
     Parameters
     ----------

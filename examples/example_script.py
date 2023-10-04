@@ -21,7 +21,7 @@ from cmb.segmentation import segment_cerebellum
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/local_mount/space/tapputi/1/users/sergio/cbm/' # path to the folder
+cmb_path = '/path-to-your-cmb-folder/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')

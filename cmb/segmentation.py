@@ -1,17 +1,33 @@
 import os
 import os.path as op
 from warnings import warn
-
+import warnings
+import subprocess
 import numpy as np
 import nibabel as nib
 
 from .helpers import set_nnunet_paths, save_nifti_from_3darray, change_labels
 
 
-def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False,
-                       force_segmentation=False):
-    import warnings
-    import subprocess
+def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_segmentation=False):
+    """
+    Creates segmentation of the cerebellar volume using the nnUnet package. Saves a nifti file to
+    the specified subjects directory within the MRI subfolder as cmbseg.nii.gz 
+
+    Parameters
+    ----------
+    subjects_dir : str
+        Path to Freesurfer subject directory 
+    subject : str 
+        Subject identifier
+    cmb_path : str
+        Path to the CereMegBellum module
+    debug_mode : bool
+        Whether to run in debug mode
+    fore_segmentation : bool
+        Whether to overwrite or skip when existing segmentation is found
+    """
+
     import ants
 
     cmb_fname = op.join(subjects_dir, subject, 'mri', 'cmbseg.nii.gz')
