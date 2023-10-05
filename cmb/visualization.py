@@ -24,7 +24,6 @@ class MLabEmulator:
 
     def figure(self, bgcolor, fgcolor, size):
         self.plotter = self.pvqt.BackgroundPlotter()
-        pass
 
     def triangular_mesh(self, x, y, z, triangles, scalars, colormap):
         vertices = np.c_[x, y, z]
@@ -32,7 +31,7 @@ class MLabEmulator:
         faces = np.c_[np.full(len(triangles), 3), triangles]
         surf = self.pv.PolyData(vertices, faces)
 
-        self.plotter.add_mesh(surf, opacity=1.0, color='b',
+        self.plotter.add_mesh(surf, opacity=1.0,
                               scalars=scalars, cmap=colormap)
 
         return self.plotter
