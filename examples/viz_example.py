@@ -26,13 +26,20 @@ y = np.r_[0, y]
 z = np.r_[1, z]
 t = np.r_[0, t]
 
-print("Creating mesh...")
-mlab.triangular_mesh(x, y, z, triangles, scalars=t, colormap='bwr')
+figures = list()
 
+print("Creating meshes...")
+figures.append(mlab.triangular_mesh(x, y, z, triangles, scalars=t, colormap='bwr'))
+
+t2 = [3 for _ in t]
+mlab.figure(bgcolor=(1., 1., 1.),
+            fgcolor=(0., 0., 0.),
+            size=(1200, 1200))
+
+figures.append(mlab.triangular_mesh(x, y, z, triangles, scalars=t2, colormap='bwr'))
 print("Setting colorbar...")
 mlab.colorbar()
 
-print("Showing...")
-mlab.show()
+input("Press 'Return' to exit...")
 
 print("Done!")
