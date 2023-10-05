@@ -6,10 +6,10 @@ import subprocess
 import numpy as np
 import nibabel as nib
 
-from .helpers import set_nnunet_paths, save_nifti_from_3darray, change_labels
+from .helpers import save_nifti_from_3darray, change_labels
 
 
-def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_segmentation=False):
+def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True, force_segmentation=False):
     """
     Creates segmentation of the cerebellar volume using the nnUnet package. Saves a nifti file to
     the specified subjects directory within the MRI subfolder as cmbseg.nii.gz 
@@ -39,7 +39,6 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         return
 
     cmb_path = op.join(cmb_path, '')
-    set_nnunet_paths(cmb_path)
 
     subjects_dir = op.join(subjects_dir, '')
 
@@ -97,8 +96,13 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
                                 affine=brain_template_nib.affine)
         
         # Mask
-        os.system(f'nnUNet_predict -i {output_folder}registered/whole/ -o {output_folder}registered/mask/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 001')
+        nnunet_env = os.environ
+        nnunet_env['nnUNet_preprocessed'] = op.join(cmb_path,'nnUNet','nnUNet_preprocessed')
+        nnunet_env['RESULTS_FOLDER'] = op.join(cmb_path,'nnUNet','RESULTS_FOLDER')
+        nnunet_env['nnUNet_raw_data_base'] = op.join(cmb_path,'nnUNet','nnUNet_raw_data_base')
         
+        subprocess.run(["nnUNet_predict", "-i", f'{output_folder}registered/whole/', "-o", f'{output_folder}registered/mask/', "-tr", "nnUNetTrainerV2", "-ctr", "nnUNetTrainerV2CascadeFullRes", "-m", "3d_fullres", "-p", "nnUNetPlansv2.1", "-t", "001"],env=nnunet_env)
+
         # Split into LH and RH using ASEG
         aseg = np.asanyarray(nib.load(subjects_dir + subject + '/mri/aseg.mgz').dataobj).astype('uint8')
         aseg = ants.from_numpy(aseg)
@@ -110,9 +114,9 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
                                     brain_template_nib.affine)
 
         # Predict LH and RH
-        os.system(f'nnUNet_predict -i {output_folder}registered/lh/ -o {output_folder}registered/lh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 002')
-        os.system(f'nnUNet_predict -i {output_folder}registered/rh/ -o {output_folder}registered/rh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 003')
-        
+        subprocess.run(["nnUNet_predict", "-i", f'{output_folder}registered/lh/', "-o", f'{output_folder}registered/lh_segmented/', "-tr", "nnUNetTrainerV2", "-ctr", "nnUNetTrainerV2CascadeFullRes", "-m", "3d_fullres", "-p", "nnUNetPlansv2.1", "-t", "002"],env=nnunet_env)
+        subprocess.run(["nnUNet_predict", "-i", f'{output_folder}registered/rh/', "-o", f'{output_folder}registered/rh_segmented/', "-tr", "nnUNetTrainerV2", "-ctr", "nnUNetTrainerV2CascadeFullRes", "-m", "3d_fullres", "-p", "nnUNetPlansv2.1", "-t", "003"],env=nnunet_env)
+       
         # Refine lob I-IV into lobs I-III and IV
         pred_nib = nib.load(output_folder + 'registered/lh_segmented/' + subject + '.nii.gz')
         vol = np.asanyarray(pred_nib.dataobj)
@@ -126,9 +130,9 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         save_nifti_from_3darray(lobI_IV, output_folder + 'registered/lob_I_IV/' + subject + '_0000.nii.gz',
                                 rotate=False, affine=pred_nib.affine)
         
-        os.system('nnUNet_predict -i ' + output_folder + 'registered/lob_I_IV/ -o ' + output_folder + 
-                  'registered/lob_I_IV_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 004')
-        
+        subprocess.run(["nnUNet_predict", "-i", f'{output_folder}registered/lob_I_IV/', "-o", f'{output_folder}registered/lob_I_IV_segmented/', "-tr", "nnUNetTrainerV2", "-ctr", "nnUNetTrainerV2CascadeFullRes", "-m", "3d_fullres", "-p", "nnUNetPlansv2.1", "-t", "004"],env=nnunet_env)
+
+              
         # Correct labels
         old_labels_ant = [1, 2, 3, 4]
         new_labels_ant = [33, 43, 36, 46]

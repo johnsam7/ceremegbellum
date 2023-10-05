@@ -21,7 +21,7 @@ from cmb.segmentation import segment_cerebellum
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/local_mount/space/hypatia/2/users/Jasmine/github/cbm/data/' # path to the folder
+cmb_path = '/local_mount/space/hypatia/2/users/Jasmine/github/cbm/data_segmentation' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -35,11 +35,11 @@ evo_fname = op.join(sample_dir,'sample_audvis-ave.fif')
 get_cerebellum_data(cmb_path)
 
 # Cerebellar specific
-cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
+cb_data = pickle.load(open(op.join(cmb_path,'data','cerebellum_geo'), 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
 # Get subject segmentation
-segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
+segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True)
 
 # Setup source space using the segmented data
 cerebellum_subsampling = 'dense'
