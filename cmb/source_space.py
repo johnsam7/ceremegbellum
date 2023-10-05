@@ -308,7 +308,7 @@ def calculate_normals(rr, tris, solid_angle_calc=False, obs_point=np.zeros(3), p
 
 
 def setup_full_source_space(subject, subjects_dir, cerb_dir, cerb_subsampling='sparse', spacing='oct6',
-                            plot_cerebellum=False, debug_mode=False,):
+                            plot_cerebellum=False, debug_mode=True,):
     """Sets up a full surface source space where the first element in the list 
     is the combined cerebral hemishperic source space and the second element
     is the cerebellar source space.

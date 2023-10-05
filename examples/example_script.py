@@ -21,14 +21,14 @@ from cmb.segmentation import segment_cerebellum
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/path-to-your-cmb-folder/' # path to the folder
+cmb_path = '/local_mount/space/hypatia/2/users/Jasmine/github/cbm/data/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
 trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
-fname_cov = sample_dir + '/sample_audvis-cov.fif'
-evo_fname = sample_dir + '/sample_audvis-ave.fif'
+fname_cov = op.join(sample_dir, 'sample_audvis-cov.fif')
+evo_fname = op.join(sample_dir,'sample_audvis-ave.fif')
 
 # Check if the required data are available and download if not
 # Until cerebellar atlas data and segmentation models are public, it will copy to the data from a local shared martinos exchange folder
@@ -45,7 +45,7 @@ segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
 cerebellum_subsampling = 'dense'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
-                                    plot_cerebellum=False, spacing=spacing)
+                                    plot_cerebellum=False, spacing=spacing,debug_mode=True)
 
 # Compute forward and inverse operators
 conductivity=(0.3, 0.006, 0.3)
