@@ -40,12 +40,10 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
 
     set_nnunet_paths(cmb_path)
 
-    if not subjects_dir[-1] == '/':
-        subjects_dir = subjects_dir +'/'
+    subjects_dir = op.join(subjects_dir, '')
 
-    data_dir = cmb_path + 'data/segm_folder/'
-    if not os.path.exists(data_dir):
-        os.system('mkdir '+data_dir)
+    data_dir = op.join(cmb_path,'data','segm_folder')
+    os.makedirs(data_dir,exist_ok=True)
 
     # Check that all prerequisite programs are ready 
     if not os.system('mri_convert --help >/dev/null 2>&1') == 0:
@@ -60,25 +58,25 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         return nib.load(data_dir+subject+'.nii.gz') # If yes, return
 
     else: # If not, make segmentation with trained nnUnet model
-        rel_paths = ['/tmp/', '/tmp/registered/', '/tmp/registered/whole',
-                     '/tmp/registered/lh', '/tmp/registered/rh', '/tmp/registered/mask',
-                     '/tmp/registered/lh_segmented', '/tmp/registered/rh_segmented',
-                     '/tmp/registered/lob_I_IV', '/tmp/registered/lob_I_IV_segmented',
-                     '/tmp/registered/mask_divide']
-        for dirs in [data_dir+rel_path for rel_path in rel_paths]:
-            if not os.path.exists(dirs):
-                os.system('mkdir '+dirs)
+        rel_paths = ['whole', 'lh', 'rh', 'mask',
+                     'lh_segmented', 'rh_segmented',
+                     'lob_I_IV', 'lob_I_IV_segmented', 'mask_divide']
+        for dir in rel_paths:
+            os.makedirs(op.join(data_dir, 'tmp', 'registered', dir), exist_ok=True)
+        
+        output_folder = op.join(data_dir,'tmp','')
+        
+        orig_fname = op.join(subjects_dir,subject,'mri','brain.mgz')
+        orig_registered_fname = f'{output_folder}registered/whole/{subject}_0000.nii.gz'
 
         # Load brain template to get a common space
-        brain_template_nib = nib.load(cmb_path + 'data/brain.nii')
+        brain_template_nib = nib.load(op.join(cmb_path,'data','brain.nii'))
         brain_template = np.asanyarray(brain_template_nib.dataobj)
         brain_template = brain_template/np.max(brain_template)
         template_ants = ants.from_numpy(brain_template)
 
         # Register
-        output_folder = data_dir+'/tmp/'
-        orig_fname = subjects_dir+subject+'/mri/brain.mgz'
-
+        
         subject_mri = nib.load(orig_fname)
         subj_brain = np.asanyarray(subject_mri.dataobj)
         subj_brain = subj_brain/np.max(subj_brain)
@@ -94,12 +92,11 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
                                               transformlist=reg['fwdtransforms'],
                                               interpolator='nearestNeighbor')
         subj_reg = subj_reg_ants.numpy()
-        save_nifti_from_3darray(subj_reg, output_folder + 'registered/whole/' + subject + '_0000.nii.gz',
+        save_nifti_from_3darray(subj_reg, orig_registered_fname,
                                 affine=brain_template_nib.affine)
         
         # Mask
-        os.system('nnUNet_predict -i ' + output_folder + 'registered/whole/ -o ' + output_folder + 
-                  'registered/mask/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 001')
+        os.system(f'nnUNet_predict -i {output_folder}registered/whole/ -o {output_folder}registered/mask/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 001')
         
         # Split into LH and RH using ASEG
         aseg = np.asanyarray(nib.load(subjects_dir + subject + '/mri/aseg.mgz').dataobj).astype('uint8')
@@ -110,28 +107,26 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         mask = np.asanyarray(nib.load(output_folder + 'registered/mask/' + subject + '.nii.gz').dataobj)
         split_cerebellar_hemis_aseg(aseg_reg, subj_reg, mask, subject, output_folder + 'registered/',
                                     brain_template_nib.affine)
-        
+
         # Predict LH and RH
-        os.system('nnUNet_predict -i ' + output_folder + '/registered/lh/ -o ' + output_folder + 
-                  '/registered/lh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 002')
-        os.system('nnUNet_predict -i ' + output_folder + '/registered/rh/ -o ' + output_folder + 
-                  '/registered/rh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 003')
+        os.system(f'nnUNet_predict -i {output_folder}registered/lh/ -o {output_folder}registered/lh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 002')
+        os.system(f'nnUNet_predict -i {output_folder}registered/rh/ -o {output_folder}registered/rh_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 003')
         
         # Refine lob I-IV into lobs I-III and IV
-        pred_nib = nib.load(output_folder + '/registered/lh_segmented/' + subject + '.nii.gz')
+        pred_nib = nib.load(output_folder + 'registered/lh_segmented/' + subject + '.nii.gz')
         vol = np.asanyarray(pred_nib.dataobj)
-        image = np.asanyarray(nib.load(output_folder + '/registered/lh/' + subject + '_0000.nii.gz').dataobj)
+        image = np.asanyarray(nib.load(output_folder + 'registered/lh/' + subject + '_0000.nii.gz').dataobj)
         lobI_IV = np.zeros(vol.shape)
         lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
-        pred_nib = nib.load(output_folder + '/registered/rh_segmented/' + subject + '.nii.gz')
+        pred_nib = nib.load(output_folder + 'registered/rh_segmented/' + subject + '.nii.gz')
         vol = np.asanyarray(pred_nib.dataobj)
-        image = np.asanyarray(nib.load(output_folder + '/registered/rh/' + subject + '_0000.nii.gz').dataobj)
+        image = np.asanyarray(nib.load(output_folder + 'registered/rh/' + subject + '_0000.nii.gz').dataobj)
         lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
-        save_nifti_from_3darray(lobI_IV, output_folder + '/registered/lob_I_IV/' + subject + '_0000.nii.gz',
+        save_nifti_from_3darray(lobI_IV, output_folder + 'registered/lob_I_IV/' + subject + '_0000.nii.gz',
                                 rotate=False, affine=pred_nib.affine)
         
-        os.system('nnUNet_predict -i ' + output_folder + '/registered/lob_I_IV/ -o ' + output_folder + 
-                  '/registered/lob_I_IV_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 004')
+        os.system('nnUNet_predict -i ' + output_folder + 'registered/lob_I_IV/ -o ' + output_folder + 
+                  'registered/lob_I_IV_segmented/ -tr nnUNetTrainerV2 -ctr nnUNetTrainerV2CascadeFullRes -m 3d_fullres -p nnUNetPlansv2.1 -t 004')
         
         # Correct labels
         old_labels_ant = [1, 2, 3, 4]
@@ -141,11 +136,11 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         new_labels_rh = [12, 46, 56, 66, 76, 77, 78, 86, 87, 96, 106, 60, 70, 80, 90, 100]
         
         # Assemble segmentations into one image
-        seg = np.asanyarray(nib.load(output_folder + '/registered/lh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg = np.asanyarray(nib.load(output_folder + 'registered/lh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
         seg_lh = change_labels(seg, old_labels_hemi, new_labels_lh)
-        seg = np.asanyarray(nib.load(output_folder + '/registered/rh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg = np.asanyarray(nib.load(output_folder + 'registered/rh_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
         seg_rh = change_labels(seg, old_labels_hemi, new_labels_rh)
-        seg = np.asanyarray(nib.load(output_folder + '/registered/lob_I_IV_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
+        seg = np.asanyarray(nib.load(output_folder + 'registered/lob_I_IV_segmented/' + subject + '.nii.gz').dataobj).astype('uint8')
         seg_ant = change_labels(seg, old_labels_ant, new_labels_ant)
         seg_complete = np.zeros(seg.shape)
         seg_complete[np.nonzero(seg_lh)] = seg_lh[np.nonzero(seg_lh)]
@@ -156,8 +151,8 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         # Go back to subject space
         seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
                                          interpolator='genericLabel').numpy()
-
-        save_nifti_from_3darray(seg_reg, cmb_fname,
+        
+        save_nifti_from_3darray(seg_reg, op.join(data_dir, subject, '.nii.gz'),
                                 rotate=False, affine=subject_mri.affine)
 
         if not debug_mode:
