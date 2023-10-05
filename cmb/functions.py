@@ -16,6 +16,7 @@ import pickle
 import os
 from scipy import signal
 from .helpers import *
+import shutil
 
 def get_cerebellum_data(cmb_path):
     """
@@ -27,7 +28,7 @@ def get_cerebellum_data(cmb_path):
         Path to the ceremegbellum folder.
     """
     cmb_path = op.join(cmb_path, '')
-    
+
     if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task001_mask') and \
         os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task002_lh') and \
@@ -39,25 +40,25 @@ def get_cerebellum_data(cmb_path):
         from pooch import retrieve
         import zipfile
         print('Seems like some data are missing. No problem, fetching...')
-        os.system('mkdir ' + cmb_path + 'tmp')
-        os.system('mkdir ' + cmb_path + 'data')
-        os.system('mkdir ' + cmb_path + 'nnUNet')
-        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER')
-        os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_preprocessed')
-        os.system('mkdir ' + cmb_path + 'nnUNet/nnUNet_raw_data_base')
-        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet')
-        os.system('mkdir ' + cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres')
-        os.system('cp /autofs/cluster/fusion/Exchange/cerebellum-meeg/ceremegbellum.zip ' + \
-                  cmb_path + 'tmp')
+        files_for_storage = ['tmp','data']
+        for dir in files_for_storage:
+            os.makedirs(op.join(cmb_path,dir))
+        nnUNet_requirements = [op.join('RESULTS_FOLDER','nnUNet','3d_fullres'), 'nnUNet_preprocessed', 'nnUNet_raw_data_base']
+        for dir in nnUNet_requirements:
+            os.makedirs(op.join(cmb_path, 'nnUNet', dir), exist_ok=True)
+        ceremegbellum_zip_fname = op.join(cmb_path,'tmp','ceremegbellum.zip')
+        shutil.copyfile('/autofs/cluster/fusion/Exchange/cerebellum-meeg/ceremegbellum.zip',ceremegbellum_zip_fname)
 #        retrieve(url='https://osf.io/sdn9h/download',
 #                 known_hash=None, fname='ceremegbellum',
 #                 path=cmb_path + 'tmp') # UNTIL THE REPO IS PUBLIC, YOU NEED TO DO THIS STEP MANUALLY
-        with zipfile.ZipFile(cmb_path + 'tmp/' + 'ceremegbellum.zip', 'r') as zip_ref:
-            zip_ref.extractall(cmb_path + 'tmp')
-        os.system('mv ' + cmb_path + 'tmp/osf_data/cerebellum_geo ' + cmb_path + \
-                  'data/cerebellum_geo')
-        os.system('mv ' + cmb_path + 'tmp/osf_data/brain.nii ' + cmb_path + \
-                  'data/brain.nii')
+        with zipfile.ZipFile(ceremegbellum_zip_fname, 'r') as zip_ref:
+            zip_ref.extractall(op.join(cmb_path, 'tmp'))
+
+        ceremegbellum_fname = op.join(cmb_path,'tmp','osf_data')
+        files_to_copy = ['cerebellum_geo','brain.nii']
+        for file in files_to_copy:
+            shutil.copyfile(op.join(ceremegbellum_fname,file),op.join(cmb_path,'data',file))
+
         os.system('mv ' + cmb_path + 'tmp/osf_data/Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
                   '/nnUNet/3d_fullres/')
         os.system('rm -r ' + cmb_path + 'tmp') # clean up
