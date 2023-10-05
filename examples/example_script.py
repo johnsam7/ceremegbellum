@@ -39,7 +39,6 @@ cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
 # Get subject segmentation
-print('Doing segmentation...')
 segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
 
 # Setup source space using the segmented data
