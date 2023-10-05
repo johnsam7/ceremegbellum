@@ -38,6 +38,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
               'want to recompute the segmentation.')
         return
 
+    cmb_path = op.join(cmb_path, '')
     set_nnunet_paths(cmb_path)
 
     subjects_dir = op.join(subjects_dir, '')

@@ -115,12 +115,13 @@ def setup_cerebellum_source_space(subjects_dir, subject, cmb_path,
     import ants
     import pandas as pd
 
-    subjects_dir = subjects_dir + '/'
+    cmb_path = op.join(cmb_path, '')
+    subjects_dir = op.join(subjects_dir, '')
     print('starting subject '+subject+'...')
     # Load data
     subj_cerb = {}
-    data_dir = cmb_path + 'data/'    
-    cb_data = pickle.load(open(data_dir+'cerebellum_geo','rb'))
+    data_dir = op.join(cmb_path, 'data')    
+    cb_data = pickle.load(open(op.join(data_dir,'cerebellum_geo'),'rb'))
     if cerebellum_subsampling == 'full':
         rr = cb_data['verts_normal']
         tris = cb_data['faces']
@@ -341,7 +342,7 @@ def setup_full_source_space(subject, subjects_dir, cerb_dir, cerb_subsampling='s
     """
     import mne
 #    from evaler import join_source_spaces
-
+    cerb_dir = op.join(cerb_dir, '')
     assert cerb_subsampling in ['full', 'sparse', 'dense'], "cerb_subsampling must be either \'full\', \'sparse\' or \'dense\'"
     src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
     if spacing == 'all':

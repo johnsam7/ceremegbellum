@@ -19,6 +19,7 @@ import os.path as op
 from scipy import signal
 
 def set_nnunet_paths(cmb_path):
+    cmb_path = op.join(cmb_path, '')
     os.environ['nnUNet_preprocessed'] = op.join(cmb_path,'nnUNet','nnUNet_preprocessed')
     os.environ['RESULTS_FOLDER'] = op.join(cmb_path,'nnUNet','RESULTS_FOLDER')
     os.environ['nnUNet_raw_data_base'] = op.join(cmb_path,'nnUNet','nnUNet_raw_data_base')
