@@ -32,9 +32,10 @@ def get_cerebellum_data(cmb_path):
     cmb_path = op.join(cmb_path, '')
     required_CMB_files = ['cerebellum_geo','brain.nii']
     required_CMB_directories = ['Task001_mask','Task002_lh','Task003_rh','Task004_refine_lobsI_IV']
+    nnUNet_results_directory = op.join(cmb_path,'nnUNet','RESULTS_FOLDER', 'nnUNet','3d_fullres')
  
     if all([op.exists(op.join(cmb_path,'data',file)) for file in required_CMB_files]) and \
-        all([op.isdir(op.join(cmb_path,'nnUNet','RESULTS_FOLDER', 'nnUNet','3d_fullres', dir)) for dir in required_CMB_directories]):
+        all([op.isdir(op.join(nnUNet_results_directory, dir)) for dir in required_CMB_directories]):
         print('The required atlas data and segmentation models seem to be downloaded.')
 
     else:
