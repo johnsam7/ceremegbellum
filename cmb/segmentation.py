@@ -51,11 +51,11 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True, force_s
     nnunet_env['RESULTS_FOLDER'] = op.join(cmb_path,'nnUNet','RESULTS_FOLDER')
     nnunet_env['nnUNet_raw_data_base'] = op.join(cmb_path,'nnUNet','nnUNet_raw_data_base')
 
-    if not subprocess.run(["mri_convert", "--help"," >/dev/null"," 2>&1"],env=nnunet_env,check=True,stdout = subprocess.DEVNULL):
+    if not subprocess.run(["mri_convert", "--help"],env=nnunet_env,check=True,stdout = subprocess.DEVNULL):
         warnings.warn('WARNING: mri_convert not found. FreeSurfer has to be compiled for segmentation to work.')
     if not os.path.exists(op.join(subjects_dir,subject,'mri','orig.mgz')):
         raise FileNotFoundError('Could not locate subject MRI at '+subjects_dir+subject+'/mri/orig.mgz')
-    if not subprocess.run(["nnUNet_predict", "--help"," >/dev/null"," 2>&1"],env=nnunet_env,check=True,stdout = subprocess.DEVNULL):
+    if not subprocess.run(["nnUNet_predict", "--help"],env=nnunet_env,check=True,stdout = subprocess.DEVNULL):
         raise OSError('nnUNet_predict not found. Please make sure nnUNet is installed and its environment activated and try again.')
         
 
@@ -158,9 +158,9 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True, force_s
 
     if not debug_mode:
         for rel_path in rel_paths:
+            os.rmdir(op.join(data_dir,rel_path,'plans.pkl'))
+            os.rmdir(op.join(data_dir,rel_path,'postprocessing.json')) #clean up
             os.system('rm '+data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
-            os.system('rm '+data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
-            os.system('rm '+data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
     mask_org = mask.copy()
