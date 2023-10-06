@@ -62,7 +62,7 @@ def get_cerebellum_data(cmb_path):
             shutil.copyfile(op.join(ceremegbellum_fname,'osf_data',file),op.join(cmb_path,'data',file))
 
         for dir in glob.glob(op.join(ceremegbellum_fname,'osf_data','Task*')):
-            shutil.move(dir,op.join(cmb_path,'nnUNet','RESULTS_FOLDER','nnUNet','3d_fullres'))
+            shutil.move(dir,nnUNet_results_directory)
         
         os.rmdir(ceremegbellum_fname) #clean up
 
