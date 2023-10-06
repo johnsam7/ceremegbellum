@@ -162,7 +162,8 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
         file_types = ['*/*plans.pkl','*/*postprocessing.json','*/*.nii.gz']
         for file_type in file_types:
             tmp_files = glob.glob(op.join(tmp_folder,file_type))
-            for tmp in tmp_files: os.remove(tmp)                              
+            for tmp in tmp_files: 
+                os.remove(tmp)                              
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
     mask_org = mask.copy()
