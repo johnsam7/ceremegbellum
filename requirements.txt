@@ -1,6 +1,4 @@
 # requirements for CMB
-webcolors
-chart_studio
 scipy
 mne
 matplotlib
