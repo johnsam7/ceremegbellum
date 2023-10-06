@@ -14,9 +14,11 @@ from plyfile import PlyData, PlyElement
 import nibabel as nib
 import pickle
 import os
+import os.path as op
 from scipy import signal
 from .helpers import *
 import shutil
+import glob
 
 def get_cerebellum_data(cmb_path):
     """
@@ -28,14 +30,13 @@ def get_cerebellum_data(cmb_path):
         Path to the ceremegbellum folder.
     """
     cmb_path = op.join(cmb_path, '')
+    required_CMB_files = ['cerebellum_geo','brain.nii']
+    required_CMB_directories = ['Task001_mask','Task002_lh','Task003_rh','Task004_refine_lobsI_IV']
+ 
+    if all([op.exists(op.join(cmb_path,'data',file)) for file in required_CMB_files]) and \
+        all([op.isdir(op.join(cmb_path,'nnUNet','RESULTS_FOLDER', 'nnUNet','3d_fullres', dir)) for dir in required_CMB_directories]):
+        print('The required atlas data and segmentation models seem to be downloaded.')
 
-    if os.path.exists(cmb_path + 'data/cerebellum_geo') and \
-        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task001_mask') and \
-        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task002_lh') and \
-        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task003_rh') and \
-        os.path.isdir(cmb_path + 'nnUNet/RESULTS_FOLDER/nnUNet/3d_fullres/Task004_refine_lobsI_IV') and \
-        os.path.exists(cmb_path + 'data/brain.nii')    :
-            print('The required atlas data and segmentation models seem to be downloaded.')
     else:
         from pooch import retrieve
         import zipfile
@@ -54,14 +55,16 @@ def get_cerebellum_data(cmb_path):
         with zipfile.ZipFile(ceremegbellum_zip_fname, 'r') as zip_ref:
             zip_ref.extractall(op.join(cmb_path, 'tmp'))
 
-        ceremegbellum_fname = op.join(cmb_path,'tmp','osf_data')
-        files_to_copy = ['cerebellum_geo','brain.nii']
-        for file in files_to_copy:
-            shutil.copyfile(op.join(ceremegbellum_fname,file),op.join(cmb_path,'data',file))
+        ceremegbellum_fname = op.join(cmb_path,'tmp')
 
-        os.system('mv ' + cmb_path + 'tmp/osf_data/Task* ' + cmb_path + 'nnUNet/RESULTS_FOLDER' + \
-                  '/nnUNet/3d_fullres/')
-        os.system('rm -r ' + cmb_path + 'tmp') # clean up
+        for file in required_CMB_files:
+            shutil.copyfile(op.join(ceremegbellum_fname,'osf_data',file),op.join(cmb_path,'data',file))
+
+        for dir in glob.glob(op.join(ceremegbellum_fname,'osf_data','Task*')):
+            shutil.move(dir,op.join(cmb_path,'nnUNet','RESULTS_FOLDER','nnUNet','3d_fullres'))
+        
+        os.rmdir(ceremegbellum_fname) #clean up
+
         print('Done.')
     return
 
