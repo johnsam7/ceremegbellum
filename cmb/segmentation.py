@@ -157,7 +157,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True, force_s
         seg_reg = ants.apply_transforms(fixed=template_ants, moving=seg_ants, transformlist=reg['invtransforms'],
                                          interpolator='genericLabel').numpy()
         
-        save_nifti_from_3darray(seg_reg, op.join(data_dir, subject, '.nii.gz'),
+        save_nifti_from_3darray(seg_reg, op.join(data_dir, '.'.join([subject, 'nii','gz'])),
                                 rotate=False, affine=subject_mri.affine)
 
         if not debug_mode:
