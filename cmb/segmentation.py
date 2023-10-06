@@ -9,7 +9,7 @@ import nibabel as nib
 from .helpers import save_nifti_from_3darray, change_labels
 
 
-def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True, force_segmentation=False):
+def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_segmentation=False):
     """
     Creates segmentation of the cerebellar volume using the nnUnet package. Saves a nifti file to
     the specified subjects directory within the MRI subfolder as cmbseg.nii.gz 

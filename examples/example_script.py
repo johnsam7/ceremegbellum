@@ -21,7 +21,7 @@ from cmb.segmentation import segment_cerebellum
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/local_mount/space/hypatia/2/users/Jasmine/github/cbm/data_segmentation' # path to the folder
+cmb_path = '/path-to-your-cmb-folder/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -39,13 +39,13 @@ cb_data = pickle.load(open(op.join(cmb_path,'data','cerebellum_geo'), 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
 # Get subject segmentation
-segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=True)
+segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
 
 # Setup source space using the segmented data
 cerebellum_subsampling = 'dense'
 src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
 src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
-                                    plot_cerebellum=False, spacing=spacing,debug_mode=True)
+                                    plot_cerebellum=False, spacing=spacing,debug_mode=False)
 
 # Compute forward and inverse operators
 conductivity=(0.3, 0.006, 0.3)
