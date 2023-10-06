@@ -580,16 +580,6 @@ def mask_cerb(subjects_dir, subject, vol, hemi='both', pad=0):
     cerb_mask = cerb_mask[cb_range[0]-pad:cb_range[3]+pad, :, :][:, cb_range[1]-pad:cb_range[4]+pad, :][:, :, cb_range[2]-pad:cb_range[5]+pad]
     return cerb_mask
 
-def print_cerebellum(subjects_dir, subject, fname, hemi='both', pad=0, convert_to_coords = False, crop=False):
-    orig_nib = nib.load(subjects_dir+subject+'/mri/'+'/orig.mgz')
-    orig = np.asanyarray(orig_nib.dataobj)
-    cerebellum = mask_cerb(subjects_dir, subject, orig, hemi=hemi, pad=pad)
-    save_nifti_from_3darray(cerebellum, fname+'.nii.gz', rotate=False, affine=orig_nib.affine)
-    if type(convert_to_coords) == str:
-        os.system('mri_convert --out_orientation '+convert_to_coords+' '+fname+'.nii.gz '+fname+'.nii.gz')
-    return cerebellum
-
-
 def create_label_verts(labels, fwd):
     label_verts = {}
     num = 0
