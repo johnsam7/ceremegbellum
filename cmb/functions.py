@@ -44,7 +44,7 @@ def get_cerebellum_data(cmb_path):
         print('Seems like some data are missing. No problem, fetching...')
         files_for_storage = ['tmp','data']
         for dir in files_for_storage:
-            os.makedirs(op.join(cmb_path,dir))
+            os.makedirs(op.join(cmb_path,dir), exist_ok=True)
         nnUNet_requirements = [op.join('RESULTS_FOLDER','nnUNet','3d_fullres'), 'nnUNet_preprocessed', 'nnUNet_raw_data_base']
         for dir in nnUNet_requirements:
             os.makedirs(op.join(cmb_path, 'nnUNet', dir), exist_ok=True)
@@ -64,7 +64,7 @@ def get_cerebellum_data(cmb_path):
         for dir in glob.glob(op.join(ceremegbellum_fname,'osf_data','Task*')):
             shutil.move(dir,nnUNet_results_directory)
         
-        os.rmdir(ceremegbellum_fname) #clean up
+        os.rmtree(ceremegbellum_fname) #clean up
 
         print('Done.')
     return
