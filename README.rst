@@ -49,6 +49,13 @@ For Martinos users
 
     $ pip install -e .
 
+In case you get a "Quota exceeded" message, please do the following:
+
+.. code-block:: bash
+
+    $ pip cache purge
+    $ pip install -e . --no-cache-dir
+
 5. setup pre-compiled freesurfer (needed for segmentation):
 
 .. code-block:: bash
