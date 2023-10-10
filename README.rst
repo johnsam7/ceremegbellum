@@ -43,17 +43,10 @@ For Martinos users
 
     $ conda activate <your-environment-name>
 
-4. install ceremegbellum package:
+4. install ceremegbellum package (note it may take up to 2 GB space):
 
 .. code-block:: bash
 
-    $ pip install -e .
-
-In case you get a "Quota exceeded" message, please do the following:
-
-.. code-block:: bash
-
-    $ pip cache purge
     $ pip install -e . --no-cache-dir
 
 5. setup pre-compiled freesurfer (needed for segmentation):
