@@ -9,5 +9,6 @@ numpy
 vtk
 pyvista
 pyvistaqt
+PyQt5
 antspyx
 nnunet@ git+https://github.com/MIC-DKFZ/nnUNet.git@nnunetv1
