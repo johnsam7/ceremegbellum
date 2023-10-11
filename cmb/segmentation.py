@@ -159,7 +159,7 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
 
     if not debug_mode:
         for rel_path in rel_paths:
-            tmp_data_dir = op.join(data_dir, 'tmp', 'registered')
+            tmp_data_dir = op.join(data_dir, 'tmp', 'registered','')
             os.system('rm '+tmp_data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
             os.system('rm '+tmp_data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
             os.system('rm '+tmp_data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
