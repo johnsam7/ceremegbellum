@@ -58,9 +58,8 @@ For Martinos users
 
 Running the example
 ^^^^^^^^^^^^^^^^^^^
-1. Copy the cerebellum.geo file from /cluster/fusion/data/john_cerebellum/data
-2. run example.py in examples folder. If connecting with remote desktop, mayavi will likely fail to render for graphics hardware reasons so then view needs to be set to 'flatmap' in plot_cerebellum_data() (which is the default). If at site, all viewing options should work.
-3. Once you've confirmed that example.py runs until the end, you know the installation is successful and you can start using it for your own data. This is most easily done by modifying the example.py script by setting the paths to subject data to your own subject data.
+1. Run example.py in examples folder. If connecting with remote desktop, mayavi will likely fail to render for graphics hardware reasons so then view needs to be set to 'flatmap' in plot_cerebellum_data() (which is the default). If at site, all viewing options should work.
+2. Once you've confirmed that example.py runs until the end, you know the installation is successful and you can start using it for your own data. This is most easily done by modifying the example.py script by setting the paths to subject data to your own subject data.
 
 
 Usage of the Docker Container
