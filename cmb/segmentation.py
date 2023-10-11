@@ -158,11 +158,13 @@ def segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_
                             rotate=False, affine=subject_mri.affine)
 
     if not debug_mode:
-        for rel_path in rel_paths:
-            tmp_data_dir = op.join(data_dir, 'tmp', 'registered','')
-            os.system('rm '+tmp_data_dir+rel_path+'/*.nii.gz >/dev/null 2>&1') # Clean up the tmp folder
-            os.system('rm '+tmp_data_dir+rel_path+'/plans.pkl >/dev/null 2>&1') # Clean up the tmp folder
-            os.system('rm '+tmp_data_dir+rel_path+'/postprocessing.json >/dev/null 2>&1') # Clean up the tmp folder
+        tmp_folder = op.join(data_dir,'tmp','registered')
+        file_types = ['*/*plans.pkl','*/*postprocessing.json','*/*.nii.gz']
+        for file_type in file_types:
+            tmp_files = glob.glob(op.join(tmp_folder,file_type))
+            for tmp in tmp_files:
+                os.remove(tmp)  
+
                            
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
