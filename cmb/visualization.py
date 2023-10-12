@@ -91,7 +91,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     nan_verts = np.where(np.isnan(estimate_smoothed))[0]
 
     while len(nan_verts) > 0:
-        vert_neighbors = np.array(cerebellum_geo['dw_data'][sub_sampling+'_vert_to_neighbor'])[nan_verts]
+        vert_neighbors = [cerebellum_geo['dw_data'][sub_sampling+'_vert_to_neighbor'][ind] for ind in nan_verts]
         estimate_smoothed[nan_verts] = [np.nanmean(estimate_smoothed[vert_neighbor_group]) for vert_neighbor_group in vert_neighbors]
         nan_verts = np.where(np.isnan(estimate_smoothed))[0]
 
