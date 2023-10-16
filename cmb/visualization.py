@@ -10,7 +10,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+from mayavi import mlab
 from scipy import signal
 
 
@@ -69,7 +69,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
 
-    mlab = MLabEmulator()
+    # mlab = MLabEmulator()
 
     if not cort_data is None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
@@ -95,8 +95,8 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
         estimate_smoothed[nan_verts] = [np.nanmean(estimate_smoothed[vert_neighbor_group]) for vert_neighbor_group in vert_neighbors]
         nan_verts = np.where(np.isnan(estimate_smoothed))[0]
 
-    if not cort_data is None:
-        if not org_src[0]['use_tris'] is None:
+    if cort_data is not None:
+        if org_src[0]['use_tris'] is not None:
             cort_full_mantle = np.zeros(org_src[0]['nuse'])
             cort_full_mantle[:] = np.nan
             cort_full_mantle[np.isin(org_src[0]['vertno'], src_cort['vertno'])] = cort_data
