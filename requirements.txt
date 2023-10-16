@@ -5,7 +5,7 @@ matplotlib
 nibabel
 plyfile
 pandas
-numpy
+numpy<2.0
 vtk
 pyvista
 pyvistaqt
