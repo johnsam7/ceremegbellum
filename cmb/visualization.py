@@ -111,7 +111,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
             nan_verts = np.where(np.isnan(cort_full_mantle))[0]
             tris_frame = org_src[0]['tris']
         while len(nan_verts) > 0:
-            vert2tris = np.array([np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts])
+            vert2tris = np.array([np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts], dtype=object)
             neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
             cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
             nan_verts = np.where(np.isnan(cort_full_mantle))[0]
