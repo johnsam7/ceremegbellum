@@ -10,7 +10,6 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mayavi import mlab
 from scipy import signal
 
 
@@ -69,9 +68,9 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     import matplotlib.colors as colors
     import matplotlib.tri as mtri
 
-    # mlab = MLabEmulator()
+    mlab = MLabEmulator()
 
-    if not cort_data is None:
+    if cort_data is not None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
     
     def truncate_colormap(flatmap_cmap, minval=0.0, maxval=1.0, n=500):
@@ -107,6 +106,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
         else:
             print('use_tris is None, so we have to spread estimates over entire cortical source space...')
             cort_full_mantle = np.zeros(org_src[0]['np'])
+            cort_full_mantle[:] = np.nan
             cort_full_mantle[src_cort['vertno']] = cort_data
             nan_verts = np.where(np.isnan(cort_full_mantle))[0]
             tris_frame = org_src[0]['tris']
@@ -145,8 +145,8 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
                                            cerebellum_geo['dw_data'][sub_sampling+'_tris'], scalars=estimate_smoothed, colormap=mayavi_cmap)
          mlab.colorbar()
          figures.append(normal_fig)
-         if not cort_data is None:
-             if not org_src[0]['use_tris'] is None:
+         if cort_data is not None:
+             if org_src[0]['use_tris'] is not None:
                  rr_cx = src_cort['rr'][org_src[0]['vertno'], :]
              else:
                  rr_cx = src_cort['rr']
@@ -423,10 +423,10 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
         plt.subplot(3, 2, c+1)
         plt.imshow(image, cmap=cmap)
 
-        if not type(tris) == type(None):
+        if type(tris) != type(None):
             z_0 = slice_ind
             cart_ind = 0
-            xy = [x for x in range(3) if not x==cart_ind] 
+            xy = [x for x in range(3) if x!=cart_ind] 
             intersecting_tris = []
             for tri in tris:
                 rr_0 = rr[tri[0], :]
@@ -455,7 +455,7 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
                 plt.plot(xy_points[:,1], xy_points[:,0], color='red', linewidth=linewidth)
 
 
-        if not type(nn) == type(None):
+        if type(nn) != type(None):
             ptsp = np.where(np.abs(rr[:,0]-(slice_ind-0.5)) < 1.0)[0]
             x_tp = rr[ptsp,2]
             y_tp = rr[ptsp,1]
