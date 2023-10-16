@@ -423,10 +423,10 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
         plt.subplot(3, 2, c+1)
         plt.imshow(image, cmap=cmap)
 
-        if type(tris) != type(None):
+        if not type(tris) == type(None):
             z_0 = slice_ind
             cart_ind = 0
-            xy = [x for x in range(3) if x!=cart_ind] 
+            xy = [x for x in range(3) if not x==cart_ind] 
             intersecting_tris = []
             for tri in tris:
                 rr_0 = rr[tri[0], :]
@@ -455,7 +455,7 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
                 plt.plot(xy_points[:,1], xy_points[:,0], color='red', linewidth=linewidth)
 
 
-        if type(nn) != type(None):
+        if not type(nn) == type(None):
             ptsp = np.where(np.abs(rr[:,0]-(slice_ind-0.5)) < 1.0)[0]
             x_tp = rr[ptsp,2]
             y_tp = rr[ptsp,1]
