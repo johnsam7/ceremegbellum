@@ -64,7 +64,7 @@ def get_cerebellum_data(cmb_path):
         for dir in glob.glob(op.join(ceremegbellum_fname,'osf_data','Task*')):
             shutil.move(dir,nnUNet_results_directory)
         
-        os.shutil.rmtree(ceremegbellum_fname) #clean up
+        shutil.rmtree(ceremegbellum_fname) #clean up
 
         print('Done.')
     return
