@@ -50,7 +50,7 @@ class Timer:
             self.in_sec = False
 
 
-def time_execution(cerebellum_subsampling):
+def time_computation(cerebellum_subsampling):
     data_path = sample.data_path()
 
     # Paths to subject data
@@ -127,10 +127,24 @@ def time_execution(cerebellum_subsampling):
 
     return timer
 
+def time_vizualization():
+    save_src_dir="/autofs/cluster/fusion/gbm6/"
+    cmb_path="/autofs/cluster/fusion/gbm6/Projects/cmb/cmb_data/"
+    cb_data = pickle.load(open(cmb_path+'data/cerebellum_geo', 'rb'))
+    subject="Pilot_CB_001"
+
+    src_whole = mne.read_source_spaces(save_src_dir+subject+"_src_whole-src.fif")
+    fwd_type = "free"
+    fwd = mne.read_forward_solution(save_src_dir+subject+"oneLayer"+"-fwd.fif")
+    fwd = mne.convert_forward_solution(fwd, surf_ori=True,
+                                       force_fixed=False, copy=True)
+
+    
+
 
 times = list()
 for den in ['dense', 'sparse']:
-    times.append((den, time_execution(den)))
+    times.append((den, time_computation(den)))
 
 for t in times:
     print(t[0])
