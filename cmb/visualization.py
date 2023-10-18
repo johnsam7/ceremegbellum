@@ -42,27 +42,46 @@ class MLabEmulator:
         self.plotter.show()
 
 
-def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None, flatmap_cmap='bwr', mayavi_cmap=None,
-                         smoothing_steps=0, view='all', sub_sampling='sparse', cmap_lims=[1,98]):
-    """Plots data on the cerebellar cortical surface. Requires cerebellum geometry file
-    to be downloaded.
-    
+def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
+                         cort_data=None, flatmap_cmap='bwr',
+                         mayavi_cmap=None, smoothing_steps=0, view='all',
+                         sub_sampling='sparse', cmap_lims=[1, 98]):
+    """Plots data on the cerebellar cortical surface. Requires cerebellum
+    geometry file to be downloaded.
+
     Parameters
     ----------
     data : array, shape (n_vertices)
-        Cerebellar data
-    rr : array, shape (n_vertices, 3)
-        Positions of subject-specific vertices.
-    cmap : str
-        Colormap. Needs to be avaible in both mayavi and plotly.
+        Cerebellar data.
+    fwd_src : MNE SourceSpaces
+        The source space used in the computation of the forward solution.
+    org_src: MNE SourceSpaces
+        Full surface fource space for both coreex and cerebellum.
+    cerebellum_geo : dict
+        Cerebellum 3D geometry object
+    cort_data : array
+        Cortex data
+    flatmap_cmap : string
+        Color map for 2D plots
+    mayavi_cmap : string
+        Color map for 3D plots
+    smoothing_steps:
+        Cerebellum smoothing iterations
     view: "all" | "normal" | "inflated" | "flatmap"
-        Which views to show. If view='all', then all (normal, inflated and flamap) are shown.
-        
+        Which views to show. If view='all', then all
+        (normal, inflated and flamap) are shown.
+    sub_sampling : string
+        'dense', 'sparse', 'full'. Has to coorespond to sub sampling of
+        other data provided.
+    cmap_lims : list
+        Colormap limits, where first element is the lower bound and the
+        second element is the upper bound.
+
     Returns
     -------
     figures: list
         List containing Figure objects.
-    
+
     """
 
     import matplotlib.colors as colors
@@ -72,7 +91,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
 
     if cort_data is not None:
         assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
-    
+
     def truncate_colormap(flatmap_cmap, minval=0.0, maxval=1.0, n=500):
         new_cmap = colors.LinearSegmentedColormap.from_list(
             'trunc({n},{a:.2f},{b:.2f})'.format(n=flatmap_cmap.name, a=minval, b=maxval),
@@ -82,7 +101,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     figures = []
     src_cerb = fwd_src[1]
     src_cort = fwd_src[0]
-    
+
     print('Smoothing...')
     estimate_smoothed = np.zeros(cerebellum_geo['dw_data'][sub_sampling+'_verts'].shape[0])
     estimate_smoothed[:] = np.nan
@@ -139,7 +158,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
     if view in ['all', 'normal']:
 #        print_surf('/autofs/cluster/fusion/john/projects/cerebellum/inv/data/cerebellum_estimate.ply',
 #                  src_cerb['rr'], src_cerb['tris'], cmap=mayavi_cmap, scals=estimate_smoothed, color=np.array([True]))
-                 
+
          mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200,1200))
          normal_fig = mlab.triangular_mesh(src_cerb['rr'][:, 0], src_cerb['rr'][:, 1], src_cerb['rr'][:, 2],
                                            cerebellum_geo['dw_data'][sub_sampling+'_tris'], scalars=estimate_smoothed, colormap=mayavi_cmap)
@@ -153,10 +172,10 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
              normal_fig = mlab.triangular_mesh(rr_cx[:, 0], rr_cx[:, 1], rr_cx[:, 2],
                                               tris_frame, scalars=cort_full_mantle, colormap=mayavi_cmap)
              figures.append(normal_fig)
-             
+
 #            print_surf('/autofs/cluster/fusion/john/projects/cerebellum/inv/data/cort_estimate.ply',
 #                      rr_cx, tris_frame, cmap=mayavi_cmap, scals=cort_full_mantle, color=np.array([True]))
-             
+
     if view in ['all', 'inflated']:
         # print_surf('/autofs/cluster/fusion/john/projects/cerebellum/inv/data/cerebellum_estimate_inflated.ply',
         #            cerebellum_geo['verts_inflated'][cerebellum_geo['dw_data'][sub_sampling],:],
@@ -169,7 +188,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
                                             cerebellum_geo['dw_data'][sub_sampling+'_tris'], scalars=estimate_smoothed, colormap=mayavi_cmap)
         mlab.colorbar()
         figures.append(inflated_fig)
-    
+
     if view in ['all', 'flatmap']:
 
         if np.min(estimate_smoothed) >= 0:
@@ -187,7 +206,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
             color_levels = np.vstack((color_levels, np.ones((cmap_lims[0], 4))))
             color_levels = np.vstack((color_levels, red_cmap(np.linspace(0, 1, cmap_lims[1]-cmap_lims[0]))))
             color_levels = np.vstack((color_levels, np.repeat(red_cmap([1.]).reshape(1,4), repeats=100-cmap_lims[1], axis=0)))
-            
+
         max_abs = np.max(np.abs(estimate_smoothed))
         if np.min(estimate_smoothed) >= 0:
             levels = np.linspace(0, max_abs, 101)
@@ -255,7 +274,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo, cort_data=None,
         crusII_right = np.array([[96, 313], [230, 148]])
         lobVIIb_left = np.array([[-239, -49], [-178, -117]])
         lobVIIb_right = np.array([[255, -211], [244, -119], [265, -75], [293, -71]])
-        
+
         for border_line in [ant_lob, crusII_left, crusII_right, lobVIIb_left, lobVIIb_right]:
             plt.plot(-border_line[:,0], border_line[:,1], linestyle='--', linewidth=0.4, c='k', alpha=1.0) # minus x-coord for keeping in neurological coordinates
         plt.gca().set_aspect('equal')
