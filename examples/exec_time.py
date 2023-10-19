@@ -1,12 +1,15 @@
 import os.path as op
-import os
 import mne
 import pickle
 import time
 from mne.datasets import sample
+import numpy as np
 
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 from cmb.segmentation import segment_cerebellum
+from cmb.visualization import (MLabEmulator, one_pass_cortex_smoothing,
+                               one_pass_cerebellum_smoothing, plot_normal,
+                               plot_inflated, plot_flatmap)
 
 
 class Timer:
@@ -139,14 +142,114 @@ def time_vizualization():
     fwd = mne.convert_forward_solution(fwd, surf_ori=True,
                                        force_fixed=False, copy=True)
 
+    LOOSE = "2"
+    fname = 'deg15_Fix_Left_Ctssssconcatelong'
+    method = "dSPM"
+
+    estimate = mne.read_source_estimate(save_src_dir + fname + LOOSE + "estimate_erm"+method+".stc")
+
+    time_want = -0.651
+    wh = np.where(estimate.times < time_want)[0][-1]
+
+    estimate_cerb = estimate.data[fwd['src'][0]['nuse']:estimate.shape[0], wh]
+    cort_data = estimate.data[:fwd['src'][0]['nuse'], wh]
+    cerebellum_subsampling = 'dense'
+
+    # plot_cerebellum_data(estimate_cerb, fwd['src'], src_whole, cb_data,
+    #                  cort_data=cort_data, flatmap_cmap='OrRd',
+    #                  mayavi_cmap='OrRd', smoothing_steps=0, view='all',
+    #                  sub_sampling=cerebellum_subsampling, cmap_lims=[25, 80])
+
+    # using these vars so they match the names in plot_cerebellum_data
+    data  =  estimate_cerb
+    fwd_src  =  fwd['src']
+    org_src  =  src_whole
+    cerebellum_geo  =  cb_data
+    flatmap_cmap = 'OrRd'
+    mayavi_cmap = 'OrRd'
+    smoothing_steps = 5
+    view = 'all'
+    sub_sampling = cerebellum_subsampling
+    cmap_lims = [25, 80]
+
     
+    timer = Timer()
+    timer.start()
+    
+    mlab = MLabEmulator()
+
+    if cort_data is not None:
+        assert cort_data.shape[0] == fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
+
+    timer.start_section("First pass cerebellum smoothing")
+    src_cerb = fwd_src[1]
+    estimate_smoothed = one_pass_cerebellum_smoothing(
+                            data, src_cerb, cerebellum_geo, sub_sampling)
+    timer.stop_section()
+
+    timer.start_section("Cortex smoothing")
+    src_cort = fwd_src[0]
+    if cort_data is not None:
+        cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
+                                            cort_data, org_src, src_cort)
+    timer.stop_section()
+
+    if mayavi_cmap is None:
+        if cort_data is None:
+            if np.min(estimate_smoothed) < 0:
+                mayavi_cmap = 'bwr'
+            else:
+                mayavi_cmap = 'OrRd'
+        else:
+            if np.min(np.concatenate((estimate_smoothed, cort_data))) < 0:
+                mayavi_cmap = 'bwr'
+            else:
+                mayavi_cmap = 'OrRd'
+
+    for step in range(smoothing_steps):
+        timer.start_section(f"Cerebellum extra smoothing {step}")
+        print('Step '+str(step))
+        for vert in range(estimate_smoothed.shape[0]):
+            estimate_smoothed[vert] = np.nanmean(estimate_smoothed[cerebellum_geo['dw_data'][sub_sampling+'_vert_to_neighbor'][vert]])
+        timer.stop_section()
+
+    figures = []
+
+    if view in ['all', 'normal']:
+        timer.start_section("Plot Normal")
+        figures.append(plot_normal(mlab, src_cerb, cort_data, org_src,
+                                   src_cort, estimate_smoothed,
+                                   cerebellum_geo, sub_sampling, mayavi_cmap,
+                                   tris_frame, cort_full_mantle))
+        timer.end_section()
+
+    if view in ['all', 'inflated']:
+        timer.start_section("Plot Inflated")
+        figures.append(plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
+                                     sub_sampling, mayavi_cmap))
+        timer.stop_section()
+
+    if view in ['all', 'flatmap']:
+        timer.start_section("Plot flatmap")
+        figures.append(plot_flatmap(cerebellum_geo, estimate_smoothed,
+                                    flatmap_cmap, cmap_lims, sub_sampling))
+        timer.stop_section()
+
+    timer.stop()
+    return timer
 
 
-times = list()
-for den in ['dense', 'sparse']:
-    times.append((den, time_computation(den)))
+def profile_computation():
+    times = list()
+    for den in ['dense', 'sparse']:
+        times.append((den, time_computation(den)))
 
-for t in times:
-    print(t[0])
-    print(t[1])
+    for t in times:
+        print(t[0])
+        print(t[1])
+
+
+def profile_vizualization():
+    time = time_vizualization()
+    print(time)
 
