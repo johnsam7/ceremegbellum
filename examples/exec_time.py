@@ -4,6 +4,7 @@ import pickle
 import time
 from mne.datasets import sample
 import numpy as np
+import matplotlib.pyplot as plt
 
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
 from cmb.segmentation import segment_cerebellum
@@ -217,22 +218,29 @@ def time_vizualization():
 
     if view in ['all', 'normal']:
         timer.start_section("Plot Normal")
-        figures.append(plot_normal(mlab, src_cerb, cort_data, org_src,
-                                   src_cort, estimate_smoothed,
-                                   cerebellum_geo, sub_sampling, mayavi_cmap,
-                                   tris_frame, cort_full_mantle))
-        timer.end_section()
+        figs = plot_normal(mlab, src_cerb, cort_data, org_src,
+                          src_cort, estimate_smoothed,
+                          cerebellum_geo, sub_sampling, mayavi_cmap,
+                          tris_frame, cort_full_mantle)
+
+        for fig in figs:
+            fig.close()
+        timer.stop_section()
 
     if view in ['all', 'inflated']:
         timer.start_section("Plot Inflated")
-        figures.append(plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
-                                     sub_sampling, mayavi_cmap))
+        figs = plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
+                            sub_sampling, mayavi_cmap)
+        for fig in figs:
+            fig.close()
         timer.stop_section()
 
     if view in ['all', 'flatmap']:
         timer.start_section("Plot flatmap")
-        figures.append(plot_flatmap(cerebellum_geo, estimate_smoothed,
-                                    flatmap_cmap, cmap_lims, sub_sampling))
+        figs = plot_flatmap(cerebellum_geo, estimate_smoothed,
+                           flatmap_cmap, cmap_lims, sub_sampling)
+        for fig in figs:
+            plt.close(fig)
         timer.stop_section()
 
     timer.stop()
@@ -253,3 +261,5 @@ def profile_vizualization():
     time = time_vizualization()
     print(time)
 
+
+profile_vizualization()

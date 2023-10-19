@@ -207,37 +207,34 @@ def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap,
     plt.gca().set_aspect('equal')
 
     # place text boxes outlining anatomical landmarks
-    textstr = ' Lobules I-V \n (anterior lobe)'
-    fontsize = 8
-    flat_fig.axes[0].text(-610, 1175, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = 'Lobule VI'
-    flat_fig.axes[0].text(-490, 840, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = 'Crus I'
-    flat_fig.axes[0].text(-450, 441, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = ' Crus II/\n Lobule VIIb'
-    flat_fig.axes[0].text(-700, 100, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = 'Lobule VIII'
-    flat_fig.axes[0].text(-740, -200, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = ' Lobule IX \n (tonsil)'
-    flat_fig.axes[0].text(-670, -590, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = ' Lobule X \n (flocculus)'
-    flat_fig.axes[0].text(-370, -670, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = 'Inferior vermis'
-    flat_fig.axes[0].text(40, -710, textstr, fontsize=fontsize, verticalalignment='top')
-    textstr = 'Left'
-    flat_fig.axes[0].text(-380, 1480, textstr, fontsize=fontsize, verticalalignment='top', fontweight='bold')
-    textstr = 'Right'
-    flat_fig.axes[0].text(200, 1480, textstr, fontsize=fontsize, verticalalignment='top', fontweight='bold')
+    axis = flat_fig.axes[0]
+    text_params = {'fontsize': 8, 'verticalalignment': 'top'}
 
-    flat_fig.axes[0].arrow(-350, -580, 82, 64, head_width=20, head_length=20, linewidth=0.5, fc='k', ec='k')
-    flat_fig.axes[0].arrow(-230, -660, 80, 45, head_width=20, head_length=20, linewidth=0.5, fc='k', ec='k')
-    flat_fig.axes[0].arrow(20, -750, 0, 130, head_width=20, head_length=20, linewidth=0.5, fc='k', ec='k')
+    axis.text(-610, 1175, ' Lobules I-V \n (anterior lobe)', **text_params)
+    axis.text(-490, 840, 'Lobule VI', **text_params)
+    axis.text(-450, 441, 'Crus I', **text_params)
+    axis.text(-700, 100, ' Crus II/\n Lobule VIIb', **text_params)
+    axis.text(-740, -200, 'Lobule VIII', **text_params)
+    axis.text(-670, -590, ' Lobule IX \n (tonsil)', **text_params)
+    axis.text(-370, -670, ' Lobule X \n (flocculus)', **text_params)
+    axis.text(40, -710, 'Inferior vermis', **text_params)
+    axis.text(-380, 1480, 'Left', fontweight='bold', **text_params)
+    axis.text(200, 1480, 'Right', fontweight='bold', **text_params)
+
+    arrow_params = {'head_width': 20, 'head_length': 20,
+                    'linewidth': 0.5, 'fc': 'k', 'ec': 'k'}
+
+    axis.arrow(-350, -580, 82, 64, **arrow_params)
+    axis.arrow(-230, -660, 80, 45, **arrow_params)
+    axis.arrow(20, -750, 0, 130, **arrow_params)
+
     flat_fig.patch.set_visible(False)
-    flat_fig.axes[0].axis('off')
+    axis.axis('off')
     plt.show()
     figures.append(flat_fig)
 
     return figures
+
 
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
                          cort_data=None, flatmap_cmap='bwr',
@@ -281,22 +278,16 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
 
     """
 
-    import matplotlib.tri as mtri
-
     mlab = MLabEmulator()
 
     if cort_data is not None:
-        assert cort_data.shape[0]==fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
+        assert cort_data.shape[0] == fwd_src[0]['nuse'], 'cort_data and src[0][\'nuse\'] must have the same number of elements.'
 
-
-
-    figures = []
     src_cerb = fwd_src[1]
-    src_cort = fwd_src[0]
-
     estimate_smoothed = one_pass_cerebellum_smoothing(
                             data, src_cerb, cerebellum_geo, sub_sampling)
 
+    src_cort = fwd_src[0]
     if cort_data is not None:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
                                             cort_data, org_src, src_cort)
@@ -313,26 +304,27 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
             else:
                 mayavi_cmap = 'OrRd'
 
-#    estimate_smoothed[np.where(np.isin(src_cerb_org['vertno'], src_cerb['vertno']))] = data
     for step in range(smoothing_steps):
         print('Step '+str(step))
         for vert in range(estimate_smoothed.shape[0]):
             estimate_smoothed[vert] = np.nanmean(estimate_smoothed[cerebellum_geo['dw_data'][sub_sampling+'_vert_to_neighbor'][vert]])
 
+    figures = []
+
     if view in ['all', 'normal']:
-        figures.append(plot_normal(mlab, src_cerb, cort_data, org_src,
-                                   src_cort, estimate_smoothed,
-                                   cerebellum_geo, sub_sampling, mayavi_cmap,
-                                   tris_frame, cort_full_mantle))
+        figures += plot_normal(mlab, src_cerb, cort_data, org_src,
+                               src_cort, estimate_smoothed,
+                               cerebellum_geo, sub_sampling, mayavi_cmap,
+                               tris_frame, cort_full_mantle)
 
     if view in ['all', 'inflated']:
-        figures.append(plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
-                                     sub_sampling, mayavi_cmap))
+        figures += plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
+                                 sub_sampling, mayavi_cmap)
 
     if view in ['all', 'flatmap']:
-        figures.append(plot_flatmap(cerebellum_geo, estimate_smoothed,
-                                    flatmap_cmap, cmap_lims, sub_sampling))
-        
+        figures += plot_flatmap(cerebellum_geo, estimate_smoothed,
+                                flatmap_cmap, cmap_lims, sub_sampling)
+
     return figures
 
 # TBD move to functions
