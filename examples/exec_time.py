@@ -168,7 +168,7 @@ def time_vizualization():
     cerebellum_geo  =  cb_data
     flatmap_cmap = 'OrRd'
     mayavi_cmap = 'OrRd'
-    smoothing_steps = 5
+    smoothing_steps = 1
     view = 'all'
     sub_sampling = cerebellum_subsampling
     cmap_lims = [25, 80]

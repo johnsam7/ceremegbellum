@@ -11,7 +11,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
-
+import mne
 
 class MLabEmulator:
 
@@ -57,29 +57,54 @@ def one_pass_cerebellum_smoothing(data, src_cerb, cerebellum_geo, sub_sampling):
 
 
 def one_pass_cortex_smoothing(cort_data, org_src, src_cort):
-    if org_src[0]['use_tris'] is not None:
-        cort_full_mantle = np.zeros(org_src[0]['nuse'])
-        cort_full_mantle[:] = np.nan
-        cort_full_mantle[np.isin(org_src[0]['vertno'], src_cort['vertno'])] = cort_data
-        nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-        vert_inuse = np.zeros(src_cort['np']).astype(int)
-        vert_inuse[org_src[0]['vertno']] = range(org_src[0]['nuse'])
-        tris_frame = vert_inuse[org_src[0]['use_tris']]
-    else:
-        print('use_tris is None, so we have to spread estimates over entire cortical source space...')
-        cort_full_mantle = np.zeros(org_src[0]['np'])
-        cort_full_mantle[:] = np.nan
-        cort_full_mantle[src_cort['vertno']] = cort_data
-        nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-        tris_frame = org_src[0]['tris']
-    while len(nan_verts) > 0:
-        vert2tris = np.array([np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts], dtype=object)
-        neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
-        cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
-        nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-        print('Remaining source points: '+str(len(nan_verts)))
-    return cort_full_mantle, tris_frame
 
+    morph = mne.morph._hemi_morph(
+        org_src[0]['tris'],
+        np.arange(org_src[0]["nuse"]),
+        org_src[0]['vertno'],
+        1,
+        maps=None,
+        warn=True,
+    )
+    return morph @ cort_data[:, None], org_src[0]['tris']
+    # return np.dot(cort_data, morph), org_srs[0]['tris']
+    #
+    # if org_src[0]['use_tris'] is not None:
+    #     cort_full_mantle = np.zeros(org_src[0]['nuse'])
+    #     cort_full_mantle[:] = np.nan
+    #     cort_full_mantle[np.isin(org_src[0]['vertno'], src_cort['vertno'])] = cort_data
+    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
+    #     vert_inuse = np.zeros(src_cort['np']).astype(int)
+    #     vert_inuse[org_src[0]['vertno']] = range(org_src[0]['nuse'])
+    #     tris_frame = vert_inuse[org_src[0]['use_tris']]
+    # else:
+    #     print('use_tris is None, so we have to spread estimates over entire cortical source space...')
+    #     cort_full_mantle = np.zeros(org_src[0]['np'])
+    #     cort_full_mantle[:] = np.nan
+    #     cort_full_mantle[src_cort['vertno']] = cort_data
+    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
+    #     tris_frame = org_src[0]['tris']
+    # while len(nan_verts) > 0:
+    #     print("0")
+    #     aaa = list()
+    #     # for vert in nan_verts:
+    #     #     print(vert)
+    #     #     zeroes = np.isin(tris_frame, vert).any(axis=1)
+    #     #     zeroes_ind = np.where(zeroes)
+    #     #     aaa.append(zeroes_ind)
+    #
+    #     aaa = [np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts[:1000]]
+    #     print("1")
+    #     vert2tris = np.array(aaa, dtype=object)
+    #     print("2")
+    #     neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
+    #     print("3")
+    #     cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
+    #     print("4")
+    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
+    #     print('Remaining source points: '+str(len(nan_verts)))
+    # return cort_full_mantle, tris_frame
+    #
 
 def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
                 cerebellum_geo, sub_sampling, colormap, tris_frame, cort_full_mantle):
@@ -98,7 +123,7 @@ def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
         else:
             rr_cx = src_cort['rr']
         normal_fig = mlab.triangular_mesh(rr_cx[:, 0], rr_cx[:, 1], rr_cx[:, 2],
-                                      tris_frame, scalars=cort_full_mantle, colormap=colormap)
+                                          tris_frame, scalars=cort_full_mantle, colormap=colormap)
         figures.append(normal_fig)
     return figures
 
