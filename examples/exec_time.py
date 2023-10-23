@@ -168,7 +168,7 @@ def time_vizualization():
     cerebellum_geo  =  cb_data
     flatmap_cmap = 'OrRd'
     mayavi_cmap = 'OrRd'
-    smoothing_steps = 1
+    smoothing_steps = 5
     view = 'all'
     sub_sampling = cerebellum_subsampling
     cmap_lims = [25, 80]
@@ -192,7 +192,8 @@ def time_vizualization():
     src_cort = fwd_src[0]
     if cort_data is not None:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
-                                            cort_data, org_src, src_cort)
+                                            cort_data, org_src, src_cort,
+                                            smoothing_steps)
     timer.stop_section()
 
     if mayavi_cmap is None:
