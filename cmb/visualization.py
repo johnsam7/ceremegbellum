@@ -56,55 +56,17 @@ def one_pass_cerebellum_smoothing(data, src_cerb, cerebellum_geo, sub_sampling):
     return estimate_smoothed
 
 
-def one_pass_cortex_smoothing(cort_data, org_src, src_cort):
-
+def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
     morph = mne.morph._hemi_morph(
         org_src[0]['tris'],
-        np.arange(org_src[0]["nuse"]),
+        np.arange(org_src[0]["np"]),
         org_src[0]['vertno'],
-        1,
+        smoothing_steps,
         maps=None,
         warn=True,
     )
     return morph @ cort_data[:, None], org_src[0]['tris']
-    # return np.dot(cort_data, morph), org_srs[0]['tris']
-    #
-    # if org_src[0]['use_tris'] is not None:
-    #     cort_full_mantle = np.zeros(org_src[0]['nuse'])
-    #     cort_full_mantle[:] = np.nan
-    #     cort_full_mantle[np.isin(org_src[0]['vertno'], src_cort['vertno'])] = cort_data
-    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-    #     vert_inuse = np.zeros(src_cort['np']).astype(int)
-    #     vert_inuse[org_src[0]['vertno']] = range(org_src[0]['nuse'])
-    #     tris_frame = vert_inuse[org_src[0]['use_tris']]
-    # else:
-    #     print('use_tris is None, so we have to spread estimates over entire cortical source space...')
-    #     cort_full_mantle = np.zeros(org_src[0]['np'])
-    #     cort_full_mantle[:] = np.nan
-    #     cort_full_mantle[src_cort['vertno']] = cort_data
-    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-    #     tris_frame = org_src[0]['tris']
-    # while len(nan_verts) > 0:
-    #     print("0")
-    #     aaa = list()
-    #     # for vert in nan_verts:
-    #     #     print(vert)
-    #     #     zeroes = np.isin(tris_frame, vert).any(axis=1)
-    #     #     zeroes_ind = np.where(zeroes)
-    #     #     aaa.append(zeroes_ind)
-    #
-    #     aaa = [np.where(np.isin(tris_frame, vert).any(axis=1)) for vert in nan_verts[:1000]]
-    #     print("1")
-    #     vert2tris = np.array(aaa, dtype=object)
-    #     print("2")
-    #     neighbors = [np.unique(tris_frame[x[0]]) for x in vert2tris]
-    #     print("3")
-    #     cort_full_mantle[nan_verts] = [np.nanmean(cort_full_mantle[neighbor_group]) for neighbor_group in neighbors]
-    #     print("4")
-    #     nan_verts = np.where(np.isnan(cort_full_mantle))[0]
-    #     print('Remaining source points: '+str(len(nan_verts)))
-    # return cort_full_mantle, tris_frame
-    #
+
 
 def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
                 cerebellum_geo, sub_sampling, colormap, tris_frame, cort_full_mantle):
@@ -315,7 +277,8 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
     src_cort = fwd_src[0]
     if cort_data is not None:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
-                                            cort_data, org_src, src_cort)
+                                            cort_data, org_src, src_cort,
+                                            smoothing_steps)
 
     if mayavi_cmap is None:
         if cort_data is None:
