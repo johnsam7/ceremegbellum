@@ -1,3 +1,9 @@
+"""
+=========================
+02. Vizualization Example
+=========================
+
+"""
 import numpy as np
 from cmb import MLabEmulator
 

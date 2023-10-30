@@ -6,7 +6,12 @@
 # Created: October, 2021
 # License: MIT
 # ---------------------------------------------------------------------------
+"""
+====================
+01. Running the code
+====================
 
+"""
 import os.path as op
 import os
 import mne
@@ -21,7 +26,7 @@ from cmb.segmentation import segment_cerebellum
 data_path = sample.data_path()
 
 # Paths to subject data
-cmb_path = '/path-to-your-cmb-folder/' # path to the folder
+cmb_path = '/autofs/cluster/fusion/gbm6/Projects/cmb/cmb_data/' # path to the folder
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')

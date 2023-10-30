@@ -65,7 +65,10 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
         maps=None,
         warn=True,
     )
-    return morph @ cort_data[:, None], org_src[0]['tris']
+    if np.isscalar(morph):
+        return morph * cort_data[:, None], org_src[0]['tris']
+    else:
+        return morph @ cort_data[:, None], org_src[0]['tris']
 
 
 def combine_meshes(cerb_tris, cerb_rr, cerb_data,
