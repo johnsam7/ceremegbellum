@@ -15,22 +15,41 @@ author = 'John Samuelsson'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
-
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+extensions = [
+    'sphinx_gallery.gen_gallery',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'numpydoc',
+    'nbsphinx',
+    'sphinx_copybutton',
+]
 
 autosummary_generate = True
 autodoc_default_options = {'inherited-members': None}
 numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
+default_role = 'autolink'
+
+templates_path = ['_templates']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+pygments_style = 'sphinx'
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'mne': ('https://mne.tools/dev', None),
+    'numpy': ('https://numpy.org/devdocs', None),
+    'scipy': ('https://scipy.github.io/devdocs', None),
+    'matplotlib': ('https://matplotlib.org', None)
+}
+intersphinx_timeout = 5
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'bootstrap'
-
 html_static_path = ['_static']
 
 html_theme_options = {

@@ -1,0 +1,7 @@
+# Requirements for building the webpage
+sphinx
+sphinx_bootstrap_theme
+sphinx_gallery
+nbsphinx
+sphinx_copybutton
+numpydoc
