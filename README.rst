@@ -5,8 +5,8 @@
 .. |PyPI| image:: https://badge.fury.io/py/cmb.svg?label=PyPI%20downloads
 .. _PyPI: https://pypi.org/project/cmb/
 
-.. |GH-CI| image:: https://github.com/jasmainak/cbm/actions/workflows/ci.yml/badge.svg?branch=main
-.. _GH-CI: https://github.com/jasmainak/cbm/actions/workflows/ci.yml
+.. |GH-CI| image:: https://github.com/ceremegbellum/cmb/actions/workflows/ci.yml/badge.svg?branch=main
+.. _GH-CI: https://github.com/ceremegbellum/cmb/actions/workflows/ci.yml
 
 
 Cere-MEG-Bellum (CMB) Package
@@ -34,8 +34,8 @@ For Martinos users
 
 .. code-block:: bash
 
-    $ git clone git@github.com:jasmainak/cbm.git
-    $ cd cbm/
+    $ git clone git@github.com:ceremegbellum/cmb.git
+    $ cd cmb/
 
 3. Activate the new environment:
 
