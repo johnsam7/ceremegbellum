@@ -24,14 +24,14 @@ class MLabEmulator:
     def figure(self, bgcolor, fgcolor, size):
         self.plotter = self.pvqt.BackgroundPlotter()
 
-    def triangular_mesh(self, x, y, z, triangles, scalars, colormap):
+    def triangular_mesh(self, x, y, z, triangles, scalars, colormap, clim):
         vertices = np.c_[x, y, z]
 
         faces = np.c_[np.full(len(triangles), 3), triangles]
         surf = self.pv.PolyData(vertices, faces)
 
         self.plotter.add_mesh(surf, opacity=1.0,
-                              scalars=scalars, cmap=colormap)
+                              scalars=scalars, cmap=colormap, clim=clim)
 
         return self.plotter
 
@@ -69,13 +69,13 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
 
 
 def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
-                cerebellum_geo, sub_sampling, colormap, tris_frame, cort_full_mantle):
+                cerebellum_geo, sub_sampling, colormap, tris_frame, cort_full_mantle, clim=None):
     figures = list()
     mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200, 1200))
     normal_fig = mlab.triangular_mesh(
             src_cerb['rr'][:, 0], src_cerb['rr'][:, 1], src_cerb['rr'][:, 2],
             cerebellum_geo['dw_data'][sub_sampling+'_tris'],
-            scalars=estimate_smoothed, colormap=colormap)
+            scalars=estimate_smoothed, colormap=colormap, clim=clim)
 
     mlab.colorbar()
     figures.append(normal_fig)
@@ -85,13 +85,13 @@ def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
         else:
             rr_cx = src_cort['rr']
         normal_fig = mlab.triangular_mesh(rr_cx[:, 0], rr_cx[:, 1], rr_cx[:, 2],
-                                          tris_frame, scalars=cort_full_mantle, colormap=colormap)
+                                          tris_frame, scalars=cort_full_mantle, colormap=colormap, clim=clim)
         figures.append(normal_fig)
     return figures
 
 
 def plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
-                  sub_sampling, colormap):
+                  sub_sampling, colormap, clim=None):
     figures = list()
     mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200, 1200))
     verts = cerebellum_geo['verts_inflated_fs']
@@ -99,7 +99,7 @@ def plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
     inflated_fig = mlab.triangular_mesh(
             verts[dw_data, 0], verts[dw_data, 1], verts[dw_data, 2],
             cerebellum_geo['dw_data'][sub_sampling+'_tris'],
-            scalars=estimate_smoothed, colormap=colormap)
+            scalars=estimate_smoothed, colormap=colormap, clim=clim)
 
     mlab.colorbar()
     figures.append(inflated_fig)
@@ -226,7 +226,7 @@ def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap,
 def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
                          cort_data=None, flatmap_cmap='bwr',
                          mayavi_cmap=None, smoothing_steps=0, view='all',
-                         sub_sampling='sparse', cmap_lims=[1, 98]):
+                         sub_sampling='sparse', cmap_lims=[1, 98], clim=None):
     """Plots data on the cerebellar cortical surface. Requires cerebellum
     geometry file to be downloaded.
 
@@ -303,11 +303,11 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
         figures += plot_normal(mlab, src_cerb, cort_data, org_src,
                                src_cort, estimate_smoothed,
                                cerebellum_geo, sub_sampling, mayavi_cmap,
-                               tris_frame, cort_full_mantle)
+                               tris_frame, cort_full_mantle, clim=clim)
 
     if view in ['all', 'inflated']:
         figures += plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
-                                 sub_sampling, mayavi_cmap)
+                                 sub_sampling, mayavi_cmap, clim=clim)
 
     if view in ['all', 'flatmap']:
         figures += plot_flatmap(cerebellum_geo, estimate_smoothed,
