@@ -70,23 +70,44 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
 
 def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
                 cerebellum_geo, sub_sampling, colormap, tris_frame, cort_full_mantle, clim=None):
-    figures = list()
-    mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200, 1200))
-    normal_fig = mlab.triangular_mesh(
-            src_cerb['rr'][:, 0], src_cerb['rr'][:, 1], src_cerb['rr'][:, 2],
-            cerebellum_geo['dw_data'][sub_sampling+'_tris'],
-            scalars=estimate_smoothed, colormap=colormap, clim=clim)
 
-    mlab.colorbar()
-    figures.append(normal_fig)
-    if cort_data is not None:
+    figures = list()
+    if cort_data is None:
+        mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200, 1200))
+        cereb_fig = mlab.triangular_mesh(
+                src_cerb['rr'][:, 0], src_cerb['rr'][:, 1], src_cerb['rr'][:, 2],
+                cerebellum_geo['dw_data'][sub_sampling+'_tris'],
+                scalars=estimate_smoothed, colormap=colormap, clim=clim)
+        mlab.colorbar()
+        figures.append(cereb_fig)
+    else:
         if org_src[0]['use_tris'] is not None:
             rr_cx = src_cort['rr'][org_src[0]['vertno'], :]
         else:
             rr_cx = src_cort['rr']
-        normal_fig = mlab.triangular_mesh(rr_cx[:, 0], rr_cx[:, 1], rr_cx[:, 2],
-                                          tris_frame, scalars=cort_full_mantle, colormap=colormap, clim=clim)
-        figures.append(normal_fig)
+
+        x = src_cerb['rr'][:, 0]
+        y = src_cerb['rr'][:, 1]
+        z = src_cerb['rr'][:, 2]
+        tris = cerebellum_geo['dw_data'][sub_sampling+'_tris']
+        plot_data = estimate_smoothed
+
+        x2 = rr_cx[:, 0]
+        y2 = rr_cx[:, 1]
+        z2 = rr_cx[:, 2]
+        tris2 = tris_frame+x.shape[0]
+        plot_data2 = np.concatenate(cort_full_mantle)
+
+        new_x = np.concatenate([x, x2])
+        new_y = np.concatenate([y, y2])
+        new_z = np.concatenate([z, z2])
+
+        new_tris = np.concatenate([tris, tris2])
+        new_plot_data = np.concatenate([plot_data, plot_data2])
+
+        mlab.figure(bgcolor=(1., 1., 1.), fgcolor=(0., 0., 0.), size=(1200, 1200))
+        full_fig = mlab.triangular_mesh(new_x,new_y,new_z,new_tris,scalars=new_plot_data, colormap=colormap, clim=clim)
+        figures.append(full_fig)
     return figures
 
 
