@@ -68,26 +68,16 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
     return morph @ cort_data[:, None], org_src[0]['tris']
 
 
-def combine_meshes(cerb_tris, cerb_coord, cerb_data,
-                   cort_tris, cort_coord, cort_data):
+def combine_meshes(cerb_tris, cerb_rr, cerb_data,
+                   cort_tris, cort_rr, cort_data):
     """Combines cerebellum and cortex for plotting."""
-    x = cerb_coord[:, 0]
-    y = cerb_coord[:, 1]
-    z = cerb_coord[:, 2]
     tris1 = cerb_tris
-
-    x2 = cort_coord[:, 0]
-    y2 = cort_coord[:, 1]
-    z2 = cort_coord[:, 2]
-    tris2 = cort_tris + x.shape[0]
-
-    new_x = np.concatenate([x, x2])
-    new_y = np.concatenate([y, y2])
-    new_z = np.concatenate([z, z2])
+    tris2 = cort_tris + cerb_rr[:, 0].shape[0]
+    new_rr = np.concatenate([cerb_rr, cort_rr])
     new_tris = np.concatenate([tris1, tris2])
     new_data = np.concatenate([cerb_data, cort_data])
 
-    return new_x, new_y, new_z, new_tris, new_data
+    return new_rr, new_tris, new_data
 
 
 def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
@@ -105,12 +95,13 @@ def plot_normal(mlab, src_cerb, cort_data, org_src, src_cort, estimate_smoothed,
         else:
             rr_cx = src_cort['rr']
 
-        x, y, z, tris, data = combine_meshes(
+        rr, tris, data = combine_meshes(
                 cerebellum_geo['dw_data'][sub_sampling+'_tris'],
                 src_cerb['rr'], estimate_smoothed, tris_frame,
                 rr_cx, np.concatenate(cort_full_mantle))
-        return [mlab.triangular_mesh(x, y, z, tris, scalars=data,
-                                     colormap=colormap, clim=clim)]
+        return [mlab.triangular_mesh(
+            rr[:, 0], rr[:, 1], rr[:, 2], tris,
+            scalars=data, colormap=colormap, clim=clim)]
 
 def plot_inflated(mlab, estimate_smoothed, cerebellum_geo,
                   sub_sampling, colormap, clim=None):
