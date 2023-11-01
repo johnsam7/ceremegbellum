@@ -289,7 +289,8 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
                             data, src_cerb, cerebellum_geo, sub_sampling)
 
     src_cort = fwd_src[0]
-    if cort_data is not None:
+    cort_full_mantle = None
+    if cort_data is not None and view in ['all', 'normal']:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
                                             cort_data, fwd_src, src_cort,
                                             smoothing_steps)
