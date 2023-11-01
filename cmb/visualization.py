@@ -65,10 +65,8 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
         maps=None,
         warn=True,
     )
-    if np.isscalar(morph):
-        return morph * cort_data[:, None], org_src[0]['tris']
-    else:
-        return morph @ cort_data[:, None], org_src[0]['tris']
+    # aaaa
+    return morph @ cort_data[:, None], org_src[0]['tris']
 
 
 def combine_meshes(cerb_tris, cerb_rr, cerb_data,
@@ -293,7 +291,7 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
     src_cort = fwd_src[0]
     if cort_data is not None:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
-                                            cort_data, org_src, src_cort,
+                                            cort_data, fwd_src, src_cort,
                                             smoothing_steps)
 
     if mayavi_cmap is None:
