@@ -13,8 +13,11 @@ Loading Data
 Processing
 ----------
 .. autofunction:: setup_full_source_space
-.. autofunction:: segmentation.segment_cerebellum
 
+.. currentmodule:: cmb.segmentation
+.. autofunction:: segment_cerebellum
+
+.. currentmodule:: cmb
 Visualization
 -------------
 .. autofunction:: plot_cerebellum_data
