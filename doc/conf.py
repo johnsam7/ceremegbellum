@@ -73,7 +73,7 @@ html_theme_options = {
     'navbar_links': [
         ("Examples", "auto_examples/index"),
         ("API", "api"),
-        ("GitHub", "https://github.com/jasmainak/cbm", True)
+        ("GitHub", "https://github.com/ceremegbellum/cmb/", True)
     ],
     'bootswatch_theme': "yeti"
 }
