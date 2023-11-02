@@ -32,8 +32,16 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 default_role = 'autolink'
 
+# Sphinx-Copybutton configuration
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
+
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
+                    "auto_examples/*.ipynb",
+                    "auto_examples/*.py"]
+
+source_suffix = '.rst'
 
 pygments_style = 'sphinx'
 
@@ -41,7 +49,8 @@ sphinx_gallery_conf = {
     "doc_module": ("cmb"),
     "examples_dirs": "../examples",
     "gallery_dirs": "auto_examples",
-    "filename_pattern": ".",
+    'backreferences_dir': 'generated',
+    # "filename_pattern": "/example_"
 }
 
 intersphinx_mapping = {
@@ -63,6 +72,7 @@ html_theme_options = {
     'navbar_sidebarrel': False,
     'navbar_links': [
         ("Examples", "auto_examples/index"),
+        ("API", "api"),
         ("GitHub", "https://github.com/jasmainak/cbm", True)
     ],
     'bootswatch_theme': "yeti"
