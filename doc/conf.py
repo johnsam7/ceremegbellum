@@ -37,6 +37,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 pygments_style = 'sphinx'
 
+sphinx_gallery_conf = {
+    "doc_module": ("cmb"),
+    "examples_dirs": "../examples",
+    "gallery_dirs": "auto_examples",
+    "filename_pattern": ".",
+}
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'mne': ('https://mne.tools/dev', None),
@@ -55,6 +62,7 @@ html_static_path = ['_static']
 html_theme_options = {
     'navbar_sidebarrel': False,
     'navbar_links': [
+        ("Examples", "auto_examples/index"),
         ("GitHub", "https://github.com/jasmainak/cbm", True)
     ],
     'bootswatch_theme': "yeti"
