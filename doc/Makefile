@@ -79,3 +79,16 @@ linkcheck:
 
 view:
 	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/index.html')"
+
+install:
+	rm -rf _build/doctrees _build/ceremegbellum.github.io
+	git clone -b master --single-branch --no-checkout --depth 1 git@github.com:ceremegbellum/ceremegbellum.github.io.git _build/ceremegbellum.github.io
+	touch _build/ceremegbellum.github.io/.nojekyll
+	make html
+	cd _build/ && \
+	cp -r html/* ceremegbellum.github.io && \
+	cd ceremegbellum.github.io && \
+	git add * && \
+	git add .nojekyll && \
+	git commit -a -m 'Update webpage' && \
+	git push
