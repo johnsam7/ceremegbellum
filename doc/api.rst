@@ -8,16 +8,21 @@ API
 
 Loading Data
 ------------
-.. autofunction:: get_cerebellum_data
+.. autosummary::
+    get_cerebellum_data
 
 Processing
 ----------
-.. autofunction:: setup_full_source_space
+.. autosummary::
+    setup_full_source_space
 
 .. currentmodule:: cmb.segmentation
-.. autofunction:: segment_cerebellum
+.. autosummary::
+    segment_cerebellum
 
 .. currentmodule:: cmb
 Visualization
 -------------
-.. autofunction:: plot_cerebellum_data
+.. autosummary::
+    plot_cerebellum_data
+
