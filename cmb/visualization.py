@@ -65,7 +65,6 @@ def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
         maps=None,
         warn=True,
     )
-    # aaaa
     return morph @ cort_data[:, None], org_src[0]['tris']
 
 
