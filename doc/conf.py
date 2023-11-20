@@ -24,6 +24,7 @@ extensions = [
     'numpydoc',
     'nbsphinx',
     'sphinx_copybutton',
+    'sphinxcontrib.jquery',
 ]
 
 autosummary_generate = True
@@ -42,15 +43,15 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
                     "auto_examples/*.py"]
 
 source_suffix = '.rst'
+master_doc = 'index'
 
 pygments_style = 'sphinx'
 
 sphinx_gallery_conf = {
-    "doc_module": ("cmb"),
+    "doc_module": "cmb",
     "examples_dirs": "../examples",
     "gallery_dirs": "auto_examples",
     'backreferences_dir': 'generated',
-    # "filename_pattern": "/example_"
 }
 
 intersphinx_mapping = {
@@ -66,7 +67,7 @@ intersphinx_timeout = 5
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'bootstrap'
-html_static_path = ['_static']
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 html_theme_options = {
     'navbar_sidebarrel': False,
@@ -75,5 +76,6 @@ html_theme_options = {
         ("API", "api"),
         ("GitHub", "https://github.com/ceremegbellum/cmb/", True)
     ],
-    'bootswatch_theme': "yeti"
+    'bootswatch_theme': "yeti",
+    'globaltoc_depth': -1,
 }
