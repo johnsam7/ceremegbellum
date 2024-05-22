@@ -11,7 +11,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
+
 import mne
+from mne.morph import _hemi_morph
 
 class MLabEmulator:
 
@@ -57,7 +59,7 @@ def one_pass_cerebellum_smoothing(data, src_cerb, cerebellum_geo, sub_sampling):
 
 
 def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
-    morph = mne.morph._hemi_morph(
+    morph = _hemi_morph(
         org_src[0]['tris'],
         np.arange(org_src[0]["np"]),
         org_src[0]['vertno'],
