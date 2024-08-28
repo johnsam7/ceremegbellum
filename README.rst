@@ -16,6 +16,8 @@ For more information about CMB, please read the following paper:
 
   Samuelsson J G , Rosen B, Hamalainen M S. *Automatic Reconstruction of Cerebellar Cortex from Standard MRI Using Diffeomorphic Registration of a High-Resolution Template (ARCUS).* bioRxiv 2020.11.30.405522; doi: https://doi.org/10.1101/2020.11.30.405522
 
+To use this repo, you will need the cerebellar atlas data which is available here; https://osf.io/98p3a/?view_only=933654b10152444992b9e7d8ff9f1112
+
 
 Installation
 ^^^^^^^^^^^^
