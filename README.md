@@ -33,17 +33,19 @@ For more information about the method, please see:
 3. Create a new virtual environment for Cere-MEG-Bellum and activate it.
 You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
 [venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
+`uv` and `conda` are good options because they can also manage the Python version without
+depending on system Python.
 
    ```bash
+   # uv
+   uv venv cmb-env --python 3.12
+   source cmb-env/bin/activate
+   # conda
+   conda conda create -n cmb-env python=3.12 pip
+   conda activate cmb-env
    # venv
    python -m venv cmb-env
    source cmb-env/bin/activate
-   # uv
-   uv venv cmb-env
-   source cmb-env/bin/activate
-   # conda
-   conda create -n cmb-env pip  # add pip to environment
-   conda activate cmb-env
    ```
 
 4. Install correct PyTorch version for your hardware. Look up the exact installation on [PyTorch webpage](https://pytorch.org/get-started/locally/).
