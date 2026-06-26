@@ -30,8 +30,9 @@ For more information about the method, please see:
    cd ceremegbellum
    ```
 
-3. Create a new virtual environment for Cere-MEG-Bellum and activate it. You can do this, for example, with [venv](https://docs.python.org/3/library/venv.html),
-   [uv](https://docs.astral.sh/uv/) or [conda](https://github.com/conda/conda).
+3. Create a new virtual environment for Cere-MEG-Bellum and activate it.
+You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
+[venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
 
    ```bash
    # venv
@@ -49,25 +50,27 @@ For more information about the method, please see:
    Here is **example** command for hardware with NVIDIA GPU with CUDA 12.6 support.
 
    ```bash
-   # NOTE: PyTorch website uses pip3 in the command. Inside virtual environment pip and pip3 are the same.
+   # NOTE: PyTorch website uses pip3 in the command.
+   # Inside virtual environment pip and pip3 are the same.
    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
-   # or use uv for faster installation
+   # Or use uv for faster installation!
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
    ```
 
 5. Install Cere-MEG-Bellum with rest of the dependencies.
 
    ```bash
-   pip install -e ".[viz]"
+   pip install ".[viz]"
 
-   # or use uv for faster installation
-   uv pip install -e ".[viz]"
+   # Or use uv for faster installation!
+   uv pip install ".[viz]"
    ```
 
-   The `-e`flag makes the installation editable so that changes to source code are immediately
-   reflected to the installed package. You can run the command without if you are
-   not developing the package.
+   This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
+
+   If you are installing the package for development, add `-e` flag to the installation command to make
+   the changes to the source code immediately reflect to the installed package. For example: `uv pip install -e ".[viz]"`.
 
 **Note:** On headless systems (no display), plots are automatically saved as PNG files. On **remote desktops** (e.g., NoMachine, VNC),
 if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rendering:
