@@ -19,21 +19,58 @@ For more information about the method, please see:
 - [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (for MRI conversion and recon-all)
 - [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) (installed automatically as a dependency)
 
-## Installation
+## Standard Installation
 
-### Standard Installation
+1. Install [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) for your system.
 
-On most systems with a modern toolchain (GCC >= 9.3):
+2. Create a new virtual environment for Cere-MEG-Bellum and activate it. You can do this, for example, with [venv](https://docs.python.org/3/library/venv.html),
+   [uv](https://docs.astral.sh/uv/) or [conda](https://github.com/conda/conda).
 
-```bash
-git clone https://github.com/johnsam7/ceremegbellum.git
-cd ceremegbellum
-pip install -e ".[viz]"
-```
+   ```bash
+   # venv
+   python -m venv cmb-env
+   source cmb-env/bin/activate
+   # uv
+   uv venv cmb-env
+   source cmb-env/bin/activate
+   # conda
+   conda create -n cmb-env pip  # add pip to environment
+   conda activate cmb-env
+   ```
 
-This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install -e .` instead.
+3. Install correct PyTorch version for your hardware. Look up the exact installation on [PyTorch webpage](https://pytorch.org/get-started/locally/).
+   Here is **example** command for hardware with NVIDIA GPU with CUDA 12.6 support.
 
-**Note:** On headless systems (no display), plots are automatically saved as PNG files. On **remote desktops** (e.g., NoMachine, VNC), if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rendering:
+   ```bash
+   # NOTE: PyTorch website uses pip3 in the command. Inside virtual environment pip and pip3 are the same.
+   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+
+   # or use uv for faster installation
+   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+   ```
+
+4. Clone this repository and navigate to project root.
+
+   ```bash
+   git clone https://github.com/johnsam7/ceremegbellum.git
+   cd ceremegbellum
+   ```
+
+5. Install Cere-MEG-Bellum with rest of the dependencies.
+
+   ```bash
+   pip install -e ".[viz]"
+
+   # or use uv for faster installation
+   uv pip install -e ".[viz]"
+   ```
+
+   The `-e`flag makes the installation editable so that changes to source code are immediately
+   reflected to the installed package. You can run the command without if you are
+   not developing the package.
+
+**Note:** On headless systems (no display), plots are automatically saved as PNG files. On **remote desktops** (e.g., NoMachine, VNC),
+if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rendering:
 
 ```python
 import os
