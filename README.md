@@ -82,51 +82,6 @@ import os
 os.environ.pop('DISPLAY', None)
 ```
 
-### Installation on Systems with Older Toolchains
-
-Some institutional clusters (e.g., CentOS 7 / RHEL 7) ship with GCC < 9.3 and cannot compile packages like NumPy or SciPy from source. If `pip install` fails with **"NumPy requires GCC >= 9.3"**, use the following approach:
-
-1. **Get a supported Python version (3.12 recommended).** If conda is available, create a new environment. Otherwise, download a standalone build from [python-build-standalone](https://github.com/astral-sh/python-build-standalone/releases) (look for `cpython-3.12.*-x86_64-unknown-linux-gnu-install_only.tar.gz`) and create a venv:
-
-   ```bash
-   # Extract standalone Python 3.12
-   tar xzf cpython-3.12*-x86_64-unknown-linux-gnu-install_only.tar.gz
-   /path/to/python/bin/python3.12 -m venv .venv
-   source .venv/bin/activate
-   pip install --upgrade pip
-   ```
-
-2. **Install compiled dependencies as pre-built wheels:**
-
-   ```bash
-   pip install --only-binary :all: \
-       numpy scipy pandas matplotlib torch antspyx \
-       scikit-image scikit-learn imagecodecs numexpr blosc2 \
-       Pillow connected-components-3d SimpleITK \
-       "timm<1.0.23" torchvision einops seaborn dicom2nifti
-   ```
-
-3. **Install source-only packages (pure Python, no compiler needed):**
-
-   ```bash
-   pip install --no-deps nnunet acvl-utils dynamic-network-architectures \
-       batchgenerators batchgeneratorsv2 ndindex graphviz yacs \
-       fft-conv-pytorch future medpy
-   ```
-
-4. **Install CMB and remaining dependencies:**
-
-   ```bash
-   pip install --only-binary :all: mne nibabel pooch
-   pip install --no-deps -e .
-   ```
-
-5. **Verify the installation:**
-
-   ```bash
-   python -c "import cmb; print(cmb.__version__)"
-   ```
-
 ## Quick Start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
