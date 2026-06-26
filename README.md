@@ -19,7 +19,7 @@ For more information about the method, please see:
 - [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (for MRI conversion and recon-all)
 - [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) (installed automatically as a dependency)
 
-## Standard Installation
+## Installation
 
 1. Install [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) for your system.
 
