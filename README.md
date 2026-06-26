@@ -23,7 +23,14 @@ For more information about the method, please see:
 
 1. Install [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) for your system.
 
-2. Create a new virtual environment for Cere-MEG-Bellum and activate it. You can do this, for example, with [venv](https://docs.python.org/3/library/venv.html),
+2. Clone this repository and navigate to project root.
+
+   ```bash
+   git clone https://github.com/johnsam7/ceremegbellum.git
+   cd ceremegbellum
+   ```
+
+3. Create a new virtual environment for Cere-MEG-Bellum and activate it. You can do this, for example, with [venv](https://docs.python.org/3/library/venv.html),
    [uv](https://docs.astral.sh/uv/) or [conda](https://github.com/conda/conda).
 
    ```bash
@@ -38,7 +45,7 @@ For more information about the method, please see:
    conda activate cmb-env
    ```
 
-3. Install correct PyTorch version for your hardware. Look up the exact installation on [PyTorch webpage](https://pytorch.org/get-started/locally/).
+4. Install correct PyTorch version for your hardware. Look up the exact installation on [PyTorch webpage](https://pytorch.org/get-started/locally/).
    Here is **example** command for hardware with NVIDIA GPU with CUDA 12.6 support.
 
    ```bash
@@ -47,13 +54,6 @@ For more information about the method, please see:
 
    # or use uv for faster installation
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-   ```
-
-4. Clone this repository and navigate to project root.
-
-   ```bash
-   git clone https://github.com/johnsam7/ceremegbellum.git
-   cd ceremegbellum
    ```
 
 5. Install Cere-MEG-Bellum with rest of the dependencies.
