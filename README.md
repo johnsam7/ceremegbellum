@@ -38,7 +38,7 @@ depending on system Python.
 
    ```bash
    # uv
-   uv venv cmb-env --python 3.12
+   uv venv cmb-env --python 3.12 --seed
    source cmb-env/bin/activate
    # conda
    conda conda create -n cmb-env python=3.12 pip
