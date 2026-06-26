@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Visualization functions for cerebellar cortical data.
+
+Provides plotting in normal 3D, inflated, and flatmap views using PyVista
+and Matplotlib.
+"""
 # ---------------------------------------------------------------------------
 # Authors: John G Samuelson <johnsam@mit.edu>
 #          Christoph Dinh <christoph.dinh@brain-link.de>
@@ -8,6 +13,7 @@
 # ---------------------------------------------------------------------------
 
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
@@ -331,99 +337,6 @@ def plot_cerebellum_data(data, fwd_src, org_src, cerebellum_geo,
 
     return figures
 
-# TBD move to functions
-def get_lobular_time_signals(cb_data, fwd, estimate_data):
-    lob_signs = []
-    marks = np.unique(cb_data['parcellation']['surface'])[2:]
-    cb_estimate = estimate_data[fwd['src'][0]['nuse']:, :]
-    for d, mark in enumerate(marks):
-        src_inds = np.where(np.isin(cb_data['parcellation']['surface'][cb_data['dw_data']['dense'][fwd['src'][1]['vertno']]], mark))[0]
-        lob_signs.append(cb_estimate[src_inds, :])
-
-    return lob_signs
-
-
-def plot_lobular_tf(cb_data, fwd, estimate_data, ave):
-    marks = np.unique(cb_data['parcellation']['surface'])[2:]
-    fig, axs = plt.subplots(11, 3, dpi=300, figsize=(10,10), sharex=True, sharey=True)
-    labels = ['lob I-III', 'lob I-III', 'lob IV', 'lob IV', 
-              'lob V', 'lob V', 'lob VI', 'lob VI', 
-              'lob VI', 'lob VII', 'crus I', 'crus II', 
-              'lob VIIb', 'crus I', 'crus II', 'lob VIIb', 
-              'lob VIII', 'lob VIIIa', 'lob VIIIb', 'lob VIIIa', 
-              'lob VIIIb', 'lob IX', 'lob IX', 'lob IX', 
-              'lob X', 'lob X', 'lob X']
-    subplot_pos = [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2], [3, 1], [3, 0],
-                   [3, 2], [4, 1], [4, 0], [5, 0], [6, 0], [4, 2], [5, 2], [6, 2], 
-                   [7, 1], [7, 0], [8, 0], [7, 2], [8, 2], [9, 1], [9, 0], [9, 2],
-                   [10, 1], [10, 0], [10, 2]]
-    axs[0, 0].set_title('left')
-    axs[0, 1].set_title('vermis')
-    axs[0, 2].set_title('right')
-    lob_signs = get_lobular_time_signals(cb_data, fwd, estimate_data)
-
-    fs = ave.info['sfreq']
-    freq = np.linspace(1/ave.times[-1], 50, int(50/3))
-    for d, mark in enumerate(marks):
-        ave_sign = np.mean(np.abs(lob_signs[d]), axis=0)
-        tf_morlet_wavelet(t=ave.times*1000, sig=ave_sign, freq=freq, fs=fs, ax=axs[subplot_pos[d][0], subplot_pos[d][1]],
-                          threshold = 0, sat_threshold=.97);
-        axs[subplot_pos[d][0], subplot_pos[d][1]].plot([0, 0],[freq[0], freq[-1]], linestyle='--', color='cyan', alpha=1)
-        if subplot_pos[d][1] == 0:
-            axs[subplot_pos[d][0], subplot_pos[d][1]].set_ylabel(labels[d]+'\n Freq.(Hz)', fontsize=7)
-        if subplot_pos[d][0] == 10:
-            axs[subplot_pos[d][0], subplot_pos[d][1]].set_xlabel('Time (ms)', fontsize=7)
-
-    return fig, axs
-
-
-def plot_mean_lobular_time_signals(cb_data, fwd, estimate_data, ave):
-    marks = np.unique(cb_data['parcellation']['surface'])[2:]
-    fig, axs = plt.subplots(11, 3, dpi=300, figsize=(10,10), sharex=True, sharey=True)
-    alpha = 0.2
-    labels = ['lob I-III', 'lob I-III', 'lob IV', 'lob IV', 
-              'lob V', 'lob V', 'lob VI', 'lob VI', 
-              'lob VI', 'lob VII', 'crus I', 'crus II', 
-              'lob VIIb', 'crus I', 'crus II', 'lob VIIb', 
-              'lob VIII', 'lob VIIIa', 'lob VIIIb', 'lob VIIIa', 
-              'lob VIIIb', 'lob IX', 'lob IX', 'lob IX', 
-              'lob X', 'lob X', 'lob X']
-    subplot_pos = [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2], [3, 1], [3, 0],
-                   [3, 2], [4, 1], [4, 0], [5, 0], [6, 0], [4, 2], [5, 2], [6, 2], 
-                   [7, 1], [7, 0], [8, 0], [7, 2], [8, 2], [9, 1], [9, 0], [9, 2],
-                   [10, 1], [10, 0], [10, 2]]
-    axs[0, 0].set_title('left')
-    axs[0, 1].set_title('vermis')
-    axs[0, 2].set_title('right')
-    lob_signs = get_lobular_time_signals(cb_data, fwd, estimate_data)
-    for d, mark in enumerate(marks):
-        ave_sign = np.mean(np.abs(lob_signs[d]), axis=0)
-        axs[subplot_pos[d][0], subplot_pos[d][1]].plot(ave.times*1000, ave_sign)
-        if subplot_pos[d][0] == 10:
-            axs[subplot_pos[d][0], subplot_pos[d][1]].set_xlabel('Time (ms)')
-        axs[subplot_pos[d][0], subplot_pos[d][1]].axvline(x=0, linestyle='--', color='k', alpha=alpha)
-        if subplot_pos[d][1] == 0:
-            axs[subplot_pos[d][0], subplot_pos[d][1]].set_ylabel(labels[d])
-    
-    return fig, axs
-
-#TBD correct here?
-def tf_morlet_wavelet(t, sig, freq, fs, ax, threshold=0, sat_threshold=.98, w=6.):
-    w=6. # cycles?
-    widths = w*fs / (2*freq*np.pi)
-    cwtm = signal.cwt(sig, signal.morlet2, widths, w=w)
-    vmax = (np.sort(np.abs(cwtm).flatten()))[int(sat_threshold*np.size(cwtm))]
-    cwtm = np.abs(cwtm)
-    tf_map = np.zeros(cwtm.shape)
-    tf_map[np.where(cwtm > threshold*np.max(cwtm))] = cwtm[np.where(cwtm > threshold*np.max(cwtm))]
-    ax.pcolormesh(t, freq, tf_map, cmap='hot_r', shading='gouraud', vmax=vmax)
-#    ax.plot(tf_uncertainty, freq, 'r--', label='time-frequency Gabor uncertainty limit')
-    ax.set_xlim([t[0], t[-1]])
-#    ax.set_xlabel('time (s)')
-#    ax.set_ylabel('frequency (Hz)')
-#    plt.legend()
-    return 
-
 
 def plot_sagittal(vol, only_show_midline=False, **kwargs):
     sag_ind = kwargs.get('sag_ind')
@@ -433,14 +346,14 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
     tris = kwargs.get('tris')
     cmap = kwargs.get('cmap')
     linewidth = kwargs.get('linewidth')
-    if type(cmap) == type(None):
+    if cmap is None:
         cmap = 'gray_r'
-    if type(linewidth) == type(None):
+    if linewidth is None:
         linewidth = 1.
     fig, ax = plt.subplots(3, 2)
     fig.suptitle(title)
 
-    if type(sag_ind) == type(None):
+    if sag_ind is None:
         x_width = vol.shape[0]
         sag_ind = np.linspace(int(x_width*0.1), int(x_width*0.9), 6).astype(int)
 
@@ -452,17 +365,17 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
         plt.subplot(3, 2, c+1)
         plt.imshow(image, cmap=cmap)
 
-        if not type(tris) == type(None):
+        if tris is not None:
             z_0 = slice_ind
             cart_ind = 0
-            xy = [x for x in range(3) if not x==cart_ind] 
+            xy = [x for x in range(3) if not x==cart_ind]
             intersecting_tris = []
             for tri in tris:
                 rr_0 = rr[tri[0], :]
                 rr_1 = rr[tri[1], :]
                 rr_2 = rr[tri[2], :]
-                if (np.array([np.sign((rr_0[cart_ind]-z_0)*(rr_1[cart_ind]-z_0)), 
-                              np.sign((rr_0[cart_ind]-z_0)*(rr_2[cart_ind]-z_0)), 
+                if (np.array([np.sign((rr_0[cart_ind]-z_0)*(rr_1[cart_ind]-z_0)),
+                              np.sign((rr_0[cart_ind]-z_0)*(rr_2[cart_ind]-z_0)),
                               np.sign((rr_1[cart_ind]-z_0)*(rr_2[cart_ind]-z_0))]) == -1).any():
                     intersecting_tris.append(tri)
             intersecting_tris=np.array(intersecting_tris)
@@ -484,11 +397,10 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
                 plt.plot(xy_points[:,1], xy_points[:,0], color='red', linewidth=linewidth)
 
 
-        if not type(nn) == type(None):
+        if nn is not None:
             ptsp = np.where(np.abs(rr[:,0]-(slice_ind-0.5)) < 1.0)[0]
             x_tp = rr[ptsp,2]
             y_tp = rr[ptsp,1]
-#            plt.scatter(x_tp, y_tp, color='r', s=0.1)
             plt.quiver(x_tp, y_tp, nn[ptsp,2], -nn[ptsp,1], scale=1, scale_units='inches')
 
     return fig, ax

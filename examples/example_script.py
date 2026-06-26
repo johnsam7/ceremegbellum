@@ -1,38 +1,12 @@
-"""
-====================
-01. Running the code
-====================
-
-"""
-###############################################################################
-# First import the necessary python modules:
-
 import os.path as op
 import mne
 import pickle
 import numpy as np
 from mne.datasets import sample
-
-from cmb import (get_cerebellum_data,
-                 setup_full_source_space,
-                 plot_cerebellum_data)
-from cmb.segmentation import segment_cerebellum
-
-# %%
-# Then set the paths to your data:
-
+from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data, CMB_DATA_DIR
 data_path = sample.data_path()
-cmb_path = '/autofs/cluster/fusion/gbm6/Projects/cmb/cmb_data/'
 
-# %%
-# The following function will check for the presence of the necessary
-# cerebellum files, and will attempt to copy them over to the given
-# path if they are not present. Currently this only works if you
-# have access to the martinos network cluster storage.
-get_cerebellum_data(cmb_path)
-
-# %%
-# Setup the relevant source files:
+# Paths to subject data
 sample_dir = op.join(data_path, 'MEG', 'sample',)
 raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -41,22 +15,18 @@ trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = op.join(sample_dir, 'sample_audvis-cov.fif')
 evo_fname = op.join(sample_dir,'sample_audvis-ave.fif')
 
+# Check if the required data are available and download if not
+get_cerebellum_data()
 
-# %%
-# Load cerebellar data and define settings
-cb_data = pickle.load(open(op.join(cmb_path,'data','cerebellum_geo'), 'rb'))
+# Cerebellar specific
+cb_data = pickle.load(open(op.join(CMB_DATA_DIR, 'data', 'cerebellum_geo'), 'rb'))
 spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
-
-# %%
-# Get subject segmentation
-segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False)
 
 # %%
 # Setup source space using the segmented data
 cerebellum_subsampling = 'dense'
-src_cort = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False)
-src_whole = setup_full_source_space(subject, subjects_dir, cmb_path, cerebellum_subsampling,
-                                    plot_cerebellum=False, spacing=spacing,debug_mode=False)
+src_whole = setup_full_source_space(subject, subjects_dir, cerb_subsampling=cerebellum_subsampling,
+                                    plot_cerebellum=False, spacing=spacing)
 
 # %%
 # Compute forward and inverse operators
@@ -105,7 +75,7 @@ for ch_type in ['mag', 'grad', 'eeg']:
     ch_inds = mne.channel_indices_by_type(fwd['info'])
     signal_norms = np.linalg.norm(fwd['sol']['data'][ch_inds[ch_type], fwd['src'][0]['nuse']:], axis=0)
     plot_cerebellum_data(signal_norms, fwd['src'], src_whole, cb_data, cort_data=np.zeros(fwd['src'][0]['nuse']), flatmap_cmap='bwr',
-                             mayavi_cmap='OrRd', smoothing_steps=0, view='flatmap', sub_sampling=cerebellum_subsampling,
+                             mayavi_cmap='OrRd', smoothing_steps=0, view='normal', sub_sampling=cerebellum_subsampling,
                              cmap_lims=[25,75])
 
 # %%

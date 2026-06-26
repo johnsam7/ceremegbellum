@@ -1,11 +1,33 @@
+# Downloaded data and model files
 /data
 /build
 /nnUNet
+cmb/data/
+cmb/nnUNet/
+cmb/tmp/
 
 # Byte-compiled / optimized / DLL files
-__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Distribution / packaging
 /dist
 /cmb.egg-info
 /.eggs
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

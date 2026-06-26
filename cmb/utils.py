@@ -1,3 +1,6 @@
+"""General-purpose utility functions."""
+
+
 def is_float(in_value):
     """Checks if a value is a valid float.
     Parameters
