@@ -10,6 +10,7 @@ and Matplotlib.
 # License: MIT
 # ---------------------------------------------------------------------------
 
+import logging
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -17,6 +18,8 @@ import mne
 import numpy as np
 import numpy.typing as npt
 from mne.morph import _hemi_morph
+
+logger = logging.getLogger(__name__)
 
 
 class MLabEmulator:
@@ -49,26 +52,81 @@ class MLabEmulator:
         self.plotter.show()
 
 
-def one_pass_cerebellum_smoothing(data, src_cerb, cerebellum_geo, sub_sampling):
-    print("Smoothing...")
-    estimate_smoothed = np.zeros(
-        cerebellum_geo["dw_data"][sub_sampling + "_verts"].shape[0]
-    )
-    estimate_smoothed[:] = np.nan
-    estimate_smoothed[src_cerb["vertno"]] = data
-    nan_verts = np.where(np.isnan(estimate_smoothed))[0]
+def interpolate_cerebellum_data(
+    data: npt.NDArray[np.floating],
+    data_indices: npt.NDArray[np.intp],
+    subsampling: Literal["dense", "sparse"],
+    cerebellum_geo: dict,
+) -> npt.NDArray[np.float64]:
+    """Interpolate cerebellar data to cerebellar mesh with specified subsampling.
 
+    Vertices on the (subsampled) cerebellar surface are filled in via
+    iterative nearest-neighbor averaging.
+
+    Parameters
+    ----------
+    data : npt.NDArray[np.floating]
+        Values at known vertices in the cerebellar source space.
+    data_indices : npt.NDArray[np.intp]
+        Indices of the known vertices in the specified subsampling of the cerebellar
+        surface mesh.
+    subsampling : Literal["dense", "sparse"]
+        Subsampling of the cerebellar surface mesh corresponding to `data_indices`.
+    cerebellum_geo : dict
+        Cerebellum geometry object.
+
+
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        1D array of data values across the full cerebellar surface mesh corresponding
+        to the specified subsampling.
+    """
+    if (
+        data.ndim != 1
+        or data_indices.ndim != 1
+        or data.shape[0] != data_indices.shape[0]
+    ):
+        raise ValueError("data and data_indices must be 1D arrays of the same length.")
+    if subsampling not in ["dense", "sparse"]:
+        raise ValueError("subsampling must be either 'dense' or 'sparse'.")
+
+    # Get number of vertices in specified subsampling of cerebellum.
+    n_verts = cerebellum_geo["dw_data"][subsampling + "_verts"].shape[0]
+
+    # Initialized interpolated data with NaNs, and fill in the known values.
+    data_interpolated = np.full(n_verts, np.nan, dtype=np.float64)
+    data_interpolated[data_indices] = data
+
+    logger.info(
+        f"Interpolating cerebellar data at {len(data_indices)} known vertices to "
+        f"{n_verts} vertices in the {subsampling} subsampling of the cerebellar "
+        f"surface mesh."
+    )
+
+    # Iteratively fill in NaN values by averaging over neighboring vertices until
+    # no NaN values remain.
+    nan_verts = np.where(np.isnan(data_interpolated))[0]
+    iteration = 0
     while len(nan_verts) > 0:
+        iteration += 1
+        logger.debug(
+            f"Interpolation iteration {iteration}: {len(nan_verts)} NaN vertices "
+            "remaining."
+        )
+        # Get list of NumPy arrays, where each array contains the indices of the
+        # neighboring vertices for a given vertex that has a NaN value.
         vert_neighbors = [
-            cerebellum_geo["dw_data"][sub_sampling + "_vert_to_neighbor"][ind]
+            cerebellum_geo["dw_data"][subsampling + "_vert_to_neighbor"][ind]
             for ind in nan_verts
         ]
-        estimate_smoothed[nan_verts] = [
-            np.nanmean(estimate_smoothed[vert_neighbor_group])
+        data_interpolated[nan_verts] = [
+            np.nanmean(data_interpolated[vert_neighbor_group])
             for vert_neighbor_group in vert_neighbors
         ]
-        nan_verts = np.where(np.isnan(estimate_smoothed))[0]
-    return estimate_smoothed
+        nan_verts = np.where(np.isnan(data_interpolated))[0]
+
+    return data_interpolated
 
 
 def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
@@ -479,7 +537,7 @@ def plot_cerebellum_data(
     tris_frame = None
     if cort_data is not None and view in ["all", "normal"]:
         cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
-            cort_data, fwd_src, src_cort, smoothing_steps
+            cort_data, fwd_src, src_cort, n_smoothing_steps
         )
 
     if mayavi_cmap is None:
@@ -494,7 +552,7 @@ def plot_cerebellum_data(
             else:
                 mayavi_cmap = "OrRd"
 
-    for step in range(smoothing_steps):
+    for step in range(n_smoothing_steps):
         print("Step " + str(step))
         for vert in range(estimate_smoothed.shape[0]):
             estimate_smoothed[vert] = np.nanmean(
