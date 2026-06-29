@@ -12,13 +12,9 @@ and Matplotlib.
 # License: MIT
 # ---------------------------------------------------------------------------
 
-
-import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import signal
 
-import mne
 from mne.morph import _hemi_morph
 
 class MLabEmulator:
