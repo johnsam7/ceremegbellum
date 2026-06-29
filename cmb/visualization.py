@@ -10,8 +10,12 @@ and Matplotlib.
 # License: MIT
 # ---------------------------------------------------------------------------
 
+from typing import Literal
+
 import matplotlib.pyplot as plt
+import mne
 import numpy as np
+import numpy.typing as npt
 from mne.morph import _hemi_morph
 
 
@@ -407,61 +411,61 @@ def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap, cmap_lims, sub_sam
 
 
 def plot_cerebellum_data(
-    data,
-    fwd_src,
-    org_src,
-    cerebellum_geo,
-    cort_data=None,
-    flatmap_cmap="bwr",
-    mayavi_cmap=None,
-    smoothing_steps=0,
-    view="all",
-    sub_sampling="sparse",
-    cmap_lims=[1, 98],
+    data: npt.NDArray[np.floating],
+    fwd_src: mne.SourceSpaces,
+    org_src: mne.SourceSpaces,
+    cerebellum_geo: dict,
+    cort_data: npt.NDArray[np.floating] | None = None,
+    flatmap_cmap: str = "bwr",
+    mayavi_cmap: str | None = None,
+    n_smoothing_steps: int = 0,
+    view: Literal["all", "normal", "inflated", "flatmap"] | None = None,
+    sub_sampling: Literal["dense", "sparse", "full"] = "sparse",
+    cmap_lims: tuple = (1, 98),
     clim=None,
-):
-    """Plots data on the cerebellar cortical surface. Requires cerebellum
-    geometry file to be downloaded.
+) -> tuple:
+    """Plot data on the cerebellar cortical surface.
 
     Parameters
     ----------
-    data : array, shape (n_vertices)
-        Cerebellar data.
-    fwd_src : MNE SourceSpaces
-        The source space used in the computation of the forward solution.
-    org_src: MNE SourceSpaces
-        Full surface fource space for both coreex and cerebellum.
+    data : npt.NDArray[np.floating]
+        Data to be plotted on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the cerebellar source space.
+    fwd_src : mne.SourceSpaces
+        The source space used in the computation of the forward solution, fwd['src'].
+    org_src : mne.SourceSpaces
+        Full surface source space for both cortex and cerebellum.
     cerebellum_geo : dict
-        Cerebellum 3D geometry object
-    cort_data : array
-        Cortex data
-    flatmap_cmap : string
-        Color map for 2D plots
-    mayavi_cmap : string
-        Color map for 3D plots
-    smoothing_steps:
-        Cerebellum smoothing iterations
-    view: "all" | "normal" | "inflated" | "flatmap"
-        Which views to show. If view='all', then all
-        (normal, inflated and flamap) are shown.
-    sub_sampling : string
-        'dense', 'sparse', 'full'. Has to coorespond to sub sampling of
-        other data provided.
-    cmap_lims : list
+        Cerebellum 3D geometry object.
+    cort_data : npt.NDArray[np.floating] | None, optional
+        Data to be plotted for each vertex in the cortical source space.
+        Should have shape (n_vertices,). By default None.
+    flatmap_cmap : str, optional
+        Color map for 2D plots, by default "bwr"
+    mayavi_cmap : str | None, optional
+        Color map for 3D plots, by default None
+    n_smoothing_steps : int, optional
+        Number of smoothing iterations, by default 0
+    view : Literal["all", "normal", "inflated", "flatmap"] | None, optional
+        Which views to show.
+    sub_sampling : Literal["dense", "sparse", "full"], optional
+        Sub-sampling of the data provided, by default "sparse"
+    cmap_lims : tuple, optional
         Colormap limits, where first element is the lower bound and the
-        second element is the upper bound.
+        second element is the upper bound, by default (1, 98)
+    clim : _type_, optional
+        _description_, by default None
 
     Returns
     -------
-    figures: list
-        List containing Figure objects.
-
+    tuple
+        Tuple of figures, where each figure is either a PyVista plotter or a
+        Matplotlib figure.
     """
-
     mlab = MLabEmulator()
 
-    if cort_data is not None:
-        assert cort_data.shape[0] == fwd_src[0]["nuse"], (
+    if cort_data is not None and cort_data.shape[0] != fwd_src[0]["nuse"]:
+        raise ValueError(
             "cort_data and src[0]['nuse'] must have the same number of elements."
         )
 
