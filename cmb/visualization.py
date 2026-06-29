@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Visualization functions for cerebellar cortical data.
 
 Provides plotting in normal 3D, inflated, and flatmap views using PyVista
