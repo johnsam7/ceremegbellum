@@ -478,7 +478,7 @@ def plot_cerebellum_data(
     mayavi_cmap: str | None = None,
     n_smoothing_steps: int = 0,
     view: Literal["all", "normal", "inflated", "flatmap"] | None = None,
-    sub_sampling: Literal["dense", "sparse", "full"] = "sparse",
+    sub_sampling: Literal["dense", "sparse"] = "sparse",
     cmap_lims: tuple = (1, 98),
     clim=None,
 ) -> tuple:
@@ -506,7 +506,7 @@ def plot_cerebellum_data(
         Number of smoothing iterations, by default 0
     view : Literal["all", "normal", "inflated", "flatmap"] | None, optional
         Which views to show.
-    sub_sampling : Literal["dense", "sparse", "full"], optional
+    sub_sampling : Literal["dense", "sparse"], optional
         Sub-sampling of the data provided, by default "sparse"
     cmap_lims : tuple, optional
         Colormap limits, where first element is the lower bound and the
@@ -528,8 +528,20 @@ def plot_cerebellum_data(
         )
 
     src_cerb = fwd_src[1]
-    estimate_smoothed = one_pass_cerebellum_smoothing(
-        data, src_cerb, cerebellum_geo, sub_sampling
+
+    # Indices of the vertices in the cerebellar source space that are used in the
+    # forward solution. Data is provided for these vertices.
+    data_indices = fwd_src[1]["vertno"]
+    # Help IDE type checkers with assertion.
+    assert isinstance(data_indices, np.ndarray), (
+        "fwd_src[1]['vertno'] must be a numpy array."
+    )
+
+    estimate_interpolated = interpolate_cerebellum_data(
+        data,
+        data_indices=data_indices,
+        subsampling=sub_sampling,
+        cerebellum_geo=cerebellum_geo,
     )
 
     src_cort = fwd_src[0]
@@ -542,21 +554,21 @@ def plot_cerebellum_data(
 
     if mayavi_cmap is None:
         if cort_data is None:
-            if np.min(estimate_smoothed) < 0:
+            if np.min(estimate_interpolated) < 0:
                 mayavi_cmap = "bwr"
             else:
                 mayavi_cmap = "OrRd"
         else:
-            if np.min(np.concatenate((estimate_smoothed, cort_data))) < 0:
+            if np.min(np.concatenate((estimate_interpolated, cort_data))) < 0:
                 mayavi_cmap = "bwr"
             else:
                 mayavi_cmap = "OrRd"
 
     for step in range(n_smoothing_steps):
         print("Step " + str(step))
-        for vert in range(estimate_smoothed.shape[0]):
-            estimate_smoothed[vert] = np.nanmean(
-                estimate_smoothed[
+        for vert in range(estimate_interpolated.shape[0]):
+            estimate_interpolated[vert] = np.nanmean(
+                estimate_interpolated[
                     cerebellum_geo["dw_data"][sub_sampling + "_vert_to_neighbor"][vert]
                 ]
             )
@@ -570,7 +582,7 @@ def plot_cerebellum_data(
             cort_data,
             org_src,
             src_cort,
-            estimate_smoothed,
+            estimate_interpolated,
             cerebellum_geo,
             sub_sampling,
             mayavi_cmap,
@@ -582,7 +594,7 @@ def plot_cerebellum_data(
     if view in ["all", "inflated"]:
         figures += plot_inflated(
             mlab,
-            estimate_smoothed,
+            estimate_interpolated,
             cerebellum_geo,
             sub_sampling,
             mayavi_cmap,
@@ -591,7 +603,7 @@ def plot_cerebellum_data(
 
     if view in ["all", "flatmap"]:
         figures += plot_flatmap(
-            cerebellum_geo, estimate_smoothed, flatmap_cmap, cmap_lims, sub_sampling
+            cerebellum_geo, estimate_interpolated, flatmap_cmap, cmap_lims, sub_sampling
         )
 
     return figures
