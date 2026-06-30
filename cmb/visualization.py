@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 import numpy.typing as npt
-from mne.morph import _hemi_morph
 
 logger = logging.getLogger(__name__)
 
@@ -126,19 +125,57 @@ def interpolate_cerebellum_data(
         ]
         nan_verts = np.where(np.isnan(data_interpolated))[0]
 
+    logger.info("Cerebellum interpolation complete")
+
     return data_interpolated
 
 
-def one_pass_cortex_smoothing(cort_data, org_src, src_cort, smoothing_steps):
-    morph = _hemi_morph(
-        org_src[0]["tris"],
-        np.arange(org_src[0]["np"]),
-        org_src[0]["vertno"],
+def morph_cortex_data(
+    cort_data: npt.NDArray[np.floating], cortex_src: dict, smoothing_steps: int
+) -> npt.NDArray[np.floating]:
+    """Interpolate and optionally smooth cortex data to dense surface vertices.
+
+    Morphs from the vertices used (in forward solution) to the full cortical mesh.
+
+    Parameters
+    ----------
+    cort_data : npt.NDArray[np.floating]
+        Data to be morphed to the full cortical mesh. Should be an 1D array with length
+        equal to the number of *used* vertices in the cortical source space
+        (i.e., `cortex_src['nuse']`).
+    cortex_src : dict
+        Cortical source space dictionary, typically `fwd['src'][0]`.
+    smoothing_steps : int
+        Number of smoothing iterations to apply when morphing the data using
+        `mne.morph._hemi_morph`.
+
+    Returns
+    -------
+    npt.NDArray[np.floating]
+        1D array of morphed cortical data on the full cortical mesh.
+    """
+    if cort_data.ndim != 1 or cort_data.shape[0] != len(cortex_src["vertno"]):
+        raise ValueError(
+            "cort_data must be a 1D array with length equal to the number of used "
+            "vertices in the cortical source space (i.e., "
+            "len(cortex_src['vertno']))."
+        )
+    logger.info(
+        f"Morphing cortical data from {cort_data.shape[0]} vertices to full "
+        f"cortical mesh with {cortex_src['np']} vertices using {smoothing_steps} "
+        "smoothing steps."
+    )
+    morph = mne.morph._hemi_morph(
+        cortex_src["tris"],
+        np.arange(cortex_src["np"]),
+        cortex_src["vertno"],
         smoothing_steps,
         maps=None,
         warn=True,
     )
-    return morph @ cort_data[:, None], org_src[0]["tris"]
+    result = morph @ cort_data[:, None]
+
+    return result
 
 
 def combine_meshes(cerb_tris, cerb_rr, cerb_data, cort_tris, cort_rr, cort_data):
@@ -527,8 +564,6 @@ def plot_cerebellum_data(
             "cort_data and src[0]['nuse'] must have the same number of elements."
         )
 
-    src_cerb = fwd_src[1]
-
     # Indices of the vertices in the cerebellar source space that are used in the
     # forward solution. Data is provided for these vertices.
     data_indices = fwd_src[1]["vertno"]
@@ -544,13 +579,15 @@ def plot_cerebellum_data(
         cerebellum_geo=cerebellum_geo,
     )
 
-    src_cort = fwd_src[0]
+    src_cortex = fwd_src[0]
+    src_cerebellum = fwd_src[1]
+
     cort_full_mantle = None
     tris_frame = None
     if cort_data is not None and view in ["all", "normal"]:
-        cort_full_mantle, tris_frame = one_pass_cortex_smoothing(
-            cort_data, fwd_src, src_cort, n_smoothing_steps
-        )
+        assert isinstance(src_cortex, dict), "fwd_src[0] must be a dictionary."
+        cort_full_mantle = morph_cortex_data(cort_data, src_cortex, n_smoothing_steps)
+        tris_frame = src_cortex["tris"]
 
     if mayavi_cmap is None:
         if cort_data is None:
@@ -578,10 +615,10 @@ def plot_cerebellum_data(
     if view in ["all", "normal"]:
         figures += plot_normal(
             mlab,
-            src_cerb,
+            src_cerebellum,
             cort_data,
             org_src,
-            src_cort,
+            src_cortex,
             estimate_interpolated,
             cerebellum_geo,
             sub_sampling,
