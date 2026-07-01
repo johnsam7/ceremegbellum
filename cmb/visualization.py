@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import mne
 import numpy as np
 import numpy.typing as npt
+import pyvista as pv
 
 logger = logging.getLogger(__name__)
 
@@ -190,58 +191,154 @@ def combine_meshes(cerb_tris, cerb_rr, cerb_data, cort_tris, cort_rr, cort_data)
 
 
 def plot_normal(
-    mlab,
-    src_cerb,
-    cort_data,
-    org_src,
-    src_cort,
-    estimate_smoothed,
-    cerebellum_geo,
-    sub_sampling,
-    colormap,
-    tris_frame,
-    cort_full_mantle,
-    clim=None,
-):
+    src_cerebellum: dict,
+    cerebellum_data: npt.NDArray[np.floating],
+    src_cortex: dict,
+    cortex_data: npt.NDArray[np.floating],
+    colormap: str,
+    clim: tuple[float, float] | None,
+    offscreen: bool = False,
+    screenshot_fname: str | None = None,
+) -> pv.Plotter:
+    """Plot cerebellum and cortex in normal 3D view using PyVista.
 
-    mlab.figure(bgcolor=(1.0, 1.0, 1.0), fgcolor=(0.0, 0.0, 0.0), size=(1200, 1200))
-    if cort_data is None:
-        return [
-            mlab.triangular_mesh(
-                src_cerb["rr"][:, 0],
-                src_cerb["rr"][:, 1],
-                src_cerb["rr"][:, 2],
-                cerebellum_geo["dw_data"][sub_sampling + "_tris"],
-                scalars=estimate_smoothed,
-                colormap=colormap,
-                clim=clim,
-            )
-        ]
-    else:
-        if org_src[0]["use_tris"] is not None:
-            rr_cx = src_cort["rr"][org_src[0]["vertno"], :]
-        else:
-            rr_cx = src_cort["rr"]
+    Parameters
+    ----------
+    src_cerebellum : dict
+        Cerebellar source space dictionary, typically `fwd['src'][1]`.
+    cerebellum_data : npt.NDArray[np.floating]
+        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the dense triangulation of
+        the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
+    src_cortex : dict
+        Cortical source space dictionary, typically `fwd['src'][0]`.
+    cortex_data : npt.NDArray[np.floating]
+        Data to be visualized on the cortex. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the dense triangulation of the
+        cortical source space, i.e. `len(src_cortex['rr'])`.
+    colormap : str
+        Color map for 3D plots.
+    clim : tuple[float, float] | None, optional
+        Color bar limits, by default None, which means that the clim will be
+        set to the min and max of the data across both cerebellum and cortex.
+    screenshot_fname : str | None, optional
+        Filename to save the screenshot, by default None, which means no screenshot is
+        saved.
 
-        rr, tris, data = combine_meshes(
-            cerebellum_geo["dw_data"][sub_sampling + "_tris"],
-            src_cerb["rr"],
-            estimate_smoothed,
-            tris_frame,
-            rr_cx,
-            np.concatenate(cort_full_mantle),
-        )
-        return [
-            mlab.triangular_mesh(
-                rr[:, 0],
-                rr[:, 1],
-                rr[:, 2],
-                tris,
-                scalars=data,
-                colormap=colormap,
-                clim=clim,
-            )
-        ]
+    Returns
+    -------
+    pv.Plotter
+        The PyVista plotter object.
+    """
+    if clim is None:
+        clim = _determine_clim(cerebellum_data, cortex_data)
+
+    plotter = pv.Plotter(window_size=[1200, 1200], off_screen=offscreen)
+    # Ignoring warning because my pyright is confused.
+    plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
+
+    cerebellum_mesh = _make_cerebellum_visualization(src_cerebellum, cerebellum_data)
+    plotter.add_mesh(
+        cerebellum_mesh,
+        scalars="scalars",
+        cmap=colormap,
+        scalar_bar_args={"color": "black"},
+    )
+
+    if cortex_data is not None:
+        cortex_mesh = _make_cortex_visualization(src_cortex, cortex_data)
+        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=colormap)
+
+    plotter.camera.position = (0, -1, 0)
+    plotter.camera.up = (0, 0, 1)
+    plotter.camera.focal_point = cerebellum_mesh.center
+    plotter.reset_camera()  # pyright: ignore[reportCallIssue]
+
+    if screenshot_fname is not None:
+        plotter.screenshot(screenshot_fname)
+        logger.info(f"Saved normal view to {screenshot_fname}")
+
+    plotter.show()
+
+    return plotter
+
+
+def _determine_clim(
+    cerebellum_data: npt.NDArray[np.floating],
+    cortex_data: npt.NDArray[np.floating] | None,
+) -> tuple[float, float]:
+    """Determine color limits for plotting.
+
+    Sets the color limits to the min and max of the data across both cerebellum
+    and cortex.
+    """
+    cerebellum_min = np.min(cerebellum_data)
+    cerebellum_max = np.max(cerebellum_data)
+    cortex_min = np.min(cortex_data) if cortex_data is not None else cerebellum_min
+    cortex_max = np.max(cortex_data) if cortex_data is not None else cerebellum_max
+
+    clim = (
+        float(min(cerebellum_min, cortex_min)),
+        float(max(cerebellum_max, cortex_max)),
+    )
+
+    return clim
+
+
+def _make_cortex_visualization(
+    src_cortex: dict, data: npt.NDArray[np.floating]
+) -> pv.PolyData:
+    """Create a PyVista PolyData object for the cortex visualization.
+
+    Makes a triangular mesh with a scalar value in each vertex using all vertices in
+    the cortical source space.
+
+    Parameters
+    ----------
+    src_cortex : dict
+        The cortical source space dictionary, typically `fwd['src'][0]`.
+    data : npt.NDArray[np.floating]
+        Data to be visualized on the cortex. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the cortical source space, i.e.
+        `len(src_cortex['rr'])`.
+    """
+    verts = src_cortex["rr"]
+    faces = src_cortex["tris"]
+
+    pv_cortex_faces = np.column_stack([np.full(len(faces), 3), faces])
+    mesh = pv.PolyData(verts, pv_cortex_faces)
+    mesh.point_data["scalars"] = data
+
+    return mesh
+
+
+def _make_cerebellum_visualization(
+    src_cerebellum: dict, data: npt.NDArray[np.floating]
+) -> pv.PolyData:
+    """Create a PyVista PolyData object for the cerebellum visualization.
+
+    Makes a triangular mesh with a scalar value in each vertex using all vertices in
+    the cerebellar source space.
+
+    Parameters
+    ----------
+    src_cerebellum : dict
+        The cerebellar source space dictionary, typically `fwd['src'][1]`.
+    data : npt.NDArray[np.floating]
+        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the dense triangulation of
+        the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
+    """
+    verts = src_cerebellum["rr"]
+    faces = src_cerebellum["tris"]
+
+    # Add a column of 3s to tell PyVista that these are triangles (3 vertices per face).
+    pv_faces = np.column_stack([np.full(len(faces), 3), faces])
+
+    mesh = pv.PolyData(verts, pv_faces)
+    mesh.point_data["scalars"] = data
+
+    return mesh
 
 
 def plot_inflated(
@@ -582,12 +679,9 @@ def plot_cerebellum_data(
     src_cortex = fwd_src[0]
     src_cerebellum = fwd_src[1]
 
-    cort_full_mantle = None
-    tris_frame = None
     if cort_data is not None and view in ["all", "normal"]:
         assert isinstance(src_cortex, dict), "fwd_src[0] must be a dictionary."
         cort_full_mantle = morph_cortex_data(cort_data, src_cortex, n_smoothing_steps)
-        tris_frame = src_cortex["tris"]
 
     if mayavi_cmap is None:
         if cort_data is None:
@@ -612,21 +706,22 @@ def plot_cerebellum_data(
 
     figures = []
 
+    assert isinstance(src_cerebellum, dict), "fwd_src[1] must be a dictionary."
+    assert isinstance(src_cortex, dict), "fwd_src[0] must be a dictionary."
+
     if view in ["all", "normal"]:
-        figures += plot_normal(
-            mlab,
-            src_cerebellum,
-            cort_data,
-            org_src,
-            src_cortex,
-            estimate_interpolated,
-            cerebellum_geo,
-            sub_sampling,
-            mayavi_cmap,
-            tris_frame,
-            cort_full_mantle,
-            clim=clim,
+        assert cort_data is not None, "cort_data must be provided for normal view."
+        plotter = plot_normal(
+            src_cerebellum=src_cerebellum,
+            cerebellum_data=estimate_interpolated,
+            src_cortex=src_cortex,
+            cortex_data=cort_full_mantle,
+            colormap=mayavi_cmap,
+            clim=None,
+            offscreen=False,
+            screenshot_fname=None,
         )
+        figures.append(plotter)
 
     if view in ["all", "inflated"]:
         figures += plot_inflated(
