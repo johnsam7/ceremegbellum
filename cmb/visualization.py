@@ -22,36 +22,6 @@ import pyvista as pv
 logger = logging.getLogger(__name__)
 
 
-class MLabEmulator:
-    def __init__(self):
-        import pyvista as pv
-        import pyvistaqt as pvqt
-
-        self.pv = pv
-        self.pvqt = pvqt
-
-    def figure(self, bgcolor, fgcolor, size):
-        self.plotter = self.pvqt.BackgroundPlotter()
-
-    def triangular_mesh(self, x, y, z, triangles, scalars, colormap, clim):
-        vertices = np.c_[x, y, z]
-
-        faces = np.c_[np.full(len(triangles), 3), triangles]
-        surf = self.pv.PolyData(vertices, faces)
-
-        self.plotter.add_mesh(
-            surf, opacity=1.0, scalars=scalars, cmap=colormap, clim=clim
-        )
-
-        return self.plotter
-
-    def colorbar(self):
-        pass
-
-    def show(self):
-        self.plotter.show()
-
-
 def interpolate_cerebellum_data(
     data: npt.NDArray[np.floating],
     data_indices: npt.NDArray[np.intp],
@@ -705,8 +675,6 @@ def plot_cerebellum_data(
         Tuple of figures, where each figure is either a PyVista plotter or a
         Matplotlib figure.
     """
-    mlab = MLabEmulator()
-
     if cort_data is not None and cort_data.shape[0] != fwd_src[0]["nuse"]:
         raise ValueError(
             "cort_data and src[0]['nuse'] must have the same number of elements."
