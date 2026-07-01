@@ -272,10 +272,10 @@ def _determine_clim(
     Sets the color limits to the min and max of the data across both cerebellum
     and cortex.
     """
-    cerebellum_min = np.min(cerebellum_data)
-    cerebellum_max = np.max(cerebellum_data)
-    cortex_min = np.min(cortex_data) if cortex_data is not None else cerebellum_min
-    cortex_max = np.max(cortex_data) if cortex_data is not None else cerebellum_max
+    cerebellum_min = np.nanmin(cerebellum_data)
+    cerebellum_max = np.nanmax(cerebellum_data)
+    cortex_min = np.nanmin(cortex_data) if cortex_data is not None else cerebellum_min
+    cortex_max = np.nanmax(cortex_data) if cortex_data is not None else cerebellum_max
 
     clim = (
         float(min(cerebellum_min, cortex_min)),
@@ -342,25 +342,76 @@ def _make_cerebellum_visualization(
 
 
 def plot_inflated(
-    mlab, estimate_smoothed, cerebellum_geo, sub_sampling, colormap, clim=None
-):
-    figures = list()
-    mlab.figure(bgcolor=(1.0, 1.0, 1.0), fgcolor=(0.0, 0.0, 0.0), size=(1200, 1200))
-    verts = cerebellum_geo["verts_inflated_fs"]
-    dw_data = cerebellum_geo["dw_data"][sub_sampling]
-    inflated_fig = mlab.triangular_mesh(
-        verts[dw_data, 0],
-        verts[dw_data, 1],
-        verts[dw_data, 2],
-        cerebellum_geo["dw_data"][sub_sampling + "_tris"],
-        scalars=estimate_smoothed,
-        colormap=colormap,
-        clim=clim,
-    )
+    cerebellum_geo: dict,
+    cerebellum_data: npt.NDArray[np.floating],
+    subsampling: Literal["dense", "sparse"],
+    colormap: str,
+    clim: tuple[float, float] | None,
+    offscreen: bool = False,
+    screenshot_fname: str | None = None,
+) -> pv.Plotter:
+    """Plot cerebellum in inflated 3D view using PyVista.
 
-    mlab.colorbar()
-    figures.append(inflated_fig)
-    return figures
+    Parameters
+    ----------
+    cerebellum_geo : dict
+        Cerebellum geometry object.
+    cerebellum_data : npt.NDArray[np.floating]
+        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the specified subsampling of
+        the cerebellar surface mesh.
+    subsampling : Literal["dense", "sparse"]
+        Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
+    colormap : str
+        Color map for 3D plots.
+    clim : tuple[float, float] | None, optional
+        Color bar limits, by default None, which means that the clim will be
+        set to the min and max of the `cerebellum_data`.
+    offscreen : bool, optional
+        Whether to render the plot offscreen, by default False.
+    screenshot_fname : str | None, optional
+        Filename to save the screenshot, by default None, which means no screenshot is
+        saved.
+
+    Returns
+    -------
+    pv.Plotter
+        The PyVista plotter object.
+    """
+    if clim is None:
+        clim = (float(np.nanmin(cerebellum_data)), float(np.nanmax(cerebellum_data)))
+    # Get indices of the vertices used in specified subsampling.
+    vertex_indices = cerebellum_geo["dw_data"][subsampling]
+    inflated_verts_subsampled = cerebellum_geo["verts_inflated_fs"][vertex_indices]
+
+    faces = cerebellum_geo["dw_data"][subsampling + "_tris"]
+    # Add a column of 3s to tell PyVista that these are triangles (3 vertices per face).
+    pv_faces = np.column_stack([np.full(len(faces), 3), faces])
+
+    cerebellum_mesh = pv.PolyData(inflated_verts_subsampled, pv_faces)
+    cerebellum_mesh.point_data["scalars"] = cerebellum_data
+
+    plotter = pv.Plotter(window_size=[1200, 1200], off_screen=offscreen)
+    plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
+    plotter.add_mesh(
+        cerebellum_mesh,
+        scalars="scalars",
+        cmap=colormap,
+        clim=clim,
+        scalar_bar_args={"color": "black"},
+    )
+    plotter.camera.position = (0, -1, 0)
+    plotter.camera.up = (0, 0, 1)
+    plotter.camera.focal_point = cerebellum_mesh.center
+    plotter.reset_camera()  # pyright: ignore[reportCallIssue]
+
+    if screenshot_fname is not None:
+        plotter.screenshot(screenshot_fname)
+        logger.info(f"Saved inflated view to {screenshot_fname}")
+
+    plotter.show()
+
+    return plotter
 
 
 def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap, cmap_lims, sub_sampling):
@@ -679,9 +730,12 @@ def plot_cerebellum_data(
     src_cortex = fwd_src[0]
     src_cerebellum = fwd_src[1]
 
+    cort_data_full_mesh = None
     if cort_data is not None and view in ["all", "normal"]:
         assert isinstance(src_cortex, dict), "fwd_src[0] must be a dictionary."
-        cort_full_mantle = morph_cortex_data(cort_data, src_cortex, n_smoothing_steps)
+        cort_data_full_mesh = morph_cortex_data(
+            cort_data, src_cortex, n_smoothing_steps
+        )
 
     if mayavi_cmap is None:
         if cort_data is None:
@@ -711,11 +765,14 @@ def plot_cerebellum_data(
 
     if view in ["all", "normal"]:
         assert cort_data is not None, "cort_data must be provided for normal view."
+        assert cort_data_full_mesh is not None, (
+            "cort_data_full_mesh must be computed for normal view."
+        )
         plotter = plot_normal(
             src_cerebellum=src_cerebellum,
             cerebellum_data=estimate_interpolated,
             src_cortex=src_cortex,
-            cortex_data=cort_full_mantle,
+            cortex_data=cort_data_full_mesh,
             colormap=mayavi_cmap,
             clim=None,
             offscreen=False,
@@ -724,14 +781,16 @@ def plot_cerebellum_data(
         figures.append(plotter)
 
     if view in ["all", "inflated"]:
-        figures += plot_inflated(
-            mlab,
-            estimate_interpolated,
+        plotter = plot_inflated(
             cerebellum_geo,
-            sub_sampling,
-            mayavi_cmap,
-            clim=clim,
+            cerebellum_data=estimate_interpolated,
+            subsampling=sub_sampling,
+            colormap=mayavi_cmap,
+            clim=None,
+            offscreen=False,
+            screenshot_fname=None,
         )
+        figures.append(plotter)
 
     if view in ["all", "flatmap"]:
         figures += plot_flatmap(
