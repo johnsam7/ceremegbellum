@@ -149,17 +149,6 @@ def morph_cortex_data(
     return result
 
 
-def combine_meshes(cerb_tris, cerb_rr, cerb_data, cort_tris, cort_rr, cort_data):
-    """Combines cerebellum and cortex for plotting."""
-    tris1 = cerb_tris
-    tris2 = cort_tris + cerb_rr[:, 0].shape[0]
-    new_rr = np.concatenate([cerb_rr, cort_rr])
-    new_tris = np.concatenate([tris1, tris2])
-    new_data = np.concatenate([cerb_data, cort_data])
-
-    return new_rr, new_tris, new_data
-
-
 def plot_normal(
     src_cerebellum: dict,
     cerebellum_data: npt.NDArray[np.floating],
