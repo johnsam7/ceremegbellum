@@ -11,6 +11,7 @@ and Matplotlib.
 # ---------------------------------------------------------------------------
 
 import logging
+import warnings
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -90,10 +91,16 @@ def interpolate_cerebellum_data(
             cerebellum_geo["dw_data"][subsampling + "_vert_to_neighbor"][ind]
             for ind in nan_verts
         ]
-        data_interpolated[nan_verts] = [
-            np.nanmean(data_interpolated[vert_neighbor_group])
-            for vert_neighbor_group in vert_neighbors
-        ]
+        # Catch warnings for mean of empty slice, which is intended behavior when a
+        # vertex has no neighbors with non-NaN values.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=RuntimeWarning, message="Mean of empty slice"
+            )
+            data_interpolated[nan_verts] = [
+                np.nanmean(data_interpolated[vert_neighbor_group])
+                for vert_neighbor_group in vert_neighbors
+            ]
         nan_verts = np.where(np.isnan(data_interpolated))[0]
 
     logger.info("Cerebellum interpolation complete")
