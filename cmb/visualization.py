@@ -14,11 +14,16 @@ import logging
 import warnings
 from typing import Literal
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 import mne
 import numpy as np
 import numpy.typing as npt
 import pyvista as pv
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from mne.morph import _hemi_morph
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +148,7 @@ def morph_cortex_data(
         f"cortical mesh with {cortex_src['np']} vertices using {smoothing_steps} "
         "smoothing steps."
     )
-    morph = mne.morph._hemi_morph(
+    morph = _hemi_morph(
         cortex_src["tris"],
         np.arange(cortex_src["np"]),
         cortex_src["vertno"],
@@ -380,225 +385,103 @@ def plot_inflated(
     return plotter
 
 
-def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap, cmap_lims, sub_sampling):
-    import matplotlib.colors as colors
-    import matplotlib.tri as mtri
+def plot_flatmap(
+    cerebellum_geo: dict,
+    cerebellum_data: npt.NDArray[np.floating],
+    subsampling: Literal["dense", "sparse"],
+    colormap: str | None = None,
+    clim: tuple[float, float] | None = None,
+    offscreen: bool = False,
+    screenshot_fname: str | None = None,
+) -> Figure:
 
-    figures = list()
+    norm, ticks = _get_flatmap_color_mapping(cerebellum_data, clim)
 
-    def truncate_colormap(colormap, minval=0.0, maxval=1.0, n=500):
-        new_cmap = colors.LinearSegmentedColormap.from_list(
-            f"trunc({colormap.name},{minval:.2f},{maxval:.2f})",
-            colormap(np.linspace(minval, maxval, n)),
-        )
-        return new_cmap
+    fig, ax = plt.subplots(dpi=300, figsize=(7, 5.5))
+    ax.set_aspect("equal")
+    ax.axis("off")
 
-    if np.min(estimate_smoothed) >= 0:
-        red_cmap = truncate_colormap(plt.get_cmap(colormap), 0.5, 1.0)
-        color_levels = np.ones((cmap_lims[0] + 1, 4))
-        color_levels = np.vstack(
-            (color_levels, red_cmap(np.linspace(0, 1, cmap_lims[1] - cmap_lims[0])))
-        )
-        color_levels = np.vstack(
-            (
-                color_levels,
-                np.repeat(
-                    red_cmap([1.0]).reshape(1, 4), repeats=100 - cmap_lims[1], axis=0
-                ),
-            )
-        )
-        cmap_real = red_cmap
-    else:
-        blue_cmap = truncate_colormap(plt.get_cmap(colormap), 0.0, 0.5)
-        red_cmap = truncate_colormap(plt.get_cmap(colormap), 0.5, 1.0)
-        color_levels = np.repeat(
-            blue_cmap([0.0]).reshape(1, 4), repeats=100 - cmap_lims[1], axis=0
-        )
-        color_levels = np.vstack(
-            (color_levels, blue_cmap(np.linspace(0, 1, cmap_lims[1] - cmap_lims[0])))
-        )
-        color_levels = np.vstack((color_levels, np.ones((cmap_lims[0] + 1, 4))))
-        color_levels = np.vstack((color_levels, np.ones((cmap_lims[0], 4))))
-        color_levels = np.vstack(
-            (color_levels, red_cmap(np.linspace(0, 1, cmap_lims[1] - cmap_lims[0])))
-        )
-        color_levels = np.vstack(
-            (
-                color_levels,
-                np.repeat(
-                    red_cmap([1.0]).reshape(1, 4), repeats=100 - cmap_lims[1], axis=0
-                ),
-            )
-        )
-
-    max_abs = np.max(np.abs(estimate_smoothed))
-    if np.min(estimate_smoothed) >= 0:
-        levels = np.linspace(0, max_abs, 101)
-    else:
-        levels = np.linspace(-max_abs, max_abs, 201)
-
-    font = {"weight": "normal", "size": 8}
-    plt.rc("font", **font)
-    flat_fig = plt.figure(dpi=300, figsize=(7, 5.5))
-
+    # Plot outer borders of flattened cerebellum.
     for flatmap in cerebellum_geo["flatmap_outlines"]:
-        lin = plt.plot(
-            -flatmap[:, 0],
-            flatmap[:, 1],
-            linestyle="--",
-            linewidth=0.4,
-            c="k",
-            alpha=1.0,
-        )[0]  # minus x-coord for keeping in neurological coordinates
+        # Minus x-coord to keep in neurological coordinates
+        # i.e. plot left on the left.
+        ax.plot(-flatmap[:, 0], flatmap[:, 1], linestyle="--", linewidth=0.4, c="k")
 
-    for key in list(cerebellum_geo["flatmap_inds"].keys()):
-        dw_inds = np.where(
-            np.isin(
-                cerebellum_geo["dw_data"][sub_sampling],
-                cerebellum_geo["flatmap_inds"][key],
-            )
-        )[0]
-        dw_flatinds = cerebellum_geo["dw_data"][sub_sampling][dw_inds]
-        flat_verts = cerebellum_geo["verts_flatmap"][dw_flatinds, :]
-
-        ind_map = np.zeros(cerebellum_geo["dw_data"][sub_sampling].shape[0])
-        ind_map[:] = np.nan
-        ind_map[dw_inds] = np.linspace(0, len(dw_inds) - 1, len(dw_inds)).astype(int)
-        tris_flat = cerebellum_geo["dw_data"][sub_sampling + "_tris"][
-            np.where(
-                np.isin(cerebellum_geo["dw_data"][sub_sampling + "_tris"], dw_inds).all(
-                    axis=1
-                )
-            )[0],
-            :,
-        ]
-        tris_flat = ind_map[tris_flat].astype(int)
-        estimate_flat_all = estimate_smoothed[dw_inds]
-        triang = mtri.Triangulation(
-            -flat_verts[:, 0], flat_verts[:, 1], tris_flat
-        )  # minus x-coord for keeping in neurological coordinates
-        triconf = lin.axes.tricontourf(
-            triang, estimate_flat_all, colors=color_levels, levels=levels
-        )  # flatmap_cmap=hot_truncated_cmap)
-
-    if np.min(levels) < 0:
-        cbar = flat_fig.colorbar(
-            triconf,
-            ticks=[
-                levels[0],
-                levels[100 - cmap_lims[1]],
-                levels[100 - cmap_lims[0]],
-                0,
-                levels[100 + cmap_lims[0]],
-                levels[100 + cmap_lims[1]],
-                levels[len(levels) - 1],
-            ],
+    # Plot each region one by one.
+    triconf = None
+    for region_key in cerebellum_geo["flatmap_inds"]:
+        triangulation, region_vertex_indices = _build_flatmap_region_triangulation(
+            cerebellum_geo, region_key, subsampling
         )
-        min_lev = str(levels[0])[0:4] + str(levels[0])[str(levels[0]).find("e") :]
-        min_sat = (
-            str(levels[100 - cmap_lims[1]])[0:4]
-            + str(levels[100 - cmap_lims[1]])[
-                str(levels[100 - cmap_lims[1]]).find("e") :
+        region_data = cerebellum_data[region_vertex_indices]
+
+        triconf = ax.tripcolor(
+            triangulation,
+            region_data,
+            cmap=colormap,
+            norm=norm,
+            shading="gouraud",  # smooth color transitions across triangles
+        )
+
+    assert triconf is not None, "Triangulation contour plot should be created."
+    fig.colorbar(triconf, ax=ax, ticks=ticks)
+
+    _draw_anatomical_annotations(ax)
+
+    if screenshot_fname:
+        fig.savefig(screenshot_fname, dpi=300, bbox_inches="tight", transparent=True)
+        logger.info(f"Saved flatmap view to {screenshot_fname}")
+
+    if not offscreen:
+        fig.show()
+
+    return fig
+
+
+def _draw_anatomical_annotations(ax: Axes):
+    """Draws anatomical annotations on the cerebellum flatmap."""
+    # Inner Borders
+    borders = [
+        np.array(
+            [
+                [-110, 918],
+                [-86, 925],
+                [-52, 935],
+                [-16, 942],
+                [23, 965],
+                [57, 980],
+                [78, 983],
+                [123, 966],
             ]
-        )
-        min_thresh = (
-            str(levels[100 - cmap_lims[0]])[0:4]
-            + str(levels[100 - cmap_lims[0]])[
-                str(levels[100 - cmap_lims[0]]).find("e") :
-            ]
-        )
-        max_lev = (
-            str(levels[len(levels) - 1])[0:4]
-            + str(levels[len(levels) - 1])[str(levels[len(levels) - 1]).find("e") :]
-        )
-        max_sat = (
-            str(levels[100 + cmap_lims[1]])[0:4]
-            + str(levels[100 + cmap_lims[1]])[
-                str(levels[100 + cmap_lims[1]]).find("e") :
-            ]
-        )
-        max_thresh = (
-            str(levels[100 + cmap_lims[0]])[0:4]
-            + str(levels[100 + cmap_lims[0]])[
-                str(levels[100 + cmap_lims[0]]).find("e") :
-            ]
-        )
-        cbar.ax.set_yticklabels(
-            [min_lev, min_sat, min_thresh, "0", max_thresh, max_sat, max_lev]
-        )
-    else:
-        cbar = flat_fig.colorbar(
-            triconf,
-            ticks=[
-                0,
-                levels[cmap_lims[0]],
-                levels[cmap_lims[1]],
-                levels[len(levels) - 1],
-            ],
-        )
-        max_lev = (
-            str(levels[len(levels) - 1])[0:4]
-            + str(levels[len(levels) - 1])[str(levels[len(levels) - 1]).find("e") :]
-        )
-        max_sat = (
-            str(levels[cmap_lims[1]])[0:4]
-            + str(levels[cmap_lims[1]])[str(levels[cmap_lims[1]]).find("e") :]
-        )
-        max_thresh = (
-            str(levels[cmap_lims[0]])[0:4]
-            + str(levels[cmap_lims[0]])[str(levels[cmap_lims[0]]).find("e") :]
-        )
-        cbar.ax.set_yticklabels(["0", max_thresh, max_sat, max_lev])
+        ),
+        np.array([[-165, 257], [-126, 260], [-80, 300]]),
+        np.array([[96, 313], [230, 148]]),
+        np.array([[-239, -49], [-178, -117]]),
+        np.array([[255, -211], [244, -119], [265, -75], [293, -71]]),
+    ]
+    for border in borders:
+        ax.plot(-border[:, 0], border[:, 1], linestyle="--", linewidth=0.4, c="k")
 
-    ant_lob = np.array(
-        [
-            [-110, 918],
-            [-86, 925],
-            [-52, 935],
-            [-16, 942],
-            [23, 965],
-            [57, 980],
-            [78, 983],
-            [123, 966],
-        ]
-    )
-    crusII_left = np.array([[-165, 257], [-126, 260], [-80, 300]])
-    crusII_right = np.array([[96, 313], [230, 148]])
-    lobVIIb_left = np.array([[-239, -49], [-178, -117]])
-    lobVIIb_right = np.array([[255, -211], [244, -119], [265, -75], [293, -71]])
-
-    for border_line in [
-        ant_lob,
-        crusII_left,
-        crusII_right,
-        lobVIIb_left,
-        lobVIIb_right,
-    ]:
-        plt.plot(
-            -border_line[:, 0],
-            border_line[:, 1],
-            linestyle="--",
-            linewidth=0.4,
-            c="k",
-            alpha=1.0,
-        )  # minus x-coord for keeping in neurological coordinates
-    plt.gca().set_aspect("equal")
-
-    # place text boxes outlining anatomical landmarks
-    axis = flat_fig.axes[0]
+    # Text Labels
     text_params = {"fontsize": 8, "verticalalignment": "top"}
+    texts = [
+        (-610, 1175, " Lobules I-V \n (anterior lobe)"),
+        (-490, 840, "Lobule VI"),
+        (-450, 441, "Crus I"),
+        (-700, 100, " Crus II/\n Lobule VIIb"),
+        (-740, -200, "Lobule VIII"),
+        (-670, -590, " Lobule IX \n (tonsil)"),
+        (-370, -670, " Lobule X \n (flocculus)"),
+        (40, -710, "Inferior vermis"),
+        (-380, 1480, "Left", {"fontweight": "bold"}),
+        (200, 1480, "Right", {"fontweight": "bold"}),
+    ]
 
-    axis.text(-610, 1175, " Lobules I-V \n (anterior lobe)", **text_params)
-    axis.text(-490, 840, "Lobule VI", **text_params)
-    axis.text(-450, 441, "Crus I", **text_params)
-    axis.text(-700, 100, " Crus II/\n Lobule VIIb", **text_params)
-    axis.text(-740, -200, "Lobule VIII", **text_params)
-    axis.text(-670, -590, " Lobule IX \n (tonsil)", **text_params)
-    axis.text(-370, -670, " Lobule X \n (flocculus)", **text_params)
-    axis.text(40, -710, "Inferior vermis", **text_params)
-    axis.text(-380, 1480, "Left", fontweight="bold", **text_params)
-    axis.text(200, 1480, "Right", fontweight="bold", **text_params)
+    for item in texts:
+        t_params = {**text_params, **item[3]} if len(item) == 4 else text_params
+        ax.text(item[0], item[1], item[2], **t_params)
 
+    # Arrows
     arrow_params = {
         "head_width": 20,
         "head_length": 20,
@@ -606,17 +489,93 @@ def plot_flatmap(cerebellum_geo, estimate_smoothed, colormap, cmap_lims, sub_sam
         "fc": "k",
         "ec": "k",
     }
+    arrows = [(-350, -580, 82, 64), (-230, -660, 80, 45), (20, -750, 0, 130)]
+    for arr in arrows:
+        ax.arrow(arr[0], arr[1], arr[2], arr[3], **arrow_params)
 
-    axis.arrow(-350, -580, 82, 64, **arrow_params)
-    axis.arrow(-230, -660, 80, 45, **arrow_params)
-    axis.arrow(20, -750, 0, 130, **arrow_params)
 
-    flat_fig.patch.set_visible(False)
-    axis.axis("off")
-    plt.show()
-    figures.append(flat_fig)
+def _get_flatmap_color_mapping(
+    data: npt.NDArray[np.floating], clim: tuple[float, float] | None
+) -> tuple[mcolors.TwoSlopeNorm | mcolors.Normalize, list[float]]:
+    """Automatically determines the best color limits and normalization."""
+    if clim is None:
+        vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
+    else:
+        vmin, vmax = clim
 
-    return figures
+    # Determine if the map needs to be centered on zero
+    crosses_zero = vmin < 0 and vmax > 0
+
+    if crosses_zero:
+        norm = mcolors.TwoSlopeNorm(vcenter=0, vmin=vmin, vmax=vmax)
+        ticks = [vmin, 0, vmax]
+    else:
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+        ticks = [vmin, vmax]
+
+    return norm, ticks
+
+
+def _build_flatmap_region_triangulation(
+    cerebellum_geo: dict,
+    region_key: str,
+    subsampling: Literal["dense", "sparse"],
+) -> tuple[mtri.Triangulation, npt.NDArray[np.intp]]:
+    """Build a triangulation for a specific region of the cerebellum flatmap.
+
+    Parameters
+    ----------
+    cerebellum_geo : dict
+        The cerebellum geometry object.
+    region_key : str
+        The key for the region of interest.
+    subsampling : Literal[&quot;dense&quot;, &quot;sparse&quot;]
+        The chosen subsampling of the cerebellar surface mesh.
+
+    Returns
+    -------
+    tuple[mtri.Triangulation, npt.NDArray[np.intp]]
+        A tuple containing the triangulation for the specified region and the
+        indices of the vertices belonging to that region within the subsampled mesh.
+    """
+    # Get indices of vertices that belong to this region
+    # (from all the vertices in the full triangulation).
+    region_vertex_global_indices = cerebellum_geo["flatmap_inds"][region_key]
+    # Get indices of vertices considered with chosen subsampling.
+    subsampled_vertex_global_indices = cerebellum_geo["dw_data"][subsampling]
+    # Get mask that is True for those subsampled vertices that belong to the region.
+    region_verts_mask = np.isin(
+        subsampled_vertex_global_indices,
+        region_vertex_global_indices,
+    )
+    # Extract both the global indices of the vertices within subsampled region
+    # and the local indices of those vertices within the subsampled region.
+    region_vertex_indices_global = subsampled_vertex_global_indices[region_verts_mask]
+    region_vertex_indices = np.nonzero(region_verts_mask)[0]
+
+    # Get coordinates of corresponding flat vertices.
+    flat_verts = cerebellum_geo["verts_flatmap"][region_vertex_indices_global, :]
+
+    # Get all triangles in the subsampled mesh and filter to those that are fully within
+    # the region.
+    subsampled_tris = cerebellum_geo["dw_data"][subsampling + "_tris"]
+    region_tris_mask = (
+        # See if each vertex belongs to the region.
+        np.isin(subsampled_tris, region_vertex_indices)
+        # Yield True if all the vertices of the triangle belong to the region.
+        .all(axis=1)
+    )
+    # contains local indices of vertices in the subsampled mesh
+    region_tris = subsampled_tris[region_tris_mask, :]
+
+    # Move from indices withhin the subsampled mesh to indices within the region.
+    tris_flat = np.searchsorted(region_vertex_indices, region_tris)
+
+    triangulation = mtri.Triangulation(
+        -flat_verts[:, 0], flat_verts[:, 1], tris_flat
+    )  # minus x-coord to keep in neurological coordinates
+
+    return triangulation, region_vertex_indices
 
 
 def plot_cerebellum_data(
@@ -757,8 +716,14 @@ def plot_cerebellum_data(
         figures.append(plotter)
 
     if view in ["all", "flatmap"]:
-        figures += plot_flatmap(
-            cerebellum_geo, estimate_interpolated, flatmap_cmap, cmap_lims, sub_sampling
+        plot_flatmap(
+            cerebellum_geo,
+            cerebellum_data=estimate_interpolated,
+            subsampling=sub_sampling,
+            colormap=flatmap_cmap,
+            clim=clim,
+            offscreen=False,
+            screenshot_fname=None,
         )
 
     return figures
