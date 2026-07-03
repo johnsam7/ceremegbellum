@@ -164,10 +164,10 @@ def morph_cortex_data(
 def plot_normal(
     src_cerebellum: dict,
     cerebellum_data: npt.NDArray[np.floating],
-    src_cortex: dict,
-    cortex_data: npt.NDArray[np.floating],
-    colormap: str,
-    clim: tuple[float, float] | None,
+    src_cortex: dict | None = None,
+    cortex_data: npt.NDArray[np.floating] | None = None,
+    cmap: str | None = None,
+    clim: tuple[float, float] | None = None,
     offscreen: bool = False,
     screenshot_fname: str | None = None,
 ) -> pv.Plotter:
@@ -181,14 +181,16 @@ def plot_normal(
         Data to be visualized on the cerebellum. Should have shape (n_vertices,),
         where n_vertices is the number of vertices in the dense triangulation of
         the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
-    src_cortex : dict
+    src_cortex : dict | None, optional
         Cortical source space dictionary, typically `fwd['src'][0]`.
-    cortex_data : npt.NDArray[np.floating]
+        If None (default), no cortical data will be plotted.
+    cortex_data : npt.NDArray[np.floating] | None, optional
         Data to be visualized on the cortex. Should have shape (n_vertices,),
         where n_vertices is the number of vertices in the dense triangulation of the
-        cortical source space, i.e. `len(src_cortex['rr'])`.
-    colormap : str
-        Color map for 3D plots.
+        cortical source space, i.e. `len(src_cortex['rr'])`. If None (default), no
+        cortical data will be plotted.
+    cmap : str | None, optional
+        Color map to pass for PyVista plotter.
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
@@ -201,8 +203,13 @@ def plot_normal(
     pv.Plotter
         The PyVista plotter object.
     """
+    if (src_cortex is None) != (cortex_data is None):
+        raise ValueError(
+            "Both src_cortex and cortex_data must be provided together, or neither "
+            "should be provided."
+        )
     if clim is None:
-        clim = _determine_clim(cerebellum_data, cortex_data)
+        clim = _determine_global_clim(cerebellum_data, cortex_data)
 
     plotter = pv.Plotter(window_size=[1200, 1200], off_screen=offscreen)
     # Ignoring warning because my pyright is confused.
@@ -212,13 +219,16 @@ def plot_normal(
     plotter.add_mesh(
         cerebellum_mesh,
         scalars="scalars",
-        cmap=colormap,
+        cmap=cmap,
         scalar_bar_args={"color": "black"},
     )
 
     if cortex_data is not None:
+        assert src_cortex is not None, (
+            "src_cortex must be provided if cortex_data is provided."
+        )
         cortex_mesh = _make_cortex_visualization(src_cortex, cortex_data)
-        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=colormap)
+        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap)
 
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
@@ -234,7 +244,7 @@ def plot_normal(
     return plotter
 
 
-def _determine_clim(
+def _determine_global_clim(
     cerebellum_data: npt.NDArray[np.floating],
     cortex_data: npt.NDArray[np.floating] | None,
 ) -> tuple[float, float]:
@@ -316,8 +326,8 @@ def plot_inflated(
     cerebellum_geo: dict,
     cerebellum_data: npt.NDArray[np.floating],
     subsampling: Literal["dense", "sparse"],
-    colormap: str,
-    clim: tuple[float, float] | None,
+    cmap: str | None = None,
+    clim: tuple[float, float] | None = None,
     offscreen: bool = False,
     screenshot_fname: str | None = None,
 ) -> pv.Plotter:
@@ -333,8 +343,8 @@ def plot_inflated(
         the cerebellar surface mesh.
     subsampling : Literal["dense", "sparse"]
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
-    colormap : str
-        Color map for 3D plots.
+    cmap : str | None, optional
+        Color map to pass for PyVista plotter.
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
@@ -367,7 +377,7 @@ def plot_inflated(
     plotter.add_mesh(
         cerebellum_mesh,
         scalars="scalars",
-        cmap=colormap,
+        cmap=cmap,
         clim=clim,
         scalar_bar_args={"color": "black"},
     )
@@ -389,12 +399,39 @@ def plot_flatmap(
     cerebellum_geo: dict,
     cerebellum_data: npt.NDArray[np.floating],
     subsampling: Literal["dense", "sparse"],
-    colormap: str | None = None,
+    cmap: str | None = None,
     clim: tuple[float, float] | None = None,
     offscreen: bool = False,
     screenshot_fname: str | None = None,
 ) -> Figure:
+    """Plot cerebellum in flatmap view using Matplotlib.
 
+    Parameters
+    ----------
+    cerebellum_geo : dict
+        Cerebellum geometry object.
+    cerebellum_data : npt.NDArray[np.floating]
+        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices in the specified subsampling of
+        the cerebellar surface mesh.
+    subsampling : Literal["dense", "sparse"]
+        Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
+    cmap : str | None, optional
+        Color map to pass for Matplotlib.
+    clim : tuple[float, float] | None, optional
+        Color bar limits, by default None, which means that the clim will be
+        set to the min and max of the `cerebellum_data`.
+    offscreen : bool, optional
+        Whether to render the plot offscreen, by default False.
+    screenshot_fname : str | None, optional
+        Filename to save the screenshot, by default None, which means no screenshot is
+        saved.
+
+    Returns
+    -------
+    Figure
+        The Matplotlib figure object.
+    """
     norm, ticks = _get_flatmap_color_mapping(cerebellum_data, clim)
 
     fig, ax = plt.subplots(dpi=300, figsize=(7, 5.5))
@@ -418,7 +455,7 @@ def plot_flatmap(
         triconf = ax.tripcolor(
             triangulation,
             region_data,
-            cmap=colormap,
+            cmap=cmap,
             norm=norm,
             shading="gouraud",  # smooth color transitions across triangles
         )
@@ -696,7 +733,7 @@ def plot_cerebellum_data(
             cerebellum_data=estimate_interpolated,
             src_cortex=src_cortex,
             cortex_data=cort_data_full_mesh,
-            colormap=mayavi_cmap,
+            cmap=mayavi_cmap,
             clim=None,
             offscreen=False,
             screenshot_fname=None,
@@ -708,7 +745,7 @@ def plot_cerebellum_data(
             cerebellum_geo,
             cerebellum_data=estimate_interpolated,
             subsampling=sub_sampling,
-            colormap=mayavi_cmap,
+            cmap=mayavi_cmap,
             clim=None,
             offscreen=False,
             screenshot_fname=None,
@@ -720,7 +757,7 @@ def plot_cerebellum_data(
             cerebellum_geo,
             cerebellum_data=estimate_interpolated,
             subsampling=sub_sampling,
-            colormap=flatmap_cmap,
+            cmap=flatmap_cmap,
             clim=clim,
             offscreen=False,
             screenshot_fname=None,
