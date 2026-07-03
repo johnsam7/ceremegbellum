@@ -615,6 +615,71 @@ def _build_flatmap_region_triangulation(
     return triangulation, region_vertex_indices
 
 
+def prepare_cerebellum_data_for_plotting(
+    data: npt.NDArray[np.floating],
+    fwd_cerebellum_src: dict,
+    cerebellum_geo: dict,
+    subsampling: Literal["dense", "sparse"],
+    smoothing_steps: int = 0,
+) -> npt.NDArray[np.floating]:
+    """Interpolate cerebellar data to specified subsampling and optionally smooth it.
+
+    Parameters
+    ----------
+    data : npt.NDArray[np.floating]
+        Data to be plotted on the cerebellum. Should have shape (n_vertices,),
+        where n_vertices is the number of vertices that are used in the
+        forward solution for the cerebellar source space.
+    fwd_cerebellum_src : dict
+        The cerebellar source space used in the computation of the forward solution,
+        typically `fwd['src'][1]`.
+    cerebellum_geo : dict
+        Cerebellum geometry object.
+    subsampling : Literal["dense", "sparse"]
+        Subsampling of the cerebellar surface mesh to which the data should be
+        interpolated. Must match the subsampling used for calculating
+        the forward solution.
+    smoothing_steps : int, optional
+        Number of smoothing iterations to apply to the interpolated data. Each
+        iteration averages the value at each vertex with its neighbors. By default 0,
+        which means no smoothing is applied.
+    """
+    # Indices of the vertices in the cerebellar source space that are used in the
+    # forward solution. Data is provided for these vertices.
+    data_indices = fwd_cerebellum_src["vertno"]
+    # Help IDE type checkers with assertion.
+    assert isinstance(data_indices, np.ndarray), (
+        "fwd_src[1]['vertno'] must be a numpy array."
+    )
+    if data_indices.shape[0] != data.shape[0]:
+        raise ValueError(
+            "data must have the same number of elements as the number of vertices "
+            "used in the forward solution for the cerebellar source space, i.e. "
+            "len(fwd_cerebellum_src['vertno'])."
+        )
+    data_interpolated = interpolate_cerebellum_data(
+        data,
+        data_indices=data_indices,
+        subsampling=subsampling,
+        cerebellum_geo=cerebellum_geo,
+    )
+    if smoothing_steps <= 0:
+        return data_interpolated
+
+    # Apply smoothing to the interpolated data by averaging over neighboring vertices.
+    vert_to_neighbors = cerebellum_geo["dw_data"][subsampling + "_vert_to_neighbor"]
+    for step in range(smoothing_steps):
+        logger.info(
+            f"Applying smoothing {step + 1}/{smoothing_steps} to cerebellum data."
+        )
+        for vert in range(data_interpolated.shape[0]):
+            data_interpolated[vert] = np.nanmean(
+                data_interpolated[vert_to_neighbors[vert]]
+            )
+
+    return data_interpolated
+
+
 def plot_cerebellum_data(
     data: npt.NDArray[np.floating],
     fwd_src: mne.SourceSpaces,
