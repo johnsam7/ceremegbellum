@@ -225,6 +225,7 @@ def plot_normal(
         scalars="scalars",
         cmap=cmap,
         scalar_bar_args={"color": "black"},
+        clim=clim,
     )
 
     if src_cortex is not None:
@@ -233,7 +234,7 @@ def plot_normal(
             cortex_data = np.zeros(len(src_cortex["rr"]))
 
         cortex_mesh = _make_pyvista_mesh(src_cortex, cortex_data)
-        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap)
+        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap, clim=clim)
 
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
