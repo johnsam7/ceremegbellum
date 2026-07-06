@@ -12,8 +12,15 @@ view using Matplotlib.
 # ---------------------------------------------------------------------------
 
 import logging
+import os
 import warnings
 from typing import Literal
+
+# Use non-interactive backend when no display is available
+import matplotlib
+
+if os.environ.get("DISPLAY") is None and os.name != "nt":
+    matplotlib.use("Agg")
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
