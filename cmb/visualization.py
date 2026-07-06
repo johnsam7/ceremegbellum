@@ -1,12 +1,13 @@
 """Visualization functions for cerebellar cortical data.
 
-Provides plotting in normal 3D, inflated, and flatmap views using PyVista
-and Matplotlib.
+Provides plotting in normal 3D and inflated 3D views using PyVista, as well as flatmap
+view using Matplotlib.
 """
 # ---------------------------------------------------------------------------
 # Authors: John G Samuelson <johnsam@mit.edu>
 #          Christoph Dinh <christoph.dinh@brain-link.de>
-# Created: November, 2021
+#          Teemu Taivainen
+# Created: November, 2021 (Modified: July, 2026)
 # License: MIT
 # ---------------------------------------------------------------------------
 
