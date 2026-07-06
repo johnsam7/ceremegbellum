@@ -183,12 +183,12 @@ def plot_normal(
         the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
     src_cortex : dict | None, optional
         Cortical source space dictionary, typically `fwd['src'][0]`.
-        If None (default), no cortical data will be plotted.
+        If None (default), only the cerebellum will be plotted.
     cortex_data : npt.NDArray[np.floating] | None, optional
         Data to be visualized on the cortex. Should have shape (n_vertices,),
         where n_vertices is the number of vertices in the dense triangulation of the
-        cortical source space, i.e. `len(src_cortex['rr'])`. If None (default), no
-        cortical data will be plotted.
+        cortical source space, i.e. `len(src_cortex['rr'])`. If None (default), will
+        plot zeros for the cortex when `src_cortex` is provided.
     cmap : str | None, optional
         Color map to pass for PyVista plotter.
     clim : tuple[float, float] | None, optional
@@ -203,11 +203,8 @@ def plot_normal(
     pv.Plotter
         The PyVista plotter object.
     """
-    if (src_cortex is None) != (cortex_data is None):
-        raise ValueError(
-            "Both src_cortex and cortex_data must be provided together, or neither "
-            "should be provided."
-        )
+    if cortex_data is not None and src_cortex is None:
+        raise ValueError("src_cortex must be provided if cortex_data is provided.")
     if clim is None:
         clim = _determine_global_clim(cerebellum_data, cortex_data)
 
@@ -223,10 +220,11 @@ def plot_normal(
         scalar_bar_args={"color": "black"},
     )
 
-    if cortex_data is not None:
-        assert src_cortex is not None, (
-            "src_cortex must be provided if cortex_data is provided."
-        )
+    if src_cortex is not None:
+        if cortex_data is None:
+            # If no cortex data is provided, just plot zeros for the cortex.
+            cortex_data = np.zeros(len(src_cortex["rr"]))
+
         cortex_mesh = _make_cortex_visualization(src_cortex, cortex_data)
         plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap)
 
