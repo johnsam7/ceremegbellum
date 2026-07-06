@@ -393,7 +393,8 @@ def plot_flatmap(
     subsampling : Literal["dense", "sparse"]
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
     cmap : str | None, optional
-        Color map to pass for Matplotlib.
+        Color map to pass for Matplotlib. If None (default), will use "bwr" if the data
+        crosses zero, and "Reds" otherwise.
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
@@ -408,7 +409,7 @@ def plot_flatmap(
     Figure
         The Matplotlib figure object.
     """
-    norm, ticks = _get_flatmap_color_mapping(cerebellum_data, clim)
+    norm, ticks, cmap = _get_flatmap_color_mapping(cerebellum_data, clim, cmap)
 
     fig, ax = plt.subplots(dpi=300, figsize=(7, 5.5))
     ax.set_aspect("equal")
@@ -508,9 +509,9 @@ def _draw_anatomical_annotations(ax: Axes):
 
 
 def _get_flatmap_color_mapping(
-    data: npt.NDArray[np.floating], clim: tuple[float, float] | None
-) -> tuple[mcolors.TwoSlopeNorm | mcolors.Normalize, list[float]]:
-    """Automatically determines the best color limits and normalization."""
+    data: npt.NDArray[np.floating], clim: tuple[float, float] | None, cmap: str | None
+) -> tuple[mcolors.TwoSlopeNorm | mcolors.Normalize, list[float], str]:
+    """Determine color limits, normalization and colormap automatically."""
     if clim is None:
         vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
     else:
@@ -519,6 +520,9 @@ def _get_flatmap_color_mapping(
     # Determine if the map needs to be centered on zero
     crosses_zero = vmin < 0 and vmax > 0
 
+    if cmap is None:
+        cmap = "bwr" if crosses_zero else "Reds"
+
     if crosses_zero:
         norm = mcolors.TwoSlopeNorm(vcenter=0, vmin=vmin, vmax=vmax)
         ticks = [vmin, 0, vmax]
@@ -526,7 +530,7 @@ def _get_flatmap_color_mapping(
         norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         ticks = [vmin, vmax]
 
-    return norm, ticks
+    return norm, ticks, cmap
 
 
 def _build_flatmap_region_triangulation(
