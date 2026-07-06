@@ -604,12 +604,16 @@ def prepare_cerebellum_data_for_plotting(
 ) -> npt.NDArray[np.floating]:
     """Interpolate cerebellar data to specified subsampling and optionally smooth it.
 
+    Calls `interpolate_cerebellum_data` to handle the interpolation via iterative
+    nearest-neighbor averaging.
+
     Parameters
     ----------
     data : npt.NDArray[np.floating]
         Data to be plotted on the cerebellum. Should have shape (n_vertices,),
         where n_vertices is the number of vertices that are used in the
-        forward solution for the cerebellar source space.
+        forward solution for the cerebellar source space,
+        i.e. `len(fwd_cerebellum_src['vertno'])`.
     fwd_cerebellum_src : dict
         The cerebellar source space used in the computation of the forward solution,
         typically `fwd['src'][1]`.
