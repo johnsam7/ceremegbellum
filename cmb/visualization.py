@@ -18,7 +18,6 @@ from typing import Literal
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
-import mne
 import numpy as np
 import numpy.typing as npt
 import pyvista as pv
