@@ -114,7 +114,9 @@ def interpolate_cerebellum_data(
 
 
 def morph_cortex_data(
-    cort_data: npt.NDArray[np.floating], cortex_src: dict, smoothing_steps: int
+    cort_data: npt.NDArray[np.floating],
+    fwd_cortex_src: dict,
+    smooth: int | None | Literal["nearest"] = None,
 ) -> npt.NDArray[np.floating]:
     """Interpolate and optionally smooth cortex data to dense surface vertices.
 
@@ -125,19 +127,24 @@ def morph_cortex_data(
     cort_data : npt.NDArray[np.floating]
         Data to be morphed to the full cortical mesh. Should be an 1D array with length
         equal to the number of **used** vertices in the cortical source space
-        (i.e., `cortex_src['nuse']`).
-    cortex_src : dict
-        Cortical source space dictionary, typically `fwd['src'][0]`.
-    smoothing_steps : int
-        Number of smoothing iterations to apply when morphing the data using
-        `mne.morph._hemi_morph`.
+        (i.e., `fwd_cortex_src['nuse']`).
+    fwd_cortex_src : dict
+        Cortical source space dictionary used in the forward solution,
+        typically `fwd['src'][0]`.
+    smooth : int | None | Literal["nearest"]
+        Passed for `mne.morph._hemi_morph`.
+        Controls spatial interpolation smoothing. If an integer, applies exactly
+        that many iterative averaging steps (0 leaves data at sparse vertices only).
+        If ``None``, automatically iterates until all unmapped vertices are filled
+        (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
+        closest source vertex without blending.
 
     Returns
     -------
     npt.NDArray[np.floating]
         1D array of morphed cortical data on the full cortical mesh.
     """
-    if cort_data.ndim != 1 or cort_data.shape[0] != len(cortex_src["vertno"]):
+    if cort_data.ndim != 1 or cort_data.shape[0] != len(fwd_cortex_src["vertno"]):
         raise ValueError(
             "cort_data must be a 1D array with length equal to the number of used "
             "vertices in the cortical source space (i.e., "
@@ -145,14 +152,14 @@ def morph_cortex_data(
         )
     logger.info(
         f"Morphing cortical data from {cort_data.shape[0]} vertices to full "
-        f"cortical mesh with {cortex_src['np']} vertices using {smoothing_steps} "
+        f"cortical mesh with {fwd_cortex_src['np']} vertices using {smooth} "
         "smoothing steps."
     )
     morph = _hemi_morph(
-        cortex_src["tris"],
-        np.arange(cortex_src["np"]),
-        cortex_src["vertno"],
-        smoothing_steps,
+        fwd_cortex_src["tris"],
+        np.arange(fwd_cortex_src["np"]),
+        fwd_cortex_src["vertno"],
+        smooth,
         maps=None,
         warn=True,
     )
@@ -595,7 +602,7 @@ def _build_flatmap_region_triangulation(
     return triangulation, region_vertex_indices
 
 
-def prepare_cerebellum_data_for_plotting(
+def morph_cerebellum_data(
     data: npt.NDArray[np.floating],
     fwd_cerebellum_src: dict,
     cerebellum_geo: dict,
