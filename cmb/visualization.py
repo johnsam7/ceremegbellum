@@ -219,7 +219,7 @@ def plot_normal(
     # Ignoring warning because my pyright is confused.
     plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
 
-    cerebellum_mesh = _make_cerebellum_visualization(src_cerebellum, cerebellum_data)
+    cerebellum_mesh = _make_pyvista_mesh(src_cerebellum, cerebellum_data)
     plotter.add_mesh(
         cerebellum_mesh,
         scalars="scalars",
@@ -232,7 +232,7 @@ def plot_normal(
             # If no cortex data is provided, just plot zeros for the cortex.
             cortex_data = np.zeros(len(src_cortex["rr"]))
 
-        cortex_mesh = _make_cortex_visualization(src_cortex, cortex_data)
+        cortex_mesh = _make_pyvista_mesh(src_cortex, cortex_data)
         plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap)
 
     plotter.camera.position = (0, -1, 0)
@@ -271,56 +271,27 @@ def _determine_global_clim(
     return clim
 
 
-def _make_cortex_visualization(
-    src_cortex: dict, data: npt.NDArray[np.floating]
-) -> pv.PolyData:
-    """Create a PyVista PolyData object for the cortex visualization.
+def _make_pyvista_mesh(src_space: dict, data: npt.NDArray[np.floating]) -> pv.PolyData:
+    """Create a PyVista PolyData object for the visualization.
 
     Makes a triangular mesh with a scalar value in each vertex using all vertices in
-    the cortical source space.
+    the given source space.
 
     Parameters
     ----------
-    src_cortex : dict
-        The cortical source space dictionary, typically `fwd['src'][0]`.
+    src_space : dict
+        The source space dictionary, typically `fwd['src'][0]` for cortex or
+        `fwd['src'][1]` for cerebellum.
     data : npt.NDArray[np.floating]
-        Data to be visualized on the cortex. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the cortical source space, i.e.
-        `len(src_cortex['rr'])`.
+        Data to be visualized on the source space surface. Should have shape
+        (n_vertices,), where n_vertices is the number of vertices in the source space,
+        i.e. `len(src_space['rr'])`.
     """
-    verts = src_cortex["rr"]
-    faces = src_cortex["tris"]
-
-    pv_cortex_faces = np.column_stack([np.full(len(faces), 3), faces])
-    mesh = pv.PolyData(verts, pv_cortex_faces)
-    mesh.point_data["scalars"] = data
-
-    return mesh
-
-
-def _make_cerebellum_visualization(
-    src_cerebellum: dict, data: npt.NDArray[np.floating]
-) -> pv.PolyData:
-    """Create a PyVista PolyData object for the cerebellum visualization.
-
-    Makes a triangular mesh with a scalar value in each vertex using all vertices in
-    the cerebellar source space.
-
-    Parameters
-    ----------
-    src_cerebellum : dict
-        The cerebellar source space dictionary, typically `fwd['src'][1]`.
-    data : npt.NDArray[np.floating]
-        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the dense triangulation of
-        the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
-    """
-    verts = src_cerebellum["rr"]
-    faces = src_cerebellum["tris"]
+    verts = src_space["rr"]
+    faces = src_space["tris"]
 
     # Add a column of 3s to tell PyVista that these are triangles (3 vertices per face).
     pv_faces = np.column_stack([np.full(len(faces), 3), faces])
-
     mesh = pv.PolyData(verts, pv_faces)
     mesh.point_data["scalars"] = data
 
