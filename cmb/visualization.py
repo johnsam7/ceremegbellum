@@ -125,7 +125,7 @@ def morph_cortex_data(
     ----------
     cort_data : npt.NDArray[np.floating]
         Data to be morphed to the full cortical mesh. Should be an 1D array with length
-        equal to the number of *used* vertices in the cortical source space
+        equal to the number of **used** vertices in the cortical source space
         (i.e., `cortex_src['nuse']`).
     cortex_src : dict
         Cortical source space dictionary, typically `fwd['src'][0]`.
@@ -204,6 +204,12 @@ def plot_normal(
     pv.Plotter
         The PyVista plotter object.
     """
+    if len(cerebellum_data) != len(src_cerebellum["rr"]):
+        raise ValueError(
+            "cerebellum_data must have the same number of elements as the number of "
+            "vertices in the dense triangulation of the cerebellar source space. "
+            f"Expected {len(src_cerebellum['rr'])}, got {len(cerebellum_data)}."
+        )
     if cortex_data is not None and src_cortex is None:
         raise ValueError("src_cortex must be provided if cortex_data is provided.")
     if clim is None:
