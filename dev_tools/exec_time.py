@@ -5,7 +5,6 @@ import time
 from mne.datasets import sample
 
 from cmb import get_cerebellum_data, setup_full_source_space, plot_cerebellum_data
-from cmb.segmentation import segment_cerebellum
 
 
 class Timer:
@@ -20,7 +19,7 @@ class Timer:
             if entry[1] is not None and entry[2] is not None:
                 ret_str += f'{entry[0]}: {entry[2] - entry[1]:.1f}s\n'
             else:
-                ret_str += f'{entry[0]: INCOMPLETE}\n'
+                ret_str += f'{entry[0]}: INCOMPLETE\n'
         return ret_str
 
     def start(self):
@@ -70,19 +69,8 @@ def time_computation(cerebellum_subsampling):
     cb_data = pickle.load(open(op.join(cmb_path,'data','cerebellum_geo'), 'rb'))
     spacing = 2 # Use spacing 2 to get an approximately equal grid density in cerebral and cerebellar cortices
 
-    timer.start_section('Segmenting Cerebellum')
-    segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode=False, force_segmentation=True)
-    timer.stop_section()
+    timer.start_section('Segment and setup source space')
 
-    # Setup source space using the segmented data
-
-    timer.start_section('Setup source space')
-    src_cort = mne.setup_source_space(subject=subject,
-                                      subjects_dir=subjects_dir,
-                                      spacing=spacing, add_dist=False)
-    timer.stop_section()
-
-    timer.start_section('Setup full source space')
     src_whole = setup_full_source_space(subject, subjects_dir,
                                         cmb_path, cerebellum_subsampling,
                                         plot_cerebellum=False, spacing=spacing,
