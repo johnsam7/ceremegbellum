@@ -30,7 +30,7 @@ class Timer:
 
     def stop(self):
         if self.running:
-            self.runnig = False
+            self.running = False
             self.timing_events[0] = (self.timing_events[0][0],
                                      self.timing_events[0][1],
                                      time.time())
