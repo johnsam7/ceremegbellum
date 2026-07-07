@@ -31,10 +31,10 @@ For more information about the method, please see:
    ```
 
 3. Create a new virtual environment for Cere-MEG-Bellum and activate it.
-You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
-[venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
-`uv` and `conda` are good options because they can also manage the Python version without
-depending on system Python.
+   You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
+   [venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
+   `uv` and `conda` are good options because they can also manage the Python version without
+   depending on system Python.
 
    ```bash
    # uv
