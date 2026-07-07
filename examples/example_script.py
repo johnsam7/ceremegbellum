@@ -141,7 +141,7 @@ cerebellum_estimate_prepared = cmb_viz.morph_cerebellum_data(
     subsampling=cerebellum_subsampling,
     smoothing_steps=0,
 )
-cortext_estimate_prepared = cmb_viz.morph_cortex_data(
+cortex_estimate_prepared = cmb_viz.morph_cortex_data(
     cort_data=estimate_cortex, fwd_cortex_src=fwd["src"][0]
 )
 
@@ -149,7 +149,7 @@ cmb_viz.plot_normal(
     src_cerebellum=fwd["src"][1],
     cerebellum_data=cerebellum_estimate_prepared,
     src_cortex=fwd["src"][0],
-    cortex_data=cortext_estimate_prepared,
+    cortex_data=cortex_estimate_prepared,
     cmap="Reds",
     clim=(0, 10000),
 )
