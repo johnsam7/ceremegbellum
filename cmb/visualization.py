@@ -35,6 +35,24 @@ from mne.morph import _hemi_morph
 logger = logging.getLogger(__name__)
 
 
+def plot_cerebellum_data(*args, **kwargs) -> None:
+    """Plot cerebellum data (DEPRECATED).
+
+    This function is retained as a compatibility shim and no longer performs any
+    plotting.
+    """
+    del args, kwargs
+
+    warnings.warn(
+        "plot_cerebellum_data is deprecated and does nothing. "
+        "Please prepare your data for plotting using morph_cerebellum_data "
+        "or morph_cortex_data, and then use plot_normal, plot_inflated, or "
+        "plot_flatmap for visualization.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+
 def interpolate_cerebellum_data(
     data: npt.NDArray[np.floating],
     data_indices: npt.NDArray[np.intp],
