@@ -41,7 +41,7 @@ For more information about the method, please see:
    uv venv cmb-env --python 3.12 --seed
    source cmb-env/bin/activate
    # conda
-   conda conda create -n cmb-env python=3.12 pip
+   conda create -n cmb-env python=3.12 pip
    conda activate cmb-env
    # venv
    python -m venv cmb-env
