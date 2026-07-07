@@ -1,6 +1,11 @@
 name: CI
 
-on: [pull_request, push, workflow_dispatch]
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 9 * * 1'
 
 jobs:
   test:

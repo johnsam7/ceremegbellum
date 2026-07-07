@@ -1,13 +1,24 @@
-"""Cere-MEG-Bellum (CMB)"""
+"""Cere-MEG-Bellum (CMB)."""
 
 import os as _os
 
 from ._version import __version__
-
-# Default data directory: <package_dir>/ (atlas data goes into data/, nnUNet/, etc.)
-CMB_DATA_DIR = _os.path.join(_os.path.dirname(__file__), '')
-
 from .functions import get_cerebellum_data
 from .source_space import setup_full_source_space
-from .visualization import plot_cerebellum_data
 from .utils import is_float
+
+# Deprecated, will just instruct users to use the new plotting functions instead.
+from .visualization import plot_cerebellum_data
+
+# Default data directory: <package_dir>/ (atlas data goes into data/, nnUNet/, etc.)
+CMB_DATA_DIR = _os.path.join(_os.path.dirname(__file__), "")
+
+
+__all__ = [
+    "CMB_DATA_DIR",
+    "get_cerebellum_data",
+    "setup_full_source_space",
+    "is_float",
+    "plot_cerebellum_data",
+    "__version__",
+]
