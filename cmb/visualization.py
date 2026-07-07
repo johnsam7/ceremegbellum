@@ -222,6 +222,7 @@ def plot_normal(
     cortex_data: npt.NDArray[np.floating] | None = None,
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> "pv.Plotter":
@@ -248,6 +249,8 @@ def plot_normal(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
+    notebook_inline : bool, optional
+        Whether to render the plot inline in a Jupyter notebook, by default False.
     offscreen : bool | None, optional
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
@@ -283,7 +286,9 @@ def plot_normal(
     if clim is None:
         clim = _determine_global_clim(cerebellum_data, cortex_data)
 
-    plotter = pv.Plotter(window_size=[1200, 1200], off_screen=offscreen)
+    plotter = pv.Plotter(
+        window_size=[1200, 1200], off_screen=offscreen, notebook=notebook_inline
+    )
     # Ignoring warning because my pyright is confused.
     plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
 
@@ -383,6 +388,7 @@ def plot_inflated(
     subsampling: Literal["dense", "sparse"],
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> "pv.Plotter":
@@ -403,6 +409,8 @@ def plot_inflated(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
+    notebook_inline : bool, optional
+        Whether to render the plot inline in a Jupyter notebook, by default False.
     offscreen : bool | None, optional
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
@@ -440,7 +448,9 @@ def plot_inflated(
     cerebellum_mesh = pv.PolyData(inflated_verts_subsampled, pv_faces)
     cerebellum_mesh.point_data["scalars"] = cerebellum_data
 
-    plotter = pv.Plotter(window_size=[1200, 1200], off_screen=offscreen)
+    plotter = pv.Plotter(
+        window_size=[1200, 1200], off_screen=offscreen, notebook=notebook_inline
+    )
     plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
     plotter.add_mesh(
         cerebellum_mesh,
