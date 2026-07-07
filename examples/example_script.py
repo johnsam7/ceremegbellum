@@ -62,7 +62,6 @@ fwd = mne.make_forward_solution(
 )
 fwd = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True, copy=True)
 
-info = mne.io.read_info(raw_fname)
 noise_cov = mne.read_cov(fname_cov)
 inverse_operator = mne.minimum_norm.make_inverse_operator(
     info, fwd, noise_cov, depth=None, fixed=True
