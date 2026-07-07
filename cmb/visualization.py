@@ -109,10 +109,25 @@ def interpolate_cerebellum_data(
             warnings.filterwarnings(
                 "ignore", category=RuntimeWarning, message="Mean of empty slice"
             )
-            data_interpolated[nan_verts] = [
-                np.nanmean(data_interpolated[vert_neighbor_group])
-                for vert_neighbor_group in vert_neighbors
-            ]
+            neighbor_means = np.array(
+                [
+                    np.nanmean(data_interpolated[vert_neighbor_group])
+                    for vert_neighbor_group in vert_neighbors
+                ],
+                dtype=np.float64,
+            )
+        resolved = ~np.isnan(neighbor_means)
+        if not np.any(resolved):
+            msg = (
+                "Cerebellum interpolation stalled: some vertices could not be "
+                "interpolated because they have no neighbors with known values. "
+                "Leaving unresolved vertices as NaN."
+            )
+            logger.warning(msg)
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+            break
+
+        data_interpolated[nan_verts[resolved]] = neighbor_means[resolved]
         nan_verts = np.where(np.isnan(data_interpolated))[0]
 
     logger.info("Cerebellum interpolation complete")
