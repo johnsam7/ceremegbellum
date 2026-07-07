@@ -55,3 +55,21 @@ version = {attr = "cmb._version.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["cmb*"]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
+ignore = [
+  "D100",  # Missing docstring in public module
+  "D104",  # Missing docstring in public package
+  "D413",  # Missing blank line after last section
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = [
+  "property",
+  "setter",
+]
+
+[tool.pyright]
+typeCheckingMode = "standard"
