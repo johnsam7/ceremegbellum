@@ -271,18 +271,24 @@ def plot_normal(
             "'pip install pyvista'."
         ) from None
 
-    if offscreen is None:
-        # Determine based on environment variable and OS type.
-        offscreen = _OFFSCREEN
-
     if len(cerebellum_data) != len(src_cerebellum["rr"]):
         raise ValueError(
             "cerebellum_data must have the same number of elements as the number of "
             "vertices in the dense triangulation of the cerebellar source space. "
             f"Expected {len(src_cerebellum['rr'])}, got {len(cerebellum_data)}."
         )
-    if cortex_data is not None and src_cortex is None:
-        raise ValueError("src_cortex must be provided if cortex_data is provided.")
+    if cortex_data is not None:
+        if src_cortex is None:
+            raise ValueError("src_cortex must be provided if cortex_data is provided.")
+        if len(cortex_data) != len(src_cortex["rr"]):
+            raise ValueError(
+                "cortex_data must have the same number of elements as the number of "
+                "vertices in the dense triangulation of the cortical source space. "
+                f"Expected {len(src_cortex['rr'])}, got {len(cortex_data)}."
+            )
+    if offscreen is None:
+        # Determine based on environment variable and OS type.
+        offscreen = _OFFSCREEN
     if clim is None:
         clim = _determine_global_clim(cerebellum_data, cortex_data)
 
@@ -440,6 +446,13 @@ def plot_inflated(
     # Get indices of the vertices used in specified subsampling.
     vertex_indices = cerebellum_geo["dw_data"][subsampling]
     inflated_verts_subsampled = cerebellum_geo["verts_inflated_fs"][vertex_indices]
+
+    if len(cerebellum_data) != len(inflated_verts_subsampled):
+        raise ValueError(
+            "cerebellum_data must have the same number of elements as the number of "
+            f"vertices in the {subsampling} subsampling of cerebellum. "
+            f"Expected {len(inflated_verts_subsampled)}, got {len(cerebellum_data)}."
+        )
 
     faces = cerebellum_geo["dw_data"][subsampling + "_tris"]
     # Add a column of 3s to tell PyVista that these are triangles (3 vertices per face).
