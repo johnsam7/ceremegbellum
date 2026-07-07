@@ -273,7 +273,8 @@ def plot_normal(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved normal view to {screenshot_fname}")
 
-    plotter.show()
+    if not offscreen:
+        plotter.show()
 
     return plotter
 
@@ -395,7 +396,8 @@ def plot_inflated(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved inflated view to {screenshot_fname}")
 
-    plotter.show()
+    if not offscreen:
+        plotter.show()
 
     return plotter
 
