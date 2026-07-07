@@ -53,9 +53,9 @@ For more information about the method, please see:
    NVIDIA GPUs with CUDA 12.6 support.
 
    ```bash
-   # NOTE: PyTorch website uses pip3 in the command.
+   # NOTE: PyTorch website may use pip3.
    # Inside virtual environment pip and pip3 are the same.
-   pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
    # Or use uv for faster installation!
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
