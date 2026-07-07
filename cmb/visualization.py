@@ -14,7 +14,7 @@ view using Matplotlib.
 import logging
 import os
 import warnings
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 # Use non-interactive backend when no display is available
 import matplotlib
@@ -27,10 +27,14 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
 import numpy.typing as npt
-import pyvista as pv
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from mne.morph import _hemi_morph
+
+# This block is ONLY read by linters and type checkers (like mypy, Pylance)
+# At runtime, it evaluates to False, keeping PyVista optional.
+if TYPE_CHECKING:
+    import pyvista as pv
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +221,7 @@ def plot_normal(
     clim: tuple[float, float] | None = None,
     offscreen: bool = False,
     screenshot_fname: str | None = None,
-) -> pv.Plotter:
+) -> "pv.Plotter":
     """Plot cerebellum and cortex in normal 3D view using PyVista.
 
     Parameters
@@ -250,6 +254,14 @@ def plot_normal(
     pv.Plotter
         The PyVista plotter object.
     """
+    try:
+        import pyvista as pv
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
+            "PyVista is required for 3D plotting. Please install it via "
+            "'pip install pyvista'."
+        ) from None
+
     if len(cerebellum_data) != len(src_cerebellum["rr"]):
         raise ValueError(
             "cerebellum_data must have the same number of elements as the number of "
@@ -319,7 +331,9 @@ def _determine_global_clim(
     return clim
 
 
-def _make_pyvista_mesh(src_space: dict, data: npt.NDArray[np.floating]) -> pv.PolyData:
+def _make_pyvista_mesh(
+    src_space: dict, data: npt.NDArray[np.floating]
+) -> "pv.PolyData":
     """Create a PyVista PolyData object for the visualization.
 
     Makes a triangular mesh with a scalar value in each vertex using all vertices in
@@ -335,6 +349,13 @@ def _make_pyvista_mesh(src_space: dict, data: npt.NDArray[np.floating]) -> pv.Po
         (n_vertices,), where n_vertices is the number of vertices in the source space,
         i.e. `len(src_space['rr'])`.
     """
+    try:
+        import pyvista as pv
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
+            "PyVista is required for 3D plotting. Please install it via "
+            "'pip install pyvista'."
+        ) from None
     verts = src_space["rr"]
     faces = src_space["tris"]
 
@@ -354,7 +375,7 @@ def plot_inflated(
     clim: tuple[float, float] | None = None,
     offscreen: bool = False,
     screenshot_fname: str | None = None,
-) -> pv.Plotter:
+) -> "pv.Plotter":
     """Plot cerebellum in inflated 3D view using PyVista.
 
     Parameters
@@ -383,6 +404,14 @@ def plot_inflated(
     pv.Plotter
         The PyVista plotter object.
     """
+    try:
+        import pyvista as pv
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
+            "PyVista is required for 3D plotting. Please install it via "
+            "'pip install pyvista'."
+        ) from None
+
     if clim is None:
         clim = (float(np.nanmin(cerebellum_data)), float(np.nanmax(cerebellum_data)))
     # Get indices of the vertices used in specified subsampling.
