@@ -187,7 +187,7 @@ def morph_cortex_data(
     )
     result = morph @ cort_data[:, None]
 
-    return result
+    return result.ravel()  # Return as 1D array
 
 
 def plot_normal(
