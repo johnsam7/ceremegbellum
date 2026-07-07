@@ -31,7 +31,8 @@ get_cerebellum_data()
 
 # %%
 # Load cerebellum geometry.
-cb_data = pickle.load(open(op.join(CMB_DATA_DIR, "data", "cerebellum_geo"), "rb"))
+with open(op.join(CMB_DATA_DIR, "data", "cerebellum_geo"), "rb") as f:
+    cb_data = pickle.load(f)
 # Use spacing 2 to get an approximately equal grid density in cerebral
 # and cerebellar cortices
 spacing = 2
