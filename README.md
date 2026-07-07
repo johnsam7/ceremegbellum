@@ -48,8 +48,9 @@ For more information about the method, please see:
    source cmb-env/bin/activate
    ```
 
-4. Install correct PyTorch version for your hardware. Look up the exact installation on [PyTorch webpage](https://pytorch.org/get-started/locally/).
-   Here is **example** command for hardware with NVIDIA GPU with CUDA 12.6 support.
+4. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
+   [PyTorch website](https://pytorch.org/get-started/locally/).Here is an **example** command for
+   NVIDIA GPUs with CUDA 12.6 support.
 
    ```bash
    # NOTE: PyTorch website uses pip3 in the command.
