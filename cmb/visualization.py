@@ -21,6 +21,9 @@ import matplotlib
 
 if os.environ.get("DISPLAY") is None and os.name != "nt":
     matplotlib.use("Agg")
+    _OFFSCREEN = True
+else:
+    _OFFSCREEN = False
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -219,7 +222,7 @@ def plot_normal(
     cortex_data: npt.NDArray[np.floating] | None = None,
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
-    offscreen: bool = False,
+    offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> "pv.Plotter":
     """Plot cerebellum and cortex in normal 3D view using PyVista.
@@ -245,6 +248,9 @@ def plot_normal(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
+    offscreen : bool | None, optional
+        Whether to render the plot offscreen, by default None, which means the behavior
+        will be determined by DISPLAY environment variable and OS type.
     screenshot_fname : str | None, optional
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
@@ -261,6 +267,10 @@ def plot_normal(
             "PyVista is required for 3D plotting. Please install it via "
             "'pip install pyvista'."
         ) from None
+
+    if offscreen is None:
+        # Determine based on environment variable and OS type.
+        offscreen = _OFFSCREEN
 
     if len(cerebellum_data) != len(src_cerebellum["rr"]):
         raise ValueError(
@@ -373,7 +383,7 @@ def plot_inflated(
     subsampling: Literal["dense", "sparse"],
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
-    offscreen: bool = False,
+    offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> "pv.Plotter":
     """Plot cerebellum in inflated 3D view using PyVista.
@@ -393,8 +403,9 @@ def plot_inflated(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
-    offscreen : bool, optional
-        Whether to render the plot offscreen, by default False.
+    offscreen : bool | None, optional
+        Whether to render the plot offscreen, by default None, which means the behavior
+        will be determined by DISPLAY environment variable and OS type.
     screenshot_fname : str | None, optional
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
@@ -411,6 +422,10 @@ def plot_inflated(
             "PyVista is required for 3D plotting. Please install it via "
             "'pip install pyvista'."
         ) from None
+
+    if offscreen is None:
+        # Determine based on environment variable and OS type.
+        offscreen = _OFFSCREEN
 
     if clim is None:
         clim = (float(np.nanmin(cerebellum_data)), float(np.nanmax(cerebellum_data)))
@@ -455,7 +470,7 @@ def plot_flatmap(
     subsampling: Literal["dense", "sparse"],
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
-    offscreen: bool = False,
+    offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> Figure:
     """Plot cerebellum in flatmap view using Matplotlib.
@@ -476,8 +491,9 @@ def plot_flatmap(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
-    offscreen : bool, optional
-        Whether to render the plot offscreen, by default False.
+    offscreen : bool | None, optional
+        Whether to render the plot offscreen, by default None, which means the behavior
+        will be determined by DISPLAY environment variable and OS type.
     screenshot_fname : str | None, optional
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
@@ -487,6 +503,9 @@ def plot_flatmap(
     Figure
         The Matplotlib figure object.
     """
+    if offscreen is None:
+        # Determine based on environment variable and OS type.
+        offscreen = _OFFSCREEN
     norm, ticks, cmap = _get_flatmap_color_mapping(cerebellum_data, clim, cmap)
 
     fig, ax = plt.subplots(dpi=300, figsize=(7, 5.5))
