@@ -776,10 +776,17 @@ def morph_cerebellum_data(
         logger.info(
             f"Applying smoothing {step + 1}/{smoothing_steps} to cerebellum data."
         )
-        for vert in range(data_interpolated.shape[0]):
-            data_interpolated[vert] = np.nanmean(
-                data_interpolated[vert_to_neighbors[vert]]
+        # Make copy to keep smoothing independent of vertex iteration order.
+        new_values = data_interpolated.copy()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=RuntimeWarning, message="Mean of empty slice"
             )
+            for vert in range(data_interpolated.shape[0]):
+                new_values[vert] = np.nanmean(
+                    data_interpolated[vert_to_neighbors[vert]]
+                )
+        data_interpolated = new_values  # update with smoothed values
 
     return data_interpolated
 
