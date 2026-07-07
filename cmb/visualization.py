@@ -577,7 +577,7 @@ def _build_flatmap_region_triangulation(
         The cerebellum geometry object.
     region_key : str
         The key for the region of interest.
-    subsampling : Literal[&quot;dense&quot;, &quot;sparse&quot;]
+    subsampling : Literal["dense", "sparse"]
         The chosen subsampling of the cerebellar surface mesh.
 
     Returns
