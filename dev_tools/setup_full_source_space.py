@@ -8,7 +8,8 @@ from mne.datasets import sample
 
 from cmb import setup_full_source_space
 
-OUTPUT_FILE = Path(__file__).parent / "reference_src.pkl"
+cerebellum_data_dir = Path("dir/here")
+output_file = Path(__file__).parent / "reference_src.pkl"
 
 
 def setup_and_save_source_space() -> None:
@@ -26,12 +27,13 @@ def setup_and_save_source_space() -> None:
     src = setup_full_source_space(
         subject,
         subjects_dir,
+        cerebellum_data_dir,
         cerb_subsampling=cerebellum_subsampling,
         plot_cerebellum=False,
         spacing=spacing,
     )
 
-    with open(OUTPUT_FILE, "wb") as f:
+    with open(output_file, "wb") as f:
         pickle.dump(src, f)
 
 
