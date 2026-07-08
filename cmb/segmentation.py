@@ -36,7 +36,8 @@ def get_segmentation(
     # Check that all prerequisite programs are ready
     if shutil.which("mri_convert") is None:
         raise OSError(
-            "mri_convert not found. FreeSurfer must be installed for segmentation to work."
+            "mri_convert not found. FreeSurfer must be installed for segmentation "
+            "to work."
         )
     if not op.exists(op.join(subjects_dir, subject, "mri", "orig.mgz")):
         raise FileNotFoundError(
@@ -45,10 +46,10 @@ def get_segmentation(
         )
     try:
         import nnunet
-    except ImportError:
-        raise ImportError(
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
             "nnunet not found. Please install the nnunet package (pip install nnunet)."
-        )
+        ) from None
 
     if op.exists(
         op.join(data_dir, subject + ".nii.gz")
