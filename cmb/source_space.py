@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Source space construction for combined cerebral and cerebellar MEG/EEG analysis.
 
 Provides functions to set up cerebellar surface source spaces, register them
@@ -23,7 +22,6 @@ import numpy as np
 from .helpers import (
     affine_transform,
     change_labels,
-    find_connected_regions,
     save_nifti_from_3darray,
     set_nnunet_paths,
 )
@@ -31,9 +29,7 @@ from .visualization import plot_sagittal
 
 
 def print_fs_surf(rr, tris, fname, mirror=False):
-    """
-    Convert to RAS coords and print surface to be plotted with Freeview
-    """
+    """Convert to RAS coords and print surface to be plotted with Freeview."""
     fsVox2RAS = np.array([[-1, 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128]]).T
 
     fs_vox = np.hstack((rr, np.ones((len(rr), 1))))
@@ -57,8 +53,9 @@ def setup_cerebellum_source_space(
     post_process=False,
     debug_mode=False,
 ):
-    """Sets up the cerebellar surface source space. Requires cerebellum geometry file
-    to be downloaded.
+    """Set up the cerebellar surface source space.
+
+    Requires cerebellum geometry file to be downloaded.
 
     Parameters
     ----------
@@ -74,17 +71,19 @@ def setup_cerebellum_source_space(
     calc_nn: Boolean
         If True, it will calculate the normals of the cerebellum source space.
     print_fs : Boolean
-        If True, it will print an fs file of the cerebellar source space that can be viewed with e.g. freeview.
+        If True, it will print an fs file of the cerebellar source space that can be
+        viewed with e.g. freeview.
     plot : Boolean
-        If True, will plot sagittal cross-sectional plots of the cerebellar source space suposed on subject MR data.
+        If True, will plot sagittal cross-sectional plots of the cerebellar source space
+        supposed on subject MR data.
 
     Returns
     -------
     subj_cerb: dictionary
-        Dictionary containing geometry data: vertex positions (rr), faces (tris) and normals (nn, if calc_nn is True).
+        Dictionary containing geometry data: vertex positions (rr), faces (tris) and
+        normals (nn, if calc_nn is True).
 
     """
-
     import ants
     import pandas as pd
     from scipy import signal
@@ -310,8 +309,26 @@ def setup_cerebellum_source_space(
 def calculate_normals(
     rr, tris, solid_angle_calc=False, obs_point=np.zeros(3), print_info=True
 ):
-    """Takes rr - an array of position of vertices and tris - indices of vertices that deliniates
-    triangle face and returns vertex normals based on an (unweighted) average of neighboring face normals."""
+    """Calculate vertex normals for a triangular mesh.
+
+    Parameters
+    ----------
+    rr : ndarray
+        Array of vertex positions.
+    tris : ndarray
+        Triangle indices defining the mesh faces.
+    solid_angle_calc : bool, optional
+        Whether to compute the solid angle from ``obs_point``.
+    obs_point : ndarray, optional
+        Observation point used for solid angle calculation.
+    print_info : bool, optional
+        Whether to print diagnostic information.
+
+    Returns
+    -------
+    ndarray
+        Vertex normals computed as an unweighted average of neighboring face normals.
+    """
     A = []
     area_list = []
     area = 0.0
@@ -386,9 +403,10 @@ def setup_full_source_space(
     plot_cerebellum=False,
     debug_mode=False,
 ):
-    """Sets up a full surface source space where the first element in the list
-    is the combined cerebral hemishperic source space and the second element
-    is the cerebellar source space.
+    """Set up a full surface source space that includes the cerebellum.
+
+    The first element in the returned list is the combined cerebral hemispheric source
+    space and the second element is the cerebellar source space.
 
     Parameters
     ----------
