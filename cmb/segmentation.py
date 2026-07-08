@@ -1,6 +1,7 @@
 """Provides functions for cerebellar segmentation using nnUNet and ANTs registration."""
 
 import os
+import os.path as op
 import pickle
 import shutil
 
@@ -26,10 +27,10 @@ def get_segmentation(
 
         cmb_path = CMB_DATA_DIR
 
-    set_nnunet_paths(results_folder=os.path.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
+    set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
 
-    data_dir = os.path.join(cmb_path, "data", "segm_folder")
-    if not os.path.exists(data_dir):
+    data_dir = op.join(cmb_path, "data", "segm_folder")
+    if not op.exists(data_dir):
         os.makedirs(data_dir, exist_ok=True)
 
     # Check that all prerequisite programs are ready
@@ -37,10 +38,10 @@ def get_segmentation(
         raise OSError(
             "mri_convert not found. FreeSurfer must be installed for segmentation to work."
         )
-    if not os.path.exists(os.path.join(subjects_dir, subject, "mri", "orig.mgz")):
+    if not op.exists(op.join(subjects_dir, subject, "mri", "orig.mgz")):
         raise FileNotFoundError(
             "Could not locate subject MRI at "
-            + os.path.join(subjects_dir, subject, "mri", "orig.mgz")
+            + op.join(subjects_dir, subject, "mri", "orig.mgz")
         )
     try:
         import nnunet
@@ -49,15 +50,15 @@ def get_segmentation(
             "nnunet not found. Please install the nnunet package (pip install nnunet)."
         )
 
-    if os.path.exists(
-        os.path.join(data_dir, subject + ".nii.gz")
+    if op.exists(
+        op.join(data_dir, subject + ".nii.gz")
     ):  # check if segmentation exists
         print(
             "Previous segmentation found on subject "
             + subject
             + ". Returning old segmentation."
         )
-        return nib.load(os.path.join(data_dir, subject + ".nii.gz"))  # If yes, return
+        return nib.load(op.join(data_dir, subject + ".nii.gz"))  # If yes, return
 
     else:  # If not, make segmentation with trained nnUnet model
         rel_paths = [
@@ -73,25 +74,25 @@ def get_segmentation(
             "tmp/registered/lob_I_IV_segmented",
             "tmp/registered/mask_divide",
         ]
-        for dirs in [os.path.join(data_dir, rel_path) for rel_path in rel_paths]:
+        for dirs in [op.join(data_dir, rel_path) for rel_path in rel_paths]:
             os.makedirs(dirs, exist_ok=True)
 
         # Load brain template to get a common space
-        brain_template_nib = nib.load(os.path.join(cmb_path, "data", "brain.nii"))
+        brain_template_nib = nib.load(op.join(cmb_path, "data", "brain.nii"))
         brain_template = np.asanyarray(brain_template_nib.dataobj)
         brain_template = brain_template / np.max(brain_template)
         template_ants = ants.from_numpy(brain_template)
 
-        output_folder = os.path.join(data_dir, "tmp")
-        reg_cache_file = os.path.join(
+        output_folder = op.join(data_dir, "tmp")
+        reg_cache_file = op.join(
             output_folder, "registered", subject + "_reg_cache.pkl"
         )
-        whole_file = os.path.join(
+        whole_file = op.join(
             output_folder, "registered", "whole", subject + "_0000.nii.gz"
         )
 
         # Check if registration was already completed
-        if os.path.exists(reg_cache_file) and os.path.exists(whole_file):
+        if op.exists(reg_cache_file) and op.exists(whole_file):
             print(
                 "Previous registration found for subject "
                 + subject
@@ -100,12 +101,10 @@ def get_segmentation(
             with open(reg_cache_file, "rb") as f:
                 reg = pickle.load(f)
             subj_reg = np.asanyarray(nib.load(whole_file).dataobj)
-            subject_mri = nib.load(
-                os.path.join(subjects_dir, subject, "mri", "brain.mgz")
-            )
+            subject_mri = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
         else:
             # Register
-            orig_fname = os.path.join(subjects_dir, subject, "mri", "brain.mgz")
+            orig_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
             subject_mri = nib.load(orig_fname)
             subj_brain = np.asanyarray(subject_mri.dataobj)
             subj_brain = subj_brain / np.max(subj_brain)
@@ -136,14 +135,12 @@ def get_segmentation(
             )
 
         # Mask
-        mask_output = os.path.join(
-            output_folder, "registered", "mask", subject + ".nii.gz"
-        )
-        if os.path.exists(mask_output):
+        mask_output = op.join(output_folder, "registered", "mask", subject + ".nii.gz")
+        if op.exists(mask_output):
             print("Previous mask prediction found. Skipping mask step.")
         else:
             print("Running mask prediction...")
-            model_folder = os.path.join(
+            model_folder = op.join(
                 cmb_path,
                 "nnUNet",
                 "RESULTS_FOLDER",
@@ -154,22 +151,18 @@ def get_segmentation(
             )
             _run_nnunet_prediction(
                 model_folder,
-                os.path.join(output_folder, "registered", "whole"),
-                os.path.join(output_folder, "registered", "mask"),
+                op.join(output_folder, "registered", "whole"),
+                op.join(output_folder, "registered", "mask"),
             )
 
         # Split into LH and RH using ASEG
-        lh_input = os.path.join(
-            output_folder, "registered", "lh", subject + "_0000.nii.gz"
-        )
-        rh_input = os.path.join(
-            output_folder, "registered", "rh", subject + "_0000.nii.gz"
-        )
-        if os.path.exists(lh_input) and os.path.exists(rh_input):
+        lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
+        rh_input = op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
+        if op.exists(lh_input) and op.exists(rh_input):
             print("Previous hemisphere split found. Skipping split step.")
         else:
             aseg = np.asanyarray(
-                nib.load(os.path.join(subjects_dir, subject, "mri", "aseg.mgz")).dataobj
+                nib.load(op.join(subjects_dir, subject, "mri", "aseg.mgz")).dataobj
             ).astype("uint8")
             aseg = ants.from_numpy(aseg)
             aseg_reg = ants.apply_transforms(
@@ -184,22 +177,22 @@ def get_segmentation(
                 subj_reg,
                 mask,
                 subject,
-                os.path.join(output_folder, "registered"),
+                op.join(output_folder, "registered"),
                 brain_template_nib.affine,
             )
 
         # Predict LH and RH
-        lh_seg_output = os.path.join(
+        lh_seg_output = op.join(
             output_folder, "registered", "lh_segmented", subject + ".nii.gz"
         )
-        rh_seg_output = os.path.join(
+        rh_seg_output = op.join(
             output_folder, "registered", "rh_segmented", subject + ".nii.gz"
         )
-        if os.path.exists(lh_seg_output):
+        if op.exists(lh_seg_output):
             print("Previous LH segmentation found. Skipping LH prediction.")
         else:
             print("Running LH prediction...")
-            model_folder_lh = os.path.join(
+            model_folder_lh = op.join(
                 cmb_path,
                 "nnUNet",
                 "RESULTS_FOLDER",
@@ -210,14 +203,14 @@ def get_segmentation(
             )
             _run_nnunet_prediction(
                 model_folder_lh,
-                os.path.join(output_folder, "registered", "lh"),
-                os.path.join(output_folder, "registered", "lh_segmented"),
+                op.join(output_folder, "registered", "lh"),
+                op.join(output_folder, "registered", "lh_segmented"),
             )
-        if os.path.exists(rh_seg_output):
+        if op.exists(rh_seg_output):
             print("Previous RH segmentation found. Skipping RH prediction.")
         else:
             print("Running RH prediction...")
-            model_folder_rh = os.path.join(
+            model_folder_rh = op.join(
                 cmb_path,
                 "nnUNet",
                 "RESULTS_FOLDER",
@@ -228,24 +221,22 @@ def get_segmentation(
             )
             _run_nnunet_prediction(
                 model_folder_rh,
-                os.path.join(output_folder, "registered", "rh"),
-                os.path.join(output_folder, "registered", "rh_segmented"),
+                op.join(output_folder, "registered", "rh"),
+                op.join(output_folder, "registered", "rh_segmented"),
             )
 
         # Refine lob I-IV into lobs I-III and IV
-        lob_seg_output = os.path.join(
+        lob_seg_output = op.join(
             output_folder, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
         )
-        if os.path.exists(lob_seg_output):
+        if op.exists(lob_seg_output):
             print("Previous anterior lobe refinement found. Skipping refinement step.")
         else:
             pred_nib = nib.load(lh_seg_output)
             vol = np.asanyarray(pred_nib.dataobj)
             image = np.asanyarray(
                 nib.load(
-                    os.path.join(
-                        output_folder, "registered", "lh", subject + "_0000.nii.gz"
-                    )
+                    op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
                 ).dataobj
             )
             lobI_IV = np.zeros(vol.shape)
@@ -254,22 +245,20 @@ def get_segmentation(
             vol = np.asanyarray(pred_nib.dataobj)
             image = np.asanyarray(
                 nib.load(
-                    os.path.join(
-                        output_folder, "registered", "rh", subject + "_0000.nii.gz"
-                    )
+                    op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
                 ).dataobj
             )
             lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
             save_nifti_from_3darray(
                 lobI_IV,
-                os.path.join(
+                op.join(
                     output_folder, "registered", "lob_I_IV", subject + "_0000.nii.gz"
                 ),
                 rotate=False,
                 affine=pred_nib.affine,
             )
             print("Running anterior lobe refinement...")
-            model_folder_refine = os.path.join(
+            model_folder_refine = op.join(
                 cmb_path,
                 "nnUNet",
                 "RESULTS_FOLDER",
@@ -280,8 +269,8 @@ def get_segmentation(
             )
             _run_nnunet_prediction(
                 model_folder_refine,
-                os.path.join(output_folder, "registered", "lob_I_IV"),
-                os.path.join(output_folder, "registered", "lob_I_IV_segmented"),
+                op.join(output_folder, "registered", "lob_I_IV"),
+                op.join(output_folder, "registered", "lob_I_IV_segmented"),
             )
 
         # Correct labels
@@ -328,7 +317,7 @@ def get_segmentation(
         # Assemble segmentations into one image
         seg = np.asanyarray(
             nib.load(
-                os.path.join(
+                op.join(
                     output_folder, "registered", "lh_segmented", subject + ".nii.gz"
                 )
             ).dataobj
@@ -336,7 +325,7 @@ def get_segmentation(
         seg_lh = change_labels(seg, old_labels_hemi, new_labels_lh)
         seg = np.asanyarray(
             nib.load(
-                os.path.join(
+                op.join(
                     output_folder, "registered", "rh_segmented", subject + ".nii.gz"
                 )
             ).dataobj
@@ -344,7 +333,7 @@ def get_segmentation(
         seg_rh = change_labels(seg, old_labels_hemi, new_labels_rh)
         seg = np.asanyarray(
             nib.load(
-                os.path.join(
+                op.join(
                     output_folder,
                     "registered",
                     "lob_I_IV_segmented",
@@ -369,19 +358,19 @@ def get_segmentation(
 
         save_nifti_from_3darray(
             seg_reg,
-            os.path.join(data_dir, subject + ".nii.gz"),
+            op.join(data_dir, subject + ".nii.gz"),
             rotate=False,
             affine=subject_mri.affine,
         )
 
         if not debug_mode:
             for rel_path in rel_paths:
-                cleanup_dir = os.path.join(data_dir, rel_path)
-                if os.path.exists(cleanup_dir):
+                cleanup_dir = op.join(data_dir, rel_path)
+                if op.exists(cleanup_dir):
                     for f in os.listdir(cleanup_dir):
                         if f.endswith((".nii.gz", ".pkl", ".json")):
-                            os.remove(os.path.join(cleanup_dir, f))
-        return nib.load(os.path.join(data_dir, subject + ".nii.gz"))
+                            os.remove(op.join(cleanup_dir, f))
+        return nib.load(op.join(data_dir, subject + ".nii.gz"))
 
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
@@ -455,19 +444,19 @@ def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affin
 
     save_nifti_from_3darray(
         mask,
-        os.path.join(output_folder, "mask_divide", subject + "_mask_lh_rh.nii.gz"),
+        op.join(output_folder, "mask_divide", subject + "_mask_lh_rh.nii.gz"),
         rotate=False,
         affine=affine,
     )
     save_nifti_from_3darray(
         lh_split,
-        os.path.join(output_folder, "lh", subject + "_0000.nii.gz"),
+        op.join(output_folder, "lh", subject + "_0000.nii.gz"),
         rotate=False,
         affine=affine,
     )
     save_nifti_from_3darray(
         rh_split,
-        os.path.join(output_folder, "rh", subject + "_0000.nii.gz"),
+        op.join(output_folder, "rh", subject + "_0000.nii.gz"),
         rotate=False,
         affine=affine,
     )
