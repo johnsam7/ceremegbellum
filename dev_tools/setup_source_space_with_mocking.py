@@ -32,7 +32,7 @@ def dummy_ants_registration(*args, **kwargs):
     }
 
 
-@patch("cmb.source_space.ants.registration", new=dummy_ants_registration)
+@patch("ants.registration", new=dummy_ants_registration)
 def setup_and_save_source_space() -> None:
     """Set up the source space and save it to a pickle file."""
     get_cerebellum_data(cerebellum_data_dir)
