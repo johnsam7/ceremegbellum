@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import pickle
+from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
@@ -10,6 +11,10 @@ from nibabel.freesurfer.mghformat import MGHImage
 from nibabel.nifti1 import Nifti1Image
 
 from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
+
+if TYPE_CHECKING:
+    # Import is only visible to type checkers, not at runtime.
+    from ants.core.ants_image import ANTsImage
 
 
 def get_segmentation(
@@ -71,10 +76,10 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         os.makedirs(dirs, exist_ok=True)
 
     # Load brain template to get a common space.
-    brain_template_nib = Nifti1Image.from_filename(
+    brain_template_nifti = Nifti1Image.from_filename(
         op.join(cmb_path, "data", "brain.nii")
     )
-    brain_template = brain_template_nib.get_fdata()
+    brain_template = brain_template_nifti.get_fdata()
     brain_template = brain_template / np.max(brain_template)
     template_ants = ants.from_numpy(brain_template)
 
@@ -102,7 +107,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             reg_cache_file,
         )
         save_nifti_from_3darray(
-            subj_registered, whole_file, affine=brain_template_nib.affine
+            subj_registered, whole_file, affine=brain_template_nifti.affine
         )
 
         # Mask
@@ -149,7 +154,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             mask,
             subject,
             op.join(output_folder, "registered"),
-            brain_template_nib.affine,
+            brain_template_nifti.affine,
         )
 
         # Predict LH and RH
@@ -339,18 +344,34 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
 
 def _register_subject_to_template(
-    subject_mri_nib,
-    template_ants,
-    reg_cache_file,
-):
+    subject_mri: MGHImage,
+    template_ants: ANTsImage,
+    reg_cache_file: str,
+) -> tuple[dict, np.ndarray]:
     """Register the subject's MRI to the template space using ANTs registration.
 
     Calculates the registration transforms and applies them to the subject's MRI to
     align it with the template. The registration results are cached for future use.
+
+    Parameters
+    ----------
+    subject_mri : MGHImage
+        The subject's MRI image.
+    template_ants : ANTsImage
+        The template image in ANTs format.
+    reg_cache_file : str
+        Path to the file where the registration results will be cached.
+
+    Returns
+    -------
+    registration : dict
+        The registration results containing the forward and inverse transforms.
+    subj_registered : np.ndarray
+        The subject's MRI registered to the template space.
     """
     import ants
 
-    subj_brain = subject_mri_nib.get_fdata()
+    subj_brain = subject_mri.get_fdata()
     subj_brain = subj_brain / np.max(subj_brain)
     subj_brain_ants = ants.from_numpy(subj_brain)
 
@@ -365,7 +386,7 @@ def _register_subject_to_template(
         pickle.dump(registration, f)
 
     # Apply registration.
-    subj_registered_ants = ants.apply_transforms(
+    subj_registered_ants: ANTsImage = ants.apply_transforms(
         fixed=template_ants,
         moving=subj_brain_ants,
         transformlist=registration["fwdtransforms"],
