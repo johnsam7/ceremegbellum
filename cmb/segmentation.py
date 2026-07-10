@@ -51,6 +51,7 @@ def get_segmentation(
 
 
 def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_dir):
+    import ants
 
     # Create temporary directories for intermediate files.
     rel_paths = [
