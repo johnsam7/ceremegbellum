@@ -81,6 +81,9 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     reg_cache_file = op.join(output_folder, "registered", subject + "_reg_cache.pkl")
     whole_file = op.join(output_folder, "registered", "whole", subject + "_0000.nii.gz")
 
+    subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
+    subject_mri = MGHImage.from_filename(subject_mri_fname)
+
     # Check if registration was already completed
     if op.exists(reg_cache_file) and op.exists(whole_file):
         print(
@@ -90,11 +93,10 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         with open(reg_cache_file, "rb") as f:
             reg = pickle.load(f)
         subj_reg = np.asanyarray(nib.load(whole_file).dataobj)
-        subject_mri = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
     else:
         # Register
         reg, subj_reg, subject_mri = _register_subject_to_template(
-            op.join(subjects_dir, subject, "mri", "brain.mgz"),
+            subject_mri,
             brain_template_nib,
             template_ants,
             reg_cache_file,
@@ -335,41 +337,42 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
 
 def _register_subject_to_template(
-    subject_mri_fname,
+    subject_mri_nib,
     brain_template_nib,
     template_ants,
     reg_cache_file,
     whole_file,
 ):
+    """Calculate registration from subject to template space."""
     import ants
 
-    subject_mri = nib.load(subject_mri_fname)
-    subj_brain = np.asanyarray(subject_mri.dataobj)
+    subj_brain = subject_mri_nib.get_fdata()
     subj_brain = subj_brain / np.max(subj_brain)
-
-    # Find registration from subject to common space
-    subj_ants = ants.from_numpy(subj_brain)
+    subj_brain_ants = ants.from_numpy(subj_brain)
 
     # Calculate registration
     print("Registering subject to template space...")
     reg = ants.registration(
-        fixed=template_ants, moving=subj_ants, type_of_transform="SyNCC"
+        fixed=template_ants, moving=subj_brain_ants, type_of_transform="SyNCC"
     )
 
     # Save registration cache
     with open(reg_cache_file, "wb") as f:
         pickle.dump(reg, f)
 
-        # Prepare for masking
-    subj_reg_ants = ants.apply_transforms(
+    # Prepare for masking
+    subj_registered_ants = ants.apply_transforms(
         fixed=template_ants,
-        moving=subj_ants,
+        moving=subj_brain_ants,
         transformlist=reg["fwdtransforms"],
         interpolator="nearestNeighbor",
     )
-    subj_reg = subj_reg_ants.numpy()
-    save_nifti_from_3darray(subj_reg, whole_file, affine=brain_template_nib.affine)
-    return reg, subj_reg, subject_mri
+
+    subj_registered = subj_registered_ants.numpy()
+    save_nifti_from_3darray(
+        subj_registered, whole_file, affine=brain_template_nib.affine
+    )
+    return reg, subj_registered, subject_mri
 
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
