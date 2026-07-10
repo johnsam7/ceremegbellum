@@ -28,25 +28,20 @@ def get_segmentation(
 
     set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
 
-    data_dir = op.join(cmb_path, "data", "segm_folder")
-    if not op.exists(data_dir):
-        os.makedirs(data_dir, exist_ok=True)
+    # Make directory for segmentation results if it doesn't exist.
+    segm_data_dir = op.join(cmb_path, "data", "segm_folder")
+    os.makedirs(segm_data_dir, exist_ok=True)
 
-    if not op.exists(op.join(subjects_dir, subject, "mri", "orig.mgz")):
-        raise FileNotFoundError(
-            "Could not locate subject MRI at "
-            + op.join(subjects_dir, subject, "mri", "orig.mgz")
-        )
+    mri_path = op.join(subjects_dir, subject, "mri", "orig.mgz")
+    if not op.exists(mri_path):
+        raise FileNotFoundError(f"Could not locate subject MRI at {mri_path}")
 
-    if op.exists(
-        op.join(data_dir, subject + ".nii.gz")
-    ):  # check if segmentation exists
+    if op.exists(op.join(segm_data_dir, subject + ".nii.gz")):
         print(
             "Previous segmentation found on subject "
-            + subject
-            + ". Returning old segmentation."
+            f"{subject}. Returning old segmentation."
         )
-        return nib.load(op.join(data_dir, subject + ".nii.gz"))  # If yes, return
+        return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
 
     else:  # If not, make segmentation with trained nnUnet model
         rel_paths = [
@@ -62,7 +57,7 @@ def get_segmentation(
             "tmp/registered/lob_I_IV_segmented",
             "tmp/registered/mask_divide",
         ]
-        for dirs in [op.join(data_dir, rel_path) for rel_path in rel_paths]:
+        for dirs in [op.join(segm_data_dir, rel_path) for rel_path in rel_paths]:
             os.makedirs(dirs, exist_ok=True)
 
         # Load brain template to get a common space
@@ -71,7 +66,7 @@ def get_segmentation(
         brain_template = brain_template / np.max(brain_template)
         template_ants = ants.from_numpy(brain_template)
 
-        output_folder = op.join(data_dir, "tmp")
+        output_folder = op.join(segm_data_dir, "tmp")
         reg_cache_file = op.join(
             output_folder, "registered", subject + "_reg_cache.pkl"
         )
@@ -346,19 +341,19 @@ def get_segmentation(
 
         save_nifti_from_3darray(
             seg_reg,
-            op.join(data_dir, subject + ".nii.gz"),
+            op.join(segm_data_dir, subject + ".nii.gz"),
             rotate=False,
             affine=subject_mri.affine,
         )
 
         if not debug_mode:
             for rel_path in rel_paths:
-                cleanup_dir = op.join(data_dir, rel_path)
+                cleanup_dir = op.join(segm_data_dir, rel_path)
                 if op.exists(cleanup_dir):
                     for f in os.listdir(cleanup_dir):
                         if f.endswith((".nii.gz", ".pkl", ".json")):
                             os.remove(op.join(cleanup_dir, f))
-        return nib.load(op.join(data_dir, subject + ".nii.gz"))
+        return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
 
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
