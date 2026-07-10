@@ -44,12 +44,6 @@ def get_segmentation(
             "Could not locate subject MRI at "
             + op.join(subjects_dir, subject, "mri", "orig.mgz")
         )
-    try:
-        import nnunet
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            "nnunet not found. Please install the nnunet package (pip install nnunet)."
-        ) from None
 
     if op.exists(
         op.join(data_dir, subject + ".nii.gz")
