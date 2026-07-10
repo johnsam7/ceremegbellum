@@ -85,34 +85,39 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
     output_folder = op.join(segm_data_dir, "tmp")
     reg_cache_file = op.join(output_folder, "registered", subject + "_reg_cache.pkl")
-    whole_file = op.join(output_folder, "registered", "whole", subject + "_0000.nii.gz")
+    reg_whole_img_fname = op.join(
+        output_folder, "registered", "whole", subject + "_0000.nii.gz"
+    )
 
     subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
     subject_mri = MGHImage.from_filename(subject_mri_fname)
 
     # Check if registration was already completed
-    if op.exists(reg_cache_file) and op.exists(whole_file):
+    if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
         print(
             f"Previous registration found for subject {subject}. "
             "Loading cached transforms."
         )
         with open(reg_cache_file, "rb") as f:
             registration = pickle.load(f)
-        subj_registered = np.asanyarray(nib.load(whole_file).dataobj)
+        subj_registered = Nifti1Image.from_filename(reg_whole_img_fname).get_fdata()
     else:
-        # Register
+        # Register and save the result.
         registration, subj_registered = _register_subject_to_template(
             subject_mri,
             template_ants,
             reg_cache_file,
         )
-        save_nifti_from_3darray(
-            subj_registered, whole_file, affine=brain_template_nifti.affine
+        _ = save_nifti_from_3darray(
+            subj_registered,
+            reg_whole_img_fname,
+            affine=brain_template_nifti.affine,
         )
 
-        # Mask
-    mask_output = op.join(output_folder, "registered", "mask", subject + ".nii.gz")
-    if op.exists(mask_output):
+    mask_output_fname = op.join(
+        output_folder, "registered", "mask", subject + ".nii.gz"
+    )
+    if op.exists(mask_output_fname):
         print("Previous mask prediction found. Skipping mask step.")
     else:
         print("Running mask prediction...")
@@ -126,9 +131,9 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             "nnUNetTrainerV2__nnUNetPlansv2.1",
         )
         _run_nnunet_prediction(
-            model_folder,
-            op.join(output_folder, "registered", "whole"),
-            op.join(output_folder, "registered", "mask"),
+            model_folder=model_folder,
+            input_folder=op.join(output_folder, "registered", "whole"),
+            output_folder=op.join(output_folder, "registered", "mask"),
         )
 
         # Split into LH and RH using ASEG
@@ -147,7 +152,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             transformlist=registration["fwdtransforms"],
             interpolator="genericLabel",
         ).numpy()
-        mask = np.asanyarray(nib.load(mask_output).dataobj)
+        mask = np.asanyarray(nib.load(mask_output_fname).dataobj)
         split_cerebellar_hemis_aseg(
             aseg_reg,
             subj_registered,
