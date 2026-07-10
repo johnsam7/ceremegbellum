@@ -3,7 +3,6 @@
 import os
 import os.path as op
 import pickle
-import shutil
 
 import nibabel as nib
 import numpy as np
@@ -33,12 +32,6 @@ def get_segmentation(
     if not op.exists(data_dir):
         os.makedirs(data_dir, exist_ok=True)
 
-    # Check that all prerequisite programs are ready
-    if shutil.which("mri_convert") is None:
-        raise OSError(
-            "mri_convert not found. FreeSurfer must be installed for segmentation "
-            "to work."
-        )
     if not op.exists(op.join(subjects_dir, subject, "mri", "orig.mgz")):
         raise FileNotFoundError(
             "Could not locate subject MRI at "
