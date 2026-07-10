@@ -228,7 +228,6 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         save_nifti_from_3darray(
             lobI_IV,
             op.join(output_folder, "registered", "lob_I_IV", subject + "_0000.nii.gz"),
-            rotate=False,
             affine=pred_nib.affine,
         )
         print("Running anterior lobe refinement...")
@@ -329,7 +328,6 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     save_nifti_from_3darray(
         seg_reg,
         op.join(segm_data_dir, subject + ".nii.gz"),
-        rotate=False,
         affine=subject_mri.affine,
     )
 
@@ -469,19 +467,16 @@ def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affin
     save_nifti_from_3darray(
         mask,
         op.join(output_folder, "mask_divide", subject + "_mask_lh_rh.nii.gz"),
-        rotate=False,
         affine=affine,
     )
     save_nifti_from_3darray(
         lh_split,
         op.join(output_folder, "lh", subject + "_0000.nii.gz"),
-        rotate=False,
         affine=affine,
     )
     save_nifti_from_3darray(
         rh_split,
         op.join(output_folder, "rh", subject + "_0000.nii.gz"),
-        rotate=False,
         affine=affine,
     )
 

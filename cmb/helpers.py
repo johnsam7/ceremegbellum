@@ -14,6 +14,7 @@ import os
 
 import nibabel as nib
 import numpy as np
+from nibabel import Nifti1Image
 
 __all__ = [
     "save_nifti_from_3darray",
@@ -27,10 +28,26 @@ __all__ = [
 ]
 
 
-def save_nifti_from_3darray(vol, fname, rotate=False, affine=None):
-    if rotate:
-        vol = vol[:, ::-1, ::-1]
-        vol = np.transpose(vol, axes=(0, 2, 1))
+def save_nifti_from_3darray(
+    vol: np.ndarray, fname: str, affine: np.ndarray | None
+) -> Nifti1Image:
+    """
+    Save a 3D numpy array as a NIfTI file.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        3D numpy array to be saved as a NIfTI file.
+    fname : str
+        Path to the output NIfTI file.
+    affine : np.ndarray | None
+        The affine transformation matrix for the NIfTI file.
+
+    Returns
+    -------
+    nibabel.Nifti1Image
+        The saved NIfTI image object.
+    """
     mgz = nib.Nifti1Image(vol, affine=affine)
     nib.save(mgz, fname)
     print("saved to " + fname)
