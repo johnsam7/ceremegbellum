@@ -6,6 +6,7 @@ import pickle
 
 import nibabel as nib
 import numpy as np
+from nibabel.freesurfer.mghformat import MGHImage
 from nibabel.nifti1 import Nifti1Image
 
 from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
@@ -50,7 +51,6 @@ def get_segmentation(
 
 
 def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_dir):
-    import ants
 
     # Create temporary directories for intermediate files.
     rel_paths = [
@@ -93,33 +93,13 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         subject_mri = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
     else:
         # Register
-        orig_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
-        subject_mri = nib.load(orig_fname)
-        subj_brain = np.asanyarray(subject_mri.dataobj)
-        subj_brain = subj_brain / np.max(subj_brain)
-
-        # Find registration from subject to common space
-        subj_ants = ants.from_numpy(subj_brain)
-
-        # Calculate registration
-        print("Registering subject to template space...")
-        reg = ants.registration(
-            fixed=template_ants, moving=subj_ants, type_of_transform="SyNCC"
+        reg, subj_reg, subject_mri = _register_subject_to_template(
+            op.join(subjects_dir, subject, "mri", "brain.mgz"),
+            brain_template_nib,
+            template_ants,
+            reg_cache_file,
+            whole_file,
         )
-
-        # Save registration cache
-        with open(reg_cache_file, "wb") as f:
-            pickle.dump(reg, f)
-
-            # Prepare for masking
-        subj_reg_ants = ants.apply_transforms(
-            fixed=template_ants,
-            moving=subj_ants,
-            transformlist=reg["fwdtransforms"],
-            interpolator="nearestNeighbor",
-        )
-        subj_reg = subj_reg_ants.numpy()
-        save_nifti_from_3darray(subj_reg, whole_file, affine=brain_template_nib.affine)
 
         # Mask
     mask_output = op.join(output_folder, "registered", "mask", subject + ".nii.gz")
@@ -352,6 +332,44 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
     return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
+
+
+def _register_subject_to_template(
+    subject_mri_fname,
+    brain_template_nib,
+    template_ants,
+    reg_cache_file,
+    whole_file,
+):
+    import ants
+
+    subject_mri = nib.load(subject_mri_fname)
+    subj_brain = np.asanyarray(subject_mri.dataobj)
+    subj_brain = subj_brain / np.max(subj_brain)
+
+    # Find registration from subject to common space
+    subj_ants = ants.from_numpy(subj_brain)
+
+    # Calculate registration
+    print("Registering subject to template space...")
+    reg = ants.registration(
+        fixed=template_ants, moving=subj_ants, type_of_transform="SyNCC"
+    )
+
+    # Save registration cache
+    with open(reg_cache_file, "wb") as f:
+        pickle.dump(reg, f)
+
+        # Prepare for masking
+    subj_reg_ants = ants.apply_transforms(
+        fixed=template_ants,
+        moving=subj_ants,
+        transformlist=reg["fwdtransforms"],
+        interpolator="nearestNeighbor",
+    )
+    subj_reg = subj_reg_ants.numpy()
+    save_nifti_from_3darray(subj_reg, whole_file, affine=brain_template_nib.affine)
+    return reg, subj_reg, subject_mri
 
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
