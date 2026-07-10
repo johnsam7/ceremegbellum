@@ -91,16 +91,17 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             "Loading cached transforms."
         )
         with open(reg_cache_file, "rb") as f:
-            reg = pickle.load(f)
-        subj_reg = np.asanyarray(nib.load(whole_file).dataobj)
+            registration = pickle.load(f)
+        subj_registered = np.asanyarray(nib.load(whole_file).dataobj)
     else:
         # Register
-        reg, subj_reg, subject_mri = _register_subject_to_template(
+        registration, subj_registered = _register_subject_to_template(
             subject_mri,
-            brain_template_nib,
             template_ants,
             reg_cache_file,
-            whole_file,
+        )
+        save_nifti_from_3darray(
+            subj_registered, whole_file, affine=brain_template_nib.affine
         )
 
         # Mask
@@ -137,13 +138,13 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         aseg_reg = ants.apply_transforms(
             fixed=template_ants,
             moving=aseg,
-            transformlist=reg["fwdtransforms"],
+            transformlist=registration["fwdtransforms"],
             interpolator="genericLabel",
         ).numpy()
         mask = np.asanyarray(nib.load(mask_output).dataobj)
         split_cerebellar_hemis_aseg(
             aseg_reg,
-            subj_reg,
+            subj_registered,
             mask,
             subject,
             op.join(output_folder, "registered"),
@@ -315,7 +316,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     seg_reg = ants.apply_transforms(
         fixed=template_ants,
         moving=seg_ants,
-        transformlist=reg["invtransforms"],
+        transformlist=registration["invtransforms"],
         interpolator="genericLabel",
     ).numpy()
 
@@ -338,41 +339,40 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
 def _register_subject_to_template(
     subject_mri_nib,
-    brain_template_nib,
     template_ants,
     reg_cache_file,
-    whole_file,
 ):
-    """Calculate registration from subject to template space."""
+    """Register the subject's MRI to the template space using ANTs registration.
+
+    Calculates the registration transforms and applies them to the subject's MRI to
+    align it with the template. The registration results are cached for future use.
+    """
     import ants
 
     subj_brain = subject_mri_nib.get_fdata()
     subj_brain = subj_brain / np.max(subj_brain)
     subj_brain_ants = ants.from_numpy(subj_brain)
 
-    # Calculate registration
+    # Calculate registration.
     print("Registering subject to template space...")
-    reg = ants.registration(
+    registration = ants.registration(
         fixed=template_ants, moving=subj_brain_ants, type_of_transform="SyNCC"
     )
 
-    # Save registration cache
+    # Save registration cache.
     with open(reg_cache_file, "wb") as f:
-        pickle.dump(reg, f)
+        pickle.dump(registration, f)
 
-    # Prepare for masking
+    # Apply registration.
     subj_registered_ants = ants.apply_transforms(
         fixed=template_ants,
         moving=subj_brain_ants,
-        transformlist=reg["fwdtransforms"],
+        transformlist=registration["fwdtransforms"],
         interpolator="nearestNeighbor",
     )
-
     subj_registered = subj_registered_ants.numpy()
-    save_nifti_from_3darray(
-        subj_registered, whole_file, affine=brain_template_nib.affine
-    )
-    return reg, subj_registered, subject_mri
+
+    return registration, subj_registered
 
 
 def split_cerebellar_hemis_aseg(aseg, brain, mask, subject, output_folder, affine):
