@@ -136,30 +136,22 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             output_folder=op.join(output_folder, "registered", "mask"),
         )
 
-        # Split into LH and RH using ASEG
+    # Split into LH and RH using ASEG
     lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
     rh_input = op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
     if op.exists(lh_input) and op.exists(rh_input):
         print("Previous hemisphere split found. Skipping split step.")
     else:
-        aseg = np.asanyarray(
-            nib.load(op.join(subjects_dir, subject, "mri", "aseg.mgz")).dataobj
-        ).astype("uint8")
-        aseg = ants.from_numpy(aseg)
-        aseg_reg = ants.apply_transforms(
-            fixed=template_ants,
-            moving=aseg,
-            transformlist=registration["fwdtransforms"],
-            interpolator="genericLabel",
-        ).numpy()
-        mask = np.asanyarray(nib.load(mask_output_fname).dataobj)
-        split_cerebellar_hemis_aseg(
-            aseg_reg,
-            subj_registered,
-            mask,
+        _load_and_register_aseg(
+            subjects_dir,
             subject,
-            op.join(output_folder, "registered"),
-            brain_template_nifti.affine,
+            ants,
+            brain_template_nifti,
+            template_ants,
+            output_folder,
+            registration,
+            subj_registered,
+            mask_output_fname,
         )
 
         # Predict LH and RH
@@ -344,6 +336,38 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
     return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
+
+
+def _load_and_register_aseg(
+    subjects_dir,
+    subject,
+    ants,
+    brain_template_nifti,
+    template_ants,
+    output_folder,
+    registration,
+    subj_registered,
+    mask_output_fname,
+):
+    aseg = np.asanyarray(
+        nib.load(op.join(subjects_dir, subject, "mri", "aseg.mgz")).dataobj
+    ).astype("uint8")
+    aseg = ants.from_numpy(aseg)
+    aseg_reg = ants.apply_transforms(
+        fixed=template_ants,
+        moving=aseg,
+        transformlist=registration["fwdtransforms"],
+        interpolator="genericLabel",
+    ).numpy()
+    mask = np.asanyarray(nib.load(mask_output_fname).dataobj)
+    split_cerebellar_hemis_aseg(
+        aseg_reg,
+        subj_registered,
+        mask,
+        subject,
+        op.join(output_folder, "registered"),
+        brain_template_nifti.affine,
+    )
 
 
 def _register_subject_to_template(
