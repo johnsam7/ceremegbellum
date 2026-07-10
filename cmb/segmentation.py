@@ -6,6 +6,7 @@ import pickle
 
 import nibabel as nib
 import numpy as np
+from nibabel.nifti1 import Nifti1Image
 
 from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
 
@@ -51,6 +52,7 @@ def get_segmentation(
 def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_dir):
     import ants
 
+    # Create temporary directories for intermediate files.
     rel_paths = [
         "tmp",
         "tmp/registered",
@@ -67,9 +69,11 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     for dirs in [op.join(segm_data_dir, rel_path) for rel_path in rel_paths]:
         os.makedirs(dirs, exist_ok=True)
 
-        # Load brain template to get a common space
-    brain_template_nib = nib.load(op.join(cmb_path, "data", "brain.nii"))
-    brain_template = np.asanyarray(brain_template_nib.dataobj)
+    # Load brain template to get a common space.
+    brain_template_nib = Nifti1Image.from_filename(
+        op.join(cmb_path, "data", "brain.nii")
+    )
+    brain_template = brain_template_nib.get_fdata()
     brain_template = brain_template / np.max(brain_template)
     template_ants = ants.from_numpy(brain_template)
 
@@ -80,9 +84,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     # Check if registration was already completed
     if op.exists(reg_cache_file) and op.exists(whole_file):
         print(
-            "Previous registration found for subject "
-            + subject
-            + ". Loading cached transforms."
+            f"Previous registration found for subject {subject}. "
+            "Loading cached transforms."
         )
         with open(reg_cache_file, "rb") as f:
             reg = pickle.load(f)
