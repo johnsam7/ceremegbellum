@@ -352,8 +352,7 @@ def _load_and_register_aseg(
     """Load the FreeSurfer automatic segmentation and register it to template space."""
     import ants
 
-    aseg_img = MGHImage.from_filename(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
-    aseg = np.asanyarray(aseg_img.dataobj, dtype=np.uint8)
+    aseg, _ = helpers.load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
