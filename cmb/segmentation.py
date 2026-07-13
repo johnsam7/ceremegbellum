@@ -247,15 +247,19 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             op.join(output_folder, "registered", "lob_I_IV"),
             op.join(output_folder, "registered", "lob_I_IV_segmented"),
         )
-
-    # Correct labels
-
-    seg_ants = ants.from_numpy(seg_complete)
+    # Combine the LH, RH, and anterior lobe segmentations into a single segmentation
+    # and update the labels.
+    seg_complete = _assemble_segmentation(
+        lh_seg_fname=lh_seg_output,
+        rh_seg_fname=rh_seg_output,
+        anterior_seg_fname=lob_seg_output,
+    )
+    seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
     seg_reg = ants.apply_transforms(
         fixed=template_ants,
-        moving=seg_ants,
+        moving=seg_complete_ants,
         transformlist=registration["invtransforms"],
         interpolator="genericLabel",
     ).numpy()
@@ -591,10 +595,32 @@ def _run_nnunet_prediction(model_folder, input_folder, output_folder):
         torch.load = _orig_torch_load
 
 
-def _assemble_segmentation() -> np.ndarray:
+def _assemble_segmentation(
+    lh_seg_fname: str, rh_seg_fname: str, anterior_seg_fname: str
+) -> np.ndarray:
+    """Assemble the final segmentation by combining the individual segmentations.
+
+    Combines the left hemisphere, right hemisphere, and anterior lobe segmentations into
+    a single segmentation volume. The labels are adjusted to match the final label map.
+
+    Parameters
+    ----------
+    lh_seg_fname : str
+        Path to the left hemisphere segmentation file.
+    rh_seg_fname : str
+        Path to the right hemisphere segmentation file.
+    anterior_seg_fname : str
+        Path to the anterior lobe segmentation file.
+
+    Returns
+    -------
+    ndarray
+        A 3D numpy array containing the combined segmentation volume with updated labels.
+    """
+    # Define label mappings.
     old_labels_ant = [1, 2, 3, 4]
     new_labels_ant = [33, 43, 36, 46]
-    old_labels_hemi = np.arange(1, 17)
+    old_labels_hemi = list(range(1, 17))
     new_labels_lh = [
         12,
         43,
@@ -631,32 +657,19 @@ def _assemble_segmentation() -> np.ndarray:
         90,
         100,
     ]
+    # Load individual segmentations and change labels to match the final label map.
+    seg_lh, _ = helpers.load_label_map(lh_seg_fname, dtype=np.uint8)
+    seg_lh = change_labels(seg_lh, old_labels_hemi, new_labels_lh)
 
-    # Assemble segmentations into one image
-    seg = np.asanyarray(
-        nib.load(
-            op.join(output_folder, "registered", "lh_segmented", subject + ".nii.gz")
-        ).dataobj
-    ).astype("uint8")
-    seg_lh = change_labels(seg, old_labels_hemi, new_labels_lh)
-    seg = np.asanyarray(
-        nib.load(
-            op.join(output_folder, "registered", "rh_segmented", subject + ".nii.gz")
-        ).dataobj
-    ).astype("uint8")
-    seg_rh = change_labels(seg, old_labels_hemi, new_labels_rh)
-    seg = np.asanyarray(
-        nib.load(
-            op.join(
-                output_folder,
-                "registered",
-                "lob_I_IV_segmented",
-                subject + ".nii.gz",
-            )
-        ).dataobj
-    ).astype("uint8")
-    seg_ant = change_labels(seg, old_labels_ant, new_labels_ant)
-    seg_complete = np.zeros(seg.shape)
+    seg_rh, _ = helpers.load_label_map(rh_seg_fname, dtype=np.uint8)
+    seg_rh = change_labels(seg_rh, old_labels_hemi, new_labels_rh)
+
+    seg_ant, _ = helpers.load_label_map(anterior_seg_fname, dtype=np.uint8)
+    seg_ant = change_labels(seg_ant, old_labels_ant, new_labels_ant)
+
+    # Assemble the final segmentation by combining left hemisphere, right hemisphere,
+    # and anterior lobe segmentations.
+    seg_complete = np.zeros(seg_lh.shape)
     seg_complete[np.nonzero(seg_lh)] = seg_lh[np.nonzero(seg_lh)]
     seg_complete[np.nonzero(seg_rh)] = seg_rh[np.nonzero(seg_rh)]
     seg_complete[np.nonzero(seg_ant)] = seg_ant[np.nonzero(seg_ant)]
