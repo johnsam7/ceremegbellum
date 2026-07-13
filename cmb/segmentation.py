@@ -136,22 +136,29 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             output_folder=op.join(output_folder, "registered", "mask"),
         )
 
-    # Split into LH and RH using ASEG
+    # Split into LH and RH using ASEG (the label map from FreeSurfer).
     lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
     rh_input = op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
     if op.exists(lh_input) and op.exists(rh_input):
         print("Previous hemisphere split found. Skipping split step.")
     else:
-        _load_and_register_aseg(
+        aseg_registered = _load_and_register_aseg(
             subjects_dir,
             subject,
-            ants,
-            brain_template_nifti,
             template_ants,
-            output_folder,
             registration,
+        )
+        # Get the predicted cerebellar mask.
+        mask_nifti = Nifti1Image.from_filename(mask_output_fname)
+        mask = np.asanyarray(mask_nifti.dataobj)
+
+        split_cerebellar_hemis_aseg(
+            aseg_registered,
             subj_registered,
-            mask_output_fname,
+            mask,
+            subject,
+            op.join(output_folder, "registered"),
+            brain_template_nifti.affine,
         )
 
         # Predict LH and RH
@@ -339,35 +346,27 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
 
 def _load_and_register_aseg(
-    subjects_dir,
-    subject,
-    ants,
-    brain_template_nifti,
-    template_ants,
-    output_folder,
-    registration,
-    subj_registered,
-    mask_output_fname,
-):
-    aseg = np.asanyarray(
-        nib.load(op.join(subjects_dir, subject, "mri", "aseg.mgz")).dataobj
-    ).astype("uint8")
-    aseg = ants.from_numpy(aseg)
-    aseg_reg = ants.apply_transforms(
+    subjects_dir: str,
+    subject: str,
+    template_ants: ANTsImage,
+    registration: dict,
+) -> np.ndarray:
+    """Load the FreeSurfer automatic segmentation and register it to template space."""
+    import ants
+
+    aseg_img = MGHImage.from_filename(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
+    aseg = np.asanyarray(aseg_img.dataobj, dtype=np.uint8)
+    aseg_ants = ants.from_numpy(aseg)
+
+    # Register segmentation map to the template space.
+    aseg_registered = ants.apply_transforms(
         fixed=template_ants,
-        moving=aseg,
+        moving=aseg_ants,
         transformlist=registration["fwdtransforms"],
         interpolator="genericLabel",
     ).numpy()
-    mask = np.asanyarray(nib.load(mask_output_fname).dataobj)
-    split_cerebellar_hemis_aseg(
-        aseg_reg,
-        subj_registered,
-        mask,
-        subject,
-        op.join(output_folder, "registered"),
-        brain_template_nifti.affine,
-    )
+
+    return aseg_registered
 
 
 def _register_subject_to_template(
