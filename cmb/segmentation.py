@@ -367,7 +367,7 @@ def _extract_lob_I_IV(
 def _load_and_register_aseg(
     subjects_dir: str,
     subject: str,
-    template_ants: ANTsImage,
+    template_ants: "ANTsImage",
     registration: dict,
 ) -> np.ndarray:
     """Load the FreeSurfer automatic segmentation and register it to template space."""
@@ -389,7 +389,7 @@ def _load_and_register_aseg(
 
 def _register_subject_to_template(
     subject_mri: np.ndarray,
-    template_ants: ANTsImage,
+    template_ants: "ANTsImage",
     reg_cache_file: str,
 ) -> tuple[dict, np.ndarray]:
     """Register the subject's MRI to the template space using ANTs registration.
