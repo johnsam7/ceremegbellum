@@ -95,7 +95,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     )
 
     subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
-    subject_mri, _ = helpers.load_image_volume(subject_mri_fname)
+    subject_mri, subject_affine = helpers.load_image_volume(subject_mri_fname)
     print("Subject MRI data type is", subject_mri.dtype)
 
     # Check if registration was already completed
@@ -264,11 +264,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         interpolator="genericLabel",
     ).numpy()
 
-    save_nifti_from_3darray(
-        seg_reg,
-        op.join(segm_data_dir, subject + ".nii.gz"),
-        affine=subject_mri.affine,
-    )
+    final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
+    save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
 
     if not debug_mode:
         for rel_path in rel_paths:
@@ -277,7 +274,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
                 for f in os.listdir(cleanup_dir):
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
-    return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
+
+    return nib.load(final_seg_output_fname)
 
 
 def _extract_lob_I_IV(
