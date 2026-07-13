@@ -8,10 +8,9 @@ from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
-from nibabel.freesurfer.mghformat import MGHImage
-from nibabel.nifti1 import Nifti1Image
 from numpy.typing import NDArray
 
+from . import helpers
 from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
 
 if TYPE_CHECKING:
@@ -78,14 +77,14 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         os.makedirs(dirs, exist_ok=True)
 
     # Load brain template to get a common space.
-    brain_template_nifti = Nifti1Image.from_filename(
+    brain_template, brain_template_affine = helpers.load_image_volume(
         op.join(cmb_path, "data", "brain.nii")
     )
+    print("Brain template data type is", brain_template.dtype)
     # Help type checkers understand that the affine is not None.
-    assert brain_template_nifti.affine is not None, (
+    assert brain_template_affine is not None, (
         "Brain template should have an affine matrix."
     )
-    brain_template = brain_template_nifti.get_fdata()
     brain_template = brain_template / np.max(brain_template)
     template_ants = ants.from_numpy(brain_template)
 
@@ -96,7 +95,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     )
 
     subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
-    subject_mri = MGHImage.from_filename(subject_mri_fname)
+    subject_mri, _ = helpers.load_image_volume(subject_mri_fname)
+    print("Subject MRI data type is", subject_mri.dtype)
 
     # Check if registration was already completed
     if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
@@ -106,7 +106,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         )
         with open(reg_cache_file, "rb") as f:
             registration = pickle.load(f)
-        subj_registered = Nifti1Image.from_filename(reg_whole_img_fname).get_fdata()
+        subj_registered, _ = helpers.load_image_volume(reg_whole_img_fname)
     else:
         # Register and save the result.
         registration, subj_registered = _register_subject_to_template(
@@ -117,7 +117,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         _ = save_nifti_from_3darray(
             subj_registered,
             reg_whole_img_fname,
-            affine=brain_template_nifti.affine,
+            affine=brain_template_affine,
         )
 
     mask_output_fname = op.join(
@@ -155,8 +155,11 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             registration,
         )
         # Get the predicted cerebellar mask.
-        mask_nifti = Nifti1Image.from_filename(mask_output_fname)
-        cerebellum_mask = np.asanyarray(mask_nifti.dataobj)
+        cerebellum_mask, _ = helpers.load_label_map(
+            mask_output_fname,
+            dtype=None,  # infer from file on disk
+        )
+        print("Cerebellum mask data type is", cerebellum_mask.dtype)
         # Split the cerebellum mask into left and right hemispheres using the
         # registered ASEG.
         _split_cerebellar_hemis_aseg(
@@ -165,7 +168,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             cerebellum_mask,
             subject,
             op.join(output_folder, "registered"),
-            brain_template_nifti.affine,
+            brain_template_affine,
         )
 
     # Predict LH and RH
@@ -363,15 +366,15 @@ def _extract_lob_I_IV(
     -------
     lobI_IV : NDArray[np.float64]
         A 3D numpy array containing the pixel intensities for lob I-IV.
-    affine : NDArray[np.floating]
+    affine : NDArray[np.float64]
         The affine transformation matrix associated with the lob I-IV array.
     """
     # Get predicted labels for left hemisphere.
-    lh_predictions_nifti = Nifti1Image.from_filename(lh_seg_fname)
-    lh_predictions = np.asanyarray(lh_predictions_nifti.dataobj)
+    lh_predictions, lh_affine = helpers.load_label_map(lh_seg_fname, dtype=None)
+    print("LH predictions data type is", lh_predictions.dtype)
     # Get the left hemisphere image.
-    lh_image_nifti = Nifti1Image.from_filename(lh_fname)
-    lh_image = lh_image_nifti.get_fdata()
+    lh_image, _ = helpers.load_image_volume(lh_fname)
+    print("LH image data type is", lh_image.dtype)
     assert lh_predictions.shape == lh_image.shape, (
         "LH predictions and image should have the same shape."
     )
@@ -385,25 +388,24 @@ def _extract_lob_I_IV(
 
     # Repeat the process for the right hemisphere.
 
-    rh_predictions_nifti = Nifti1Image.from_filename(rh_seg_fname)
-    rh_predictions = np.asanyarray(rh_predictions_nifti.dataobj)
-    rh_image_nifti = Nifti1Image.from_filename(rh_fname)
-    rh_image = rh_image_nifti.get_fdata()
+    rh_predictions, rh_affine = helpers.load_label_map(rh_seg_fname)
+    rh_image, _ = helpers.load_image_volume(rh_fname)
+    print("RH predictions data type is", rh_predictions.dtype)
+    print("RH image data type is", rh_image.dtype)
     assert rh_predictions.shape == rh_image.shape, (
         "RH predictions and image should have the same shape."
     )
     rh_mask = rh_predictions == 2
     lobI_IV[rh_mask] = rh_image[rh_mask]
 
-    assert (
-        lh_predictions_nifti.affine is not None
-        and rh_predictions_nifti.affine is not None
-    ), "Both LH and RH predictions should have an affine matrix."
-    assert np.allclose(lh_predictions_nifti.affine, rh_predictions_nifti.affine), (
+    assert lh_affine is not None and rh_affine is not None, (
+        "Both LH and RH predictions should have an affine matrix."
+    )
+    assert np.allclose(lh_affine, rh_affine), (
         "LH and RH predictions should have the same affine matrix."
     )
 
-    return lobI_IV, lh_predictions_nifti.affine
+    return lobI_IV, lh_affine
 
 
 def _load_and_register_aseg(
@@ -431,7 +433,7 @@ def _load_and_register_aseg(
 
 
 def _register_subject_to_template(
-    subject_mri: MGHImage,
+    subject_mri: np.ndarray,
     template_ants: ANTsImage,
     reg_cache_file: str,
 ) -> tuple[dict, np.ndarray]:
@@ -442,8 +444,9 @@ def _register_subject_to_template(
 
     Parameters
     ----------
-    subject_mri : MGHImage
-        The subject's MRI image.
+    subject_mri : np.ndarray
+        The subject's MRI image. Does not need to be normalized, as it will be
+        normalized within this function.
     template_ants : ANTsImage
         The template image in ANTs format.
     reg_cache_file : str
@@ -458,8 +461,8 @@ def _register_subject_to_template(
     """
     import ants
 
-    subj_brain = subject_mri.get_fdata()
-    subj_brain = subj_brain / np.max(subj_brain)
+    # Make sure that normalization is applied (no effect if already normalized).
+    subj_brain = subject_mri / np.max(subject_mri)
     subj_brain_ants = ants.from_numpy(subj_brain)
 
     # Calculate registration.
