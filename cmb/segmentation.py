@@ -80,6 +80,10 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     brain_template_nifti = Nifti1Image.from_filename(
         op.join(cmb_path, "data", "brain.nii")
     )
+    # Help type checkers understand that the affine is not None.
+    assert brain_template_nifti.affine is not None, (
+        "Brain template should have an affine matrix."
+    )
     brain_template = brain_template_nifti.get_fdata()
     brain_template = brain_template / np.max(brain_template)
     template_ants = ants.from_numpy(brain_template)
@@ -151,12 +155,12 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         )
         # Get the predicted cerebellar mask.
         mask_nifti = Nifti1Image.from_filename(mask_output_fname)
-        mask = np.asanyarray(mask_nifti.dataobj)
+        cerebellum_mask = np.asanyarray(mask_nifti.dataobj)
 
         _split_cerebellar_hemis_aseg(
             aseg_registered,
             subj_registered,
-            mask,
+            cerebellum_mask,
             subject,
             op.join(output_folder, "registered"),
             brain_template_nifti.affine,
