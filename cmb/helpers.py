@@ -15,6 +15,7 @@ import os
 import nibabel as nib
 import numpy as np
 from nibabel import Nifti1Image
+from numpy.typing import NDArray
 
 __all__ = [
     "save_nifti_from_3darray",
@@ -26,6 +27,74 @@ __all__ = [
     "affine_transform",
     "find_connected_regions",
 ]
+
+
+def load_image_volume(
+    fname: str,
+) -> tuple[NDArray[np.float64], NDArray[np.float64] | None]:
+    """Load continuous-intensity brain data to NumPy array.
+
+    Uses `get_fdata()` method which ensures that any
+    internal NIfTI scaling factors are applied automatically. The resulting array is
+    guaranteed to be high-precision float64.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the data file to be loaded. Format should be NIfTI, MGH
+        (from FreeSurfer) or other format supported by `nibabel`.
+
+    Returns
+    -------
+    img_numpy : NDArray[np.float64]
+        3D NumPy array containing the image data.
+    affine : NDArray[np.float64] | None
+        The affine transformation matrix associated with the image data.
+        Will be None if the saved file does not contain an affine matrix.
+    """
+    img = nib.load(fname)
+    # Ignore warnings due to img being generic FileBasedImage type.
+    # At runtime it should be a subclass that has the correct methods.
+    img_numpy = img.get_fdata()  # pyright: ignore[reportAttributeAccessIssue]
+    affine = img.affine  # pyright: ignore[reportAttributeAccessIssue]
+
+    return img_numpy, affine
+
+
+def load_label_map(
+    fname: str, dtype: type | None = None
+) -> tuple[np.ndarray, NDArray[np.float64] | None]:
+    """Load discrete integer labels to a NumPy array.
+
+    Accesses the `dataobj` attribute of the loaded image and converts it to a NumPy
+    of specified type. This is useful for loading label maps without converting them
+    to float (and wasting memory) as would happen with `get_fdata()`.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the label map file to be loaded. Format should be NIfTI, MGH
+        (from FreeSurfer) or other format supported by `nibabel`.
+    dtype : type | None
+        The data type of the returned array. If None (default), the data type
+        will be inferred from the image data.
+
+    Returns
+    -------
+    label_map : NDArray[np.int32]
+        3D NumPy array containing the label map data.
+    affine : NDArray[np.float64] | None
+        The affine transformation matrix associated with the label map data.
+        Will be None if the saved file does not contain an affine matrix.
+    """
+    img = nib.load(fname)
+    # Ignore warnings due to img being generic FileBasedImage type.
+    # At runtime it should be a subclass that has the correct methods.
+    image_data = img.dataobj  # pyright: ignore[reportAttributeAccessIssue]
+    affine = img.affine  # pyright: ignore[reportAttributeAccessIssue]
+    label_map = np.asanyarray(image_data, dtype=dtype)
+
+    return label_map, affine
 
 
 def save_nifti_from_3darray(
