@@ -10,6 +10,7 @@ import nibabel as nib
 import numpy as np
 from nibabel.freesurfer.mghformat import MGHImage
 from nibabel.nifti1 import Nifti1Image
+from numpy.typing import NDArray
 
 from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
 
@@ -156,7 +157,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         # Get the predicted cerebellar mask.
         mask_nifti = Nifti1Image.from_filename(mask_output_fname)
         cerebellum_mask = np.asanyarray(mask_nifti.dataobj)
-
+        # Split the cerebellum mask into left and right hemispheres using the
+        # registered ASEG.
         _split_cerebellar_hemis_aseg(
             aseg_registered,
             subj_registered,
@@ -166,7 +168,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             brain_template_nifti.affine,
         )
 
-        # Predict LH and RH
+    # Predict LH and RH
     lh_seg_output = op.join(
         output_folder, "registered", "lh_segmented", subject + ".nii.gz"
     )
@@ -210,35 +212,23 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
             op.join(output_folder, "registered", "rh_segmented"),
         )
 
-        # Refine lob I-IV into lobs I-III and IV
+    # Refine lob I-IV into lobs I-III and IV
     lob_seg_output = op.join(
         output_folder, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
     )
     if op.exists(lob_seg_output):
         print("Previous anterior lobe refinement found. Skipping refinement step.")
     else:
-        pred_nib = nib.load(lh_seg_output)
-        vol = np.asanyarray(pred_nib.dataobj)
-        image = np.asanyarray(
-            nib.load(
-                op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
-            ).dataobj
+        # Use LH and LH predictions to extract the lob I-IV region and save it.
+        lob_I_IV, lob_I_IV_affine = _extract_lob_I_IV(
+            subject, output_folder, lh_seg_output, rh_seg_output
         )
-        lobI_IV = np.zeros(vol.shape)
-        lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
-        pred_nib = nib.load(rh_seg_output)
-        vol = np.asanyarray(pred_nib.dataobj)
-        image = np.asanyarray(
-            nib.load(
-                op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
-            ).dataobj
-        )
-        lobI_IV[np.where(vol == 2)] = image[np.where(vol == 2)]
         save_nifti_from_3darray(
-            lobI_IV,
+            lob_I_IV,
             op.join(output_folder, "registered", "lob_I_IV", subject + "_0000.nii.gz"),
-            affine=pred_nib.affine,
+            affine=lob_I_IV_affine,
         )
+        # Run the refinement model.
         print("Running anterior lobe refinement...")
         model_folder_refine = op.join(
             cmb_path,
@@ -348,6 +338,72 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
     return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
+
+
+def _extract_lob_I_IV(
+    lh_fname: str, rh_fname: str, lh_seg_fname: str, rh_seg_fname: str
+) -> tuple[NDArray[np.float64], NDArray[np.floating]]:
+    """Extract pixel intensities for lob I-IV.
+
+    Uses the nnUNet predicted labels to extract the pixel intensities corresponding to
+    lob I-IV and returns a new array containing only those intensities.
+
+    Parameters
+    ----------
+    lh_fname : str
+        Path to the left hemisphere image file.
+    rh_fname : str
+        Path to the right hemisphere image file.
+    lh_seg_fname : str
+        Path to the left hemisphere segmentation file.
+    rh_seg_fname : str
+        Path to the right hemisphere segmentation file.
+
+    Returns
+    -------
+    lobI_IV : NDArray[np.float64]
+        A 3D numpy array containing the pixel intensities for lob I-IV.
+    affine : NDArray[np.floating]
+        The affine transformation matrix associated with the lob I-IV array.
+    """
+    # Get predicted labels for left hemisphere.
+    lh_predictions_nifti = Nifti1Image.from_filename(lh_seg_fname)
+    lh_predictions = np.asanyarray(lh_predictions_nifti.dataobj)
+    # Get the left hemisphere image.
+    lh_image_nifti = Nifti1Image.from_filename(lh_fname)
+    lh_image = lh_image_nifti.get_fdata()
+    assert lh_predictions.shape == lh_image.shape, (
+        "LH predictions and image should have the same shape."
+    )
+    # Create a new array to hold the lob I-IV region, initialized to zeros.
+    lobI_IV = np.zeros(lh_image.shape, dtype=np.float64)
+
+    # Fill in the lob I-IV region based on the predictions.
+    # Label 2 corresponds to lob I-IV in the nnUNet predictions.
+    lh_mask = lh_predictions == 2
+    lobI_IV[lh_mask] = lh_image[lh_mask]
+
+    # Repeat the process for the right hemisphere.
+
+    rh_predictions_nifti = Nifti1Image.from_filename(rh_seg_fname)
+    rh_predictions = np.asanyarray(rh_predictions_nifti.dataobj)
+    rh_image_nifti = Nifti1Image.from_filename(rh_fname)
+    rh_image = rh_image_nifti.get_fdata()
+    assert rh_predictions.shape == rh_image.shape, (
+        "RH predictions and image should have the same shape."
+    )
+    rh_mask = rh_predictions == 2
+    lobI_IV[rh_mask] = rh_image[rh_mask]
+
+    assert (
+        lh_predictions_nifti.affine is not None
+        and rh_predictions_nifti.affine is not None
+    ), "Both LH and RH predictions should have an affine matrix."
+    assert np.allclose(lh_predictions_nifti.affine, rh_predictions_nifti.affine), (
+        "LH and RH predictions should have the same affine matrix."
+    )
+
+    return lobI_IV, lh_predictions_nifti.affine
 
 
 def _load_and_register_aseg(
