@@ -144,7 +144,6 @@ def setup_cerebellum_source_space(
             subjects_dir,
             subject,
             cmb_path,
-            post_process=post_process,
             debug_mode=debug_mode,
         ).dataobj
     )

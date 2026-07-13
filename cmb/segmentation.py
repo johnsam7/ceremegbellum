@@ -22,11 +22,28 @@ def get_segmentation(
     subjects_dir,
     subject,
     cmb_path=None,
-    region_removal_limit=0.2,
-    post_process=True,
-    print_progress=False,
     debug_mode=False,
-):
+) -> nib.Nifti1Image:
+    """Get cerebellar segmentation for a subject.
+
+    Parameters
+    ----------
+    subjects_dir : str
+        Path to the FreeSurfer subjects directory.
+    subject : str
+        Subject identifier.
+    cmb_path : str, optional
+        Path to the CMB data directory. If None (default), uses the default CMB
+        data directory.
+    debug_mode : bool, optional
+        If True, keeps intermediate files for debugging. If False (default), cleans up
+        intermediate files after segmentation.
+
+    Returns
+    -------
+    nibabel.Nifti1Image
+        The cerebellar segmentation as a NIfTI image.
+    """
     if cmb_path is None:
         from . import CMB_DATA_DIR
 
@@ -47,7 +64,9 @@ def get_segmentation(
             "Previous segmentation found on subject "
             f"{subject}. Returning old segmentation."
         )
-        return nib.load(op.join(segm_data_dir, subject + ".nii.gz"))
+        return nib.Nifti1Image.from_filename(
+            op.join(segm_data_dir, subject + ".nii.gz")
+        )
 
     else:
         # No previous segmentaion found, make segmentation with trained nnUnet model.
