@@ -243,7 +243,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
     else:
         # Use LH and LH predictions to extract the lob I-IV region and save it.
         lob_I_IV, lob_I_IV_affine = _extract_lob_I_IV(
-            subject, output_folder, lh_seg_output, rh_seg_output
+            lh_input, rh_input, lh_seg_output, rh_seg_output
         )
         save_nifti_from_3darray(
             lob_I_IV,
