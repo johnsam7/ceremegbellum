@@ -67,7 +67,6 @@ def get_segmentation(
         return nib.Nifti1Image.from_filename(
             op.join(segm_data_dir, subject + ".nii.gz")
         )
-
     else:
         # No previous segmentaion found, make segmentation with trained nnUnet model.
         return _segment_cerebellum(
@@ -633,7 +632,7 @@ def _assemble_segmentation(
     Returns
     -------
     ndarray
-        A 3D numpy array containing the combined segmentation volume with updated labels.
+        3D numpy array containing the combined segmentation volume with updated labels.
     """
     # Define label mappings.
     old_labels_ant = [1, 2, 3, 4]
