@@ -148,11 +148,35 @@ def set_nnunet_paths(
         os.environ["RESULTS_FOLDER"] = results_folder
 
 
-def change_labels(vol, old_labels, new_labels):
+def change_labels(
+    vol: np.ndarray, old_labels: list[int], new_labels: list[int]
+) -> np.ndarray:
+    """Replace specific labels in segmentation volume with new labels.
+
+    Does not modify the original volume; returns a new volume with the specified labels
+    replaced.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        3D numpy array mapping each voxel to a label.
+    old_labels : list[int]
+        List of labels to be replaced.
+    new_labels : list[int]
+        List of new labels to replace the old labels. The order of these new labels
+        corresponds to the order of the old labels.
+
+    Returns
+    -------
+    np.ndarray
+        3D numpy array with the specified labels replaced.
+    """
+    if len(old_labels) != len(new_labels):
+        raise ValueError("old_labels and new_labels must have the same length.")
     new_vol = vol.copy()
-    for c, old_label in enumerate(old_labels):
-        mask_inds = np.where(vol == old_label)
-        new_vol[mask_inds[0], mask_inds[1], mask_inds[2]] = new_labels[c]
+    for old_label, new_label in zip(old_labels, new_labels):
+        new_vol[vol == old_label] = new_label
+
     return new_vol
 
 
