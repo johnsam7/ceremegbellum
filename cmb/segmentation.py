@@ -667,11 +667,19 @@ def _assemble_segmentation(
     seg_ant, _ = helpers.load_label_map(anterior_seg_fname, dtype=np.uint8)
     seg_ant = change_labels(seg_ant, old_labels_ant, new_labels_ant)
 
-    # Assemble the final segmentation by combining left hemisphere, right hemisphere,
-    # and anterior lobe segmentations.
-    seg_complete = np.zeros(seg_lh.shape)
-    seg_complete[np.nonzero(seg_lh)] = seg_lh[np.nonzero(seg_lh)]
-    seg_complete[np.nonzero(seg_rh)] = seg_rh[np.nonzero(seg_rh)]
-    seg_complete[np.nonzero(seg_ant)] = seg_ant[np.nonzero(seg_ant)]
+    assert seg_lh.shape == seg_rh.shape == seg_ant.shape, (
+        "Shape mismatch: Segmentation pieces do not have the same dimensions."
+    )
+    seg_complete = np.zeros(seg_lh.shape, dtype=np.uint8)
+
+    lh_mask = seg_lh > 0
+    seg_complete[lh_mask] = seg_lh[lh_mask]
+
+    rh_mask = seg_rh > 0
+    seg_complete[rh_mask] = seg_rh[rh_mask]
+
+    # Paint anterior last to overwrite generic labels with refined sub-lobules.
+    ant_mask = seg_ant > 0
+    seg_complete[ant_mask] = seg_ant[ant_mask]
 
     return seg_complete
