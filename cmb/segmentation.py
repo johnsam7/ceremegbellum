@@ -275,7 +275,9 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
 
-    return nib.load(final_seg_output_fname)
+    final_seg_nifti = nib.Nifti1Image.from_filename(final_seg_output_fname)
+    print("Data type of final segmentation is", final_seg_nifti.get_data_dtype())
+    return final_seg_nifti
 
 
 def _extract_lob_I_IV(
