@@ -413,7 +413,7 @@ def _extract_lob_I_IV(
 
     # Repeat the process for the right hemisphere.
 
-    rh_predictions, rh_affine = load_label_map(rh_seg_fname)
+    rh_predictions, rh_affine = load_label_map(rh_seg_fname, dtype=None)
     rh_image, _ = load_image_volume(rh_fname)
     logger.debug("RH predictions data type is %s", rh_predictions.dtype)
     logger.debug("RH image data type is %s", rh_image.dtype)
@@ -451,6 +451,12 @@ def _load_and_register_aseg(
         The template image in ANTs format.
     registration : dict
         The registration from which to apply the forward transforms to the segmentation.
+
+    Returns
+    -------
+    numpy.ndarray
+        The registered FreeSurfer automatic segmentation in template space.
+        Data type is preserved from the original aseg.mgz file.
     """
     import ants
 
@@ -465,8 +471,8 @@ def _load_and_register_aseg(
         transformlist=registration["fwdtransforms"],
         interpolator="genericLabel",
     ).numpy()
-    # Convert back to uint8.
-    aseg_registered = aseg_registered_float.round().astype(np.uint8)
+    # Convert back to original dat type of aseg.
+    aseg_registered = aseg_registered_float.round().astype(aseg.dtype)
 
     return aseg_registered
 
