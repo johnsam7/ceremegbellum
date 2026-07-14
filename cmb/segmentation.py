@@ -557,7 +557,9 @@ def _split_cerebellar_hemis_aseg(
     if aseg.shape != mask.shape:
         warnings.warn(
             f"Shape mismatch between aseg {aseg.shape} and mask {mask.shape}. "
-            "The internal padding logic might be unstable and cause bugs."
+            "The internal padding logic might be unstable and cause bugs.",
+            RuntimeWarning,
+            stacklevel=2,
         )
     mask_org = mask.copy()
     if not aseg.shape == mask.shape:
