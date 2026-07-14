@@ -19,6 +19,8 @@ from numpy.typing import DTypeLike, NDArray
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "load_image_volume",
+    "load_label_map",
     "save_nifti_from_3darray",
     "set_nnunet_paths",
     "change_labels",
