@@ -1,12 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Helper utilities for geometric transforms, connected-region analysis,
-and NIfTI I/O.
-"""
+"""Helper utilities for geometric transforms, connected-region analysis and file I/O."""
 # ---------------------------------------------------------------------------
 # Authors: John G Samuelson <johnsam@mit.edu>
 #          Christoph Dinh <christoph.dinh@brain-link.de>
-# Created: September, 2021
+#          Teemu Taivainen
+# Created: September, 2021 (Modified: July, 2026)
 # License: MIT
 # ---------------------------------------------------------------------------
 
