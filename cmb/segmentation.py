@@ -581,7 +581,7 @@ def _split_cerebellar_hemis_aseg(
 
     lh = np.where(np.isin(aseg, [7, 8]))
     rh = np.where(np.isin(aseg, [46, 47]))
-    lh_rh_vol = np.zeros(aseg.shape).astype(int)
+    lh_rh_vol = np.zeros(aseg.shape, dtype=np.uint8)
     lh_rh_vol[lh] = 1
     lh_rh_vol[rh] = 2
     aseg_cerb = np.concatenate((np.array(lh).T, np.array(rh).T), axis=0)
@@ -624,13 +624,13 @@ def _split_cerebellar_hemis_aseg(
         )
         unsigned_voxels = unsigned_voxels[np.where(assigned == 0)]
 
-    final_split = np.zeros(lh_rh_vol.shape)
+    final_split = np.zeros(lh_rh_vol.shape, dtype=np.uint8)
     final_split[np.nonzero(mask_org)] = lh_rh_vol[np.nonzero(mask_org)]
     lh_split = np.zeros(brain.shape)
     lh_split[np.where(final_split == 1)] = brain[np.where(final_split == 1)]
     rh_split = np.zeros(brain.shape)
     rh_split[np.where(final_split == 2)] = brain[np.where(final_split == 2)]
-    mask = np.zeros(brain.shape)  # .astype(int)
+    mask = np.zeros(brain.shape, dtype=np.uint8)
     mask[np.where(final_split == 2)] = 2
     mask[np.where(final_split == 1)] = 1
 
