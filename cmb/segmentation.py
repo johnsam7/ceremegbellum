@@ -644,8 +644,6 @@ def _split_cerebellar_hemis_aseg(
         affine=affine,
     )
 
-    return
-
 
 def _run_nnunet_prediction(
     model_folder: str, input_folder: str, output_folder: str
