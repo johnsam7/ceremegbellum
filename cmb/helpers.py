@@ -81,7 +81,7 @@ def load_label_map(
 
     Returns
     -------
-    label_map : NDArray[np.int32]
+    label_map : numpy.ndarray
         3D NumPy array containing the label map data.
     affine : NDArray[np.float64] | None
         The affine transformation matrix associated with the label map data.
