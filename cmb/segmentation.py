@@ -305,12 +305,14 @@ def _segment_cerebellum(
     seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
-    seg_reg = ants.apply_transforms(
+    seg_reg_float: NDArray[np.float32] = ants.apply_transforms(
         fixed=template_ants,
         moving=seg_complete_ants,
         transformlist=registration["invtransforms"],
         interpolator="genericLabel",
     ).numpy()
+    # Convert back to uint8.
+    seg_reg = seg_reg_float.round().astype(np.uint8)
 
     print(f"ANTS gave data type {seg_reg.dtype} for the final segmentation.")
 
@@ -409,12 +411,14 @@ def _load_and_register_aseg(
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
-    aseg_registered = ants.apply_transforms(
+    aseg_registered_float: NDArray[np.float32] = ants.apply_transforms(
         fixed=template_ants,
         moving=aseg_ants,
         transformlist=registration["fwdtransforms"],
         interpolator="genericLabel",
     ).numpy()
+    # Convert back to uint8.
+    aseg_registered = aseg_registered_float.round().astype(np.uint8)
 
     print("ASEG data type after registration is", aseg_registered.dtype)
 
