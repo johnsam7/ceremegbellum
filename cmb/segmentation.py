@@ -1,5 +1,6 @@
 """Provides pipeline for segmenting the cerebellum."""
 
+import logging
 import os
 import os.path as op
 import pickle
@@ -22,6 +23,8 @@ from .helpers import (
 if TYPE_CHECKING:
     # Import is only visible to type checkers, not at runtime.
     from ants.core.ants_image import ANTsImage
+
+logger = logging.getLogger(__name__)
 
 
 def get_segmentation(
@@ -66,9 +69,9 @@ def get_segmentation(
         raise FileNotFoundError(f"Could not locate subject MRI at {mri_path}")
 
     if op.exists(op.join(segm_data_dir, subject + ".nii.gz")):
-        print(
-            "Previous segmentation found on subject "
-            f"{subject}. Returning old segmentation."
+        logger.info(
+            "Previous segmentation found on subject %s. Returning old segmentation.",
+            subject,
         )
         return nib.Nifti1Image.from_filename(
             op.join(segm_data_dir, subject + ".nii.gz")
@@ -131,7 +134,7 @@ def _segment_cerebellum(
     brain_template, brain_template_affine = load_image_volume(
         op.join(cmb_path, "data", "brain.nii")
     )
-    print("Brain template data type is", brain_template.dtype)
+    logger.debug("Brain template data type is %s", brain_template.dtype)
     # Help type checkers understand that the affine is not None.
     assert brain_template_affine is not None, (
         "Brain template should have an affine matrix."
@@ -147,13 +150,13 @@ def _segment_cerebellum(
 
     subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
     subject_mri, subject_affine = load_image_volume(subject_mri_fname)
-    print("Subject MRI data type is", subject_mri.dtype)
+    logger.debug("Subject MRI data type is %s", subject_mri.dtype)
 
     # Check if registration was already completed
     if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
-        print(
-            f"Previous registration found for subject {subject}. "
-            "Loading cached transforms."
+        logger.info(
+            "Previous registration found for subject %s. Loading cached transforms.",
+            subject,
         )
         with open(reg_cache_file, "rb") as f:
             registration = pickle.load(f)
@@ -175,9 +178,12 @@ def _segment_cerebellum(
         output_folder, "registered", "mask", subject + ".nii.gz"
     )
     if op.exists(mask_output_fname):
-        print("Previous mask prediction found. Skipping mask step.")
+        logger.info(
+            "Previous mask prediction found for subject %s. Skipping mask step.",
+            subject,
+        )
     else:
-        print("Running mask prediction...")
+        logger.info("Running mask prediction for subject %s.", subject)
         model_folder = op.join(
             cmb_path,
             "nnUNet",
@@ -197,7 +203,10 @@ def _segment_cerebellum(
     lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
     rh_input = op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
     if op.exists(lh_input) and op.exists(rh_input):
-        print("Previous hemisphere split found. Skipping split step.")
+        logger.info(
+            "Previous hemisphere split found for subject %s. Skipping split step.",
+            subject,
+        )
     else:
         aseg_registered = _load_and_register_aseg(
             subjects_dir,
@@ -210,7 +219,7 @@ def _segment_cerebellum(
             mask_output_fname,
             dtype=None,  # infer from file on disk
         )
-        print("Cerebellum mask data type is", cerebellum_mask.dtype)
+        logger.debug("Cerebellum mask data type is %s", cerebellum_mask.dtype)
         # Split the cerebellum mask into left and right hemispheres using the
         # registered ASEG.
         _split_cerebellar_hemis_aseg(
@@ -230,9 +239,12 @@ def _segment_cerebellum(
         output_folder, "registered", "rh_segmented", subject + ".nii.gz"
     )
     if op.exists(lh_seg_output):
-        print("Previous LH segmentation found. Skipping LH prediction.")
+        logger.info(
+            "Previous LH segmentation found for subject %s. Skipping LH prediction.",
+            subject,
+        )
     else:
-        print("Running LH prediction...")
+        logger.info("Running LH prediction for subject %s.", subject)
         model_folder_lh = op.join(
             cmb_path,
             "nnUNet",
@@ -248,9 +260,12 @@ def _segment_cerebellum(
             op.join(output_folder, "registered", "lh_segmented"),
         )
     if op.exists(rh_seg_output):
-        print("Previous RH segmentation found. Skipping RH prediction.")
+        logger.info(
+            "Previous RH segmentation found for subject %s. Skipping RH prediction.",
+            subject,
+        )
     else:
-        print("Running RH prediction...")
+        logger.info("Running RH prediction for subject %s.", subject)
         model_folder_rh = op.join(
             cmb_path,
             "nnUNet",
@@ -271,7 +286,11 @@ def _segment_cerebellum(
         output_folder, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
     )
     if op.exists(lob_seg_output):
-        print("Previous anterior lobe refinement found. Skipping refinement step.")
+        logger.info(
+            "Previous anterior lobe refinement found for subject %s. "
+            "Skipping refinement step.",
+            subject,
+        )
     else:
         # Use LH and LH predictions to extract the lob I-IV region and save it.
         lob_I_IV, lob_I_IV_affine = _extract_lob_I_IV(
@@ -283,7 +302,7 @@ def _segment_cerebellum(
             affine=lob_I_IV_affine,
         )
         # Run the refinement model.
-        print("Running anterior lobe refinement...")
+        logger.info("Running anterior lobe refinement for subject %s.", subject)
         model_folder_refine = op.join(
             cmb_path,
             "nnUNet",
@@ -305,7 +324,6 @@ def _segment_cerebellum(
         rh_seg_fname=rh_seg_output,
         anterior_seg_fname=lob_seg_output,
     )
-    print(f"Data type of combined segmentation is {seg_complete.dtype}")
     seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
@@ -317,8 +335,6 @@ def _segment_cerebellum(
     ).numpy()
     # Convert back to uint8.
     seg_reg = seg_reg_float.round().astype(np.uint8)
-
-    print(f"ANTS gave data type {seg_reg.dtype} for the final segmentation.")
 
     final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
     save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
@@ -332,7 +348,6 @@ def _segment_cerebellum(
                         os.remove(op.join(cleanup_dir, f))
 
     final_seg_nifti = nib.Nifti1Image.from_filename(final_seg_output_fname)
-    print("Data type of final segmentation is", final_seg_nifti.get_data_dtype())
     return final_seg_nifti
 
 
@@ -364,10 +379,10 @@ def _extract_lob_I_IV(
     """
     # Get predicted labels for left hemisphere.
     lh_predictions, lh_affine = load_label_map(lh_seg_fname, dtype=None)
-    print("LH predictions data type is", lh_predictions.dtype)
+    logger.debug("LH predictions data type is %s", lh_predictions.dtype)
     # Get the left hemisphere image.
     lh_image, _ = load_image_volume(lh_fname)
-    print("LH image data type is", lh_image.dtype)
+    logger.debug("LH image data type is %s", lh_image.dtype)
     assert lh_predictions.shape == lh_image.shape, (
         "LH predictions and image should have the same shape."
     )
@@ -383,8 +398,8 @@ def _extract_lob_I_IV(
 
     rh_predictions, rh_affine = load_label_map(rh_seg_fname)
     rh_image, _ = load_image_volume(rh_fname)
-    print("RH predictions data type is", rh_predictions.dtype)
-    print("RH image data type is", rh_image.dtype)
+    logger.debug("RH predictions data type is %s", rh_predictions.dtype)
+    logger.debug("RH image data type is %s", rh_image.dtype)
     assert rh_predictions.shape == rh_image.shape, (
         "RH predictions and image should have the same shape."
     )
@@ -423,7 +438,7 @@ def _load_and_register_aseg(
     import ants
 
     aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
-    print("ASEG data type after loading is", aseg.dtype)
+    logger.debug("ASEG data type after loading is %s", aseg.dtype)
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
@@ -435,8 +450,6 @@ def _load_and_register_aseg(
     ).numpy()
     # Convert back to uint8.
     aseg_registered = aseg_registered_float.round().astype(np.uint8)
-
-    print("ASEG data type after registration is", aseg_registered.dtype)
 
     return aseg_registered
 
@@ -470,14 +483,12 @@ def _register_subject_to_template(
     """
     import ants
 
-    print("Subject MRI data type before registration is", subject_mri.dtype)
-
     # Make sure that normalization is applied (no effect if already normalized).
     subj_brain = subject_mri / np.max(subject_mri)
     subj_brain_ants = ants.from_numpy(subj_brain)
 
     # Calculate registration.
-    print("Registering subject to template space...")
+    logger.info("Registering subject to template space...")
     registration = ants.registration(
         fixed=template_ants, moving=subj_brain_ants, type_of_transform="SyNCC"
     )
@@ -495,8 +506,6 @@ def _register_subject_to_template(
         interpolator="nearestNeighbor",
     )
     subj_registered = subj_registered_ants.numpy()
-
-    print("Subject MRI data type after registration is", subj_registered.dtype)
 
     return registration, subj_registered
 
