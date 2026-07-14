@@ -1,4 +1,4 @@
-"""Provides functions for cerebellar segmentation using nnUNet and ANTs registration."""
+"""Provides pipeline for segmenting the cerebellum."""
 
 import os
 import os.path as op
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
+from nibabel import Nifti1Image
 from numpy.typing import NDArray
 
 from . import helpers
@@ -23,7 +24,7 @@ def get_segmentation(
     subject,
     cmb_path=None,
     debug_mode=False,
-) -> nib.Nifti1Image:
+) -> Nifti1Image:
     """Get cerebellar segmentation for a subject.
 
     Parameters
@@ -31,7 +32,7 @@ def get_segmentation(
     subjects_dir : str
         Path to the FreeSurfer subjects directory.
     subject : str
-        Subject identifier.
+        The FreeSurfer subject name.
     cmb_path : str, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
@@ -42,7 +43,7 @@ def get_segmentation(
     Returns
     -------
     nibabel.Nifti1Image
-        The cerebellar segmentation as a NIfTI image.
+        The cerebellar segmentation as a NIfTI image object.
     """
     if cmb_path is None:
         from . import CMB_DATA_DIR
@@ -74,7 +75,30 @@ def get_segmentation(
         )
 
 
-def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_dir):
+def _segment_cerebellum(
+    subjects_dir, subject, cmb_path, debug_mode, segm_data_dir
+) -> Nifti1Image:
+    """Run the cerebellar segmentation pipeline for a subject.
+
+    Parameters
+    ----------
+    subjects_dir : str
+        Path to the FreeSurfer subjects directory.
+    subject : str
+        The FreeSurfer subject name.
+    cmb_path : str
+        Path to the CMB data directory.
+    debug_mode : bool
+        If True, keeps intermediate files for debugging. If False, cleans up
+        intermediate files after segmentation.
+    segm_data_dir : str
+        Path to the directory where segmentation results will be stored.
+
+    Returns
+    -------
+    nibabel.Nifti1Image
+        The cerebellar segmentation as a NIfTI image object.
+    """
     import ants
 
     # Create temporary directories for intermediate files.
@@ -303,7 +327,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
 
 def _extract_lob_I_IV(
     lh_fname: str, rh_fname: str, lh_seg_fname: str, rh_seg_fname: str
-) -> tuple[NDArray[np.float64], NDArray[np.floating]]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Extract pixel intensities for lob I-IV.
 
     Uses the nnUNet predicted labels to extract the pixel intensities corresponding to
@@ -376,6 +400,7 @@ def _load_and_register_aseg(
     import ants
 
     aseg, _ = helpers.load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
+    print("ASEG data type after loading is", aseg.dtype)
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
@@ -386,14 +411,16 @@ def _load_and_register_aseg(
         interpolator="genericLabel",
     ).numpy()
 
+    print("ASEG data type after registration is", aseg_registered.dtype)
+
     return aseg_registered
 
 
 def _register_subject_to_template(
-    subject_mri: np.ndarray,
+    subject_mri: NDArray[np.float64],
     template_ants: "ANTsImage",
     reg_cache_file: str,
-) -> tuple[dict, np.ndarray]:
+) -> tuple[dict, NDArray[np.float64]]:
     """Register the subject's MRI to the template space using ANTs registration.
 
     Calculates the registration transforms and applies them to the subject's MRI to
@@ -401,7 +428,7 @@ def _register_subject_to_template(
 
     Parameters
     ----------
-    subject_mri : np.ndarray
+    subject_mri : NDArray[np.float64]
         The subject's MRI image. Does not need to be normalized, as it will be
         normalized within this function.
     template_ants : ANTsImage
@@ -413,10 +440,12 @@ def _register_subject_to_template(
     -------
     registration : dict
         The registration results containing the forward and inverse transforms.
-    subj_registered : np.ndarray
+    subj_registered : NDArray[np.float64]
         The subject's MRI registered to the template space.
     """
     import ants
+
+    print("Subject MRI data type before registration is", subject_mri.dtype)
 
     # Make sure that normalization is applied (no effect if already normalized).
     subj_brain = subject_mri / np.max(subject_mri)
@@ -440,6 +469,8 @@ def _register_subject_to_template(
         interpolator="nearestNeighbor",
     )
     subj_registered = subj_registered_ants.numpy()
+
+    print("Subject MRI data type after registration is", subj_registered.dtype)
 
     return registration, subj_registered
 
@@ -574,11 +605,22 @@ def _split_cerebellar_hemis_aseg(
     return
 
 
-def _run_nnunet_prediction(model_folder, input_folder, output_folder):
+def _run_nnunet_prediction(
+    model_folder: str, input_folder: str, output_folder: str
+) -> None:
     """Run nnUNet v1 prediction via the Python API.
 
     Calls predict_from_folder directly and patches torch.load for
     compatibility with PyTorch >= 2.6 (which defaults to weights_only=True).
+
+    Parameters
+    ----------
+    model_folder : str
+        Path to the nnUNet model folder containing the trained model.
+    input_folder : str
+        Path to the folder containing input images for prediction.
+    output_folder : str
+        Path to the folder where prediction outputs will be saved.
     """
     import torch
 
@@ -617,7 +659,7 @@ def _run_nnunet_prediction(model_folder, input_folder, output_folder):
 
 def _assemble_segmentation(
     lh_seg_fname: str, rh_seg_fname: str, anterior_seg_fname: str
-) -> np.ndarray:
+) -> NDArray[np.uint8]:
     """Assemble the final segmentation by combining the individual segmentations.
 
     Combines the left hemisphere, right hemisphere, and anterior lobe segmentations into
@@ -634,7 +676,7 @@ def _assemble_segmentation(
 
     Returns
     -------
-    ndarray
+    NDArray[np.uint8]
         3D numpy array containing the combined segmentation volume with updated labels.
     """
     # Define label mappings.
