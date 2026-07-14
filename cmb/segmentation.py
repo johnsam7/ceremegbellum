@@ -272,6 +272,7 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         rh_seg_fname=rh_seg_output,
         anterior_seg_fname=lob_seg_output,
     )
+    print(f"Data type of combined segmentation is {seg_complete.dtype}")
     seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
@@ -281,6 +282,8 @@ def _segment_cerebellum(subjects_dir, subject, cmb_path, debug_mode, segm_data_d
         transformlist=registration["invtransforms"],
         interpolator="genericLabel",
     ).numpy()
+
+    print(f"ANTS gave data type {seg_reg.dtype} for the final segmentation.")
 
     final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
     save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
