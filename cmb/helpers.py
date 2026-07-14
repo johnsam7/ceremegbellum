@@ -151,7 +151,7 @@ def save_nifti_from_3darray(
     """
     mgz = nib.Nifti1Image(vol, affine=affine)
     nib.save(mgz, fname)
-    print("saved to " + fname)
+    logger.info("Saved %s array with shape %s to %s", vol.dtype, vol.shape, fname)
     return mgz
 
 
@@ -306,10 +306,10 @@ def find_connected_regions(vol, print_progress=True):
                                 f_vox2region.update({tuple(neighbor): 1})
                     front_line_vols = front_line_vols[1 : front_line_vols.shape[0], :]
                 if print_progress:
-                    print(len(front_line_vols))
+                    logger.debug("Front line volume size: %d", len(front_line_vols))
             regions.append(saved_vols)
         labels2regions.update({val: regions})
         if print_progress:
-            print("Done with label " + str(val))
+            logger.info("Done with label %d", val)
 
     return labels2regions
