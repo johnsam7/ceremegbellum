@@ -142,15 +142,21 @@ def _segment_cerebellum(
     brain_template = brain_template / np.max(brain_template)
     template_ants = ants.from_numpy(brain_template)
 
+    # Load subject MRI.
+    subject_mri, subject_affine = load_image_volume(
+        op.join(subjects_dir, subject, "mri", "brain.mgz")
+    )
+    logger.debug("Subject MRI data type is %s", subject_mri.dtype)
+    if subject_affine is None:
+        warnings.warn(
+            "Subject MRI does not have an affine matrix.", UserWarning, stacklevel=2
+        )
+
     output_folder = op.join(segm_data_dir, "tmp")
     reg_cache_file = op.join(output_folder, "registered", subject + "_reg_cache.pkl")
     reg_whole_img_fname = op.join(
         output_folder, "registered", "whole", subject + "_0000.nii.gz"
     )
-
-    subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
-    subject_mri, subject_affine = load_image_volume(subject_mri_fname)
-    logger.debug("Subject MRI data type is %s", subject_mri.dtype)
 
     # Check if registration was already completed
     if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
