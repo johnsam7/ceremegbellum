@@ -566,24 +566,12 @@ def _split_cerebellar_hemis_aseg(
             f"assumes a maximum of 256 in each dimension."
         )
     if aseg.shape != mask.shape:
-        warnings.warn(
-            f"Shape mismatch between aseg {aseg.shape} and mask {mask.shape}. "
-            "The internal padding logic might be unstable and cause bugs.",
-            RuntimeWarning,
-            stacklevel=2,
+        raise ValueError(
+            f"Shape mismatch: aseg shape {aseg.shape} does not match mask shape "
+            f"{mask.shape}. Both images must be registered to the template space."
         )
     mask_org = mask.copy()
-    if not aseg.shape == mask.shape:
-        pads = ((np.array(aseg.shape) - np.array(mask.shape)) / 2).astype(int)
-        mask_aligned = np.zeros(aseg.shape)
-        mask_aligned[
-            pads[0] : aseg.shape[0] - pads[0],
-            pads[1] : aseg.shape[1] - pads[1],
-            pads[2] : aseg.shape[2] - pads[2],
-        ] = mask
-        mask = np.array(np.nonzero(mask_aligned)).T
-    else:
-        mask = np.array(np.nonzero(mask)).T
+    mask = np.array(np.nonzero(mask)).T
 
     lh = np.where(np.isin(aseg, [7, 8]))
     rh = np.where(np.isin(aseg, [46, 47]))
