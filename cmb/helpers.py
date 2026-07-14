@@ -106,10 +106,10 @@ def load_label_map(
     if dtype is None:
         return label_map, affine
     # Make sure the cast would not cause overflow.
-    target_dtype = np.dtype(dtype)
-    if np.issubdtype(target_dtype, np.integer):
+    dtype = np.dtype(dtype)
+    if np.issubdtype(dtype, np.integer):
         # Only check for integer types.
-        info = np.iinfo(target_dtype.type)
+        info = np.iinfo(dtype.type)
         min_label = label_map.min()
         max_label = label_map.max()
         logger.debug(
@@ -120,7 +120,7 @@ def load_label_map(
         )
         if min_label < info.min or max_label > info.max:
             raise ValueError(
-                f"Cannot safely cast the label map from file {fname} to {dtype}. "
+                f"Cannot safely cast the label map from file {fname} to {dtype.name}. "
                 f"Label map values are in the range [{min_label}, {max_label}], "
                 "but the target type can only represent values in the range "
                 f"[{info.min}, {info.max}]."
