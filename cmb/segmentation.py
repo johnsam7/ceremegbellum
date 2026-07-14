@@ -429,7 +429,7 @@ def _register_subject_to_template(
     subject_mri: NDArray[np.float64],
     template_ants: "ANTsImage",
     reg_cache_file: str,
-) -> tuple[dict, NDArray[np.float64]]:
+) -> tuple[dict, NDArray[np.float32]]:
     """Register the subject's MRI to the template space using ANTs registration.
 
     Calculates the registration transforms and applies them to the subject's MRI to
@@ -449,7 +449,7 @@ def _register_subject_to_template(
     -------
     registration : dict
         The registration results containing the forward and inverse transforms.
-    subj_registered : NDArray[np.float64]
+    subj_registered : NDArray[np.float32]
         The subject's MRI registered to the template space.
     """
     import ants
@@ -471,6 +471,7 @@ def _register_subject_to_template(
         pickle.dump(registration, f)
 
     # Apply registration.
+    # NOTE: Downcasts to float32.
     subj_registered_ants: ANTsImage = ants.apply_transforms(
         fixed=template_ants,
         moving=subj_brain_ants,
