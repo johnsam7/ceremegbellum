@@ -11,8 +11,13 @@ import numpy as np
 from nibabel import Nifti1Image
 from numpy.typing import NDArray
 
-from . import helpers
-from .helpers import change_labels, save_nifti_from_3darray, set_nnunet_paths
+from .helpers import (
+    change_labels,
+    load_image_volume,
+    load_label_map,
+    save_nifti_from_3darray,
+    set_nnunet_paths,
+)
 
 if TYPE_CHECKING:
     # Import is only visible to type checkers, not at runtime.
@@ -119,7 +124,7 @@ def _segment_cerebellum(
         os.makedirs(dirs, exist_ok=True)
 
     # Load brain template to get a common space.
-    brain_template, brain_template_affine = helpers.load_image_volume(
+    brain_template, brain_template_affine = load_image_volume(
         op.join(cmb_path, "data", "brain.nii")
     )
     print("Brain template data type is", brain_template.dtype)
@@ -137,7 +142,7 @@ def _segment_cerebellum(
     )
 
     subject_mri_fname = op.join(subjects_dir, subject, "mri", "brain.mgz")
-    subject_mri, subject_affine = helpers.load_image_volume(subject_mri_fname)
+    subject_mri, subject_affine = load_image_volume(subject_mri_fname)
     print("Subject MRI data type is", subject_mri.dtype)
 
     # Check if registration was already completed
@@ -148,7 +153,7 @@ def _segment_cerebellum(
         )
         with open(reg_cache_file, "rb") as f:
             registration = pickle.load(f)
-        subj_registered, _ = helpers.load_image_volume(reg_whole_img_fname)
+        subj_registered, _ = load_image_volume(reg_whole_img_fname)
     else:
         # Register and save the result.
         registration, subj_registered = _register_subject_to_template(
@@ -197,7 +202,7 @@ def _segment_cerebellum(
             registration,
         )
         # Get the predicted cerebellar mask.
-        cerebellum_mask, _ = helpers.load_label_map(
+        cerebellum_mask, _ = load_label_map(
             mask_output_fname,
             dtype=None,  # infer from file on disk
         )
@@ -352,10 +357,10 @@ def _extract_lob_I_IV(
         The affine transformation matrix associated with the lob I-IV array.
     """
     # Get predicted labels for left hemisphere.
-    lh_predictions, lh_affine = helpers.load_label_map(lh_seg_fname, dtype=None)
+    lh_predictions, lh_affine = load_label_map(lh_seg_fname, dtype=None)
     print("LH predictions data type is", lh_predictions.dtype)
     # Get the left hemisphere image.
-    lh_image, _ = helpers.load_image_volume(lh_fname)
+    lh_image, _ = load_image_volume(lh_fname)
     print("LH image data type is", lh_image.dtype)
     assert lh_predictions.shape == lh_image.shape, (
         "LH predictions and image should have the same shape."
@@ -370,8 +375,8 @@ def _extract_lob_I_IV(
 
     # Repeat the process for the right hemisphere.
 
-    rh_predictions, rh_affine = helpers.load_label_map(rh_seg_fname)
-    rh_image, _ = helpers.load_image_volume(rh_fname)
+    rh_predictions, rh_affine = load_label_map(rh_seg_fname)
+    rh_image, _ = load_image_volume(rh_fname)
     print("RH predictions data type is", rh_predictions.dtype)
     print("RH image data type is", rh_image.dtype)
     assert rh_predictions.shape == rh_image.shape, (
@@ -399,7 +404,7 @@ def _load_and_register_aseg(
     """Load the FreeSurfer automatic segmentation and register it to template space."""
     import ants
 
-    aseg, _ = helpers.load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
+    aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
     print("ASEG data type after loading is", aseg.dtype)
     aseg_ants = ants.from_numpy(aseg)
 
@@ -720,13 +725,13 @@ def _assemble_segmentation(
         100,
     ]
     # Load individual segmentations and change labels to match the final label map.
-    seg_lh, _ = helpers.load_label_map(lh_seg_fname, dtype=np.uint8)
+    seg_lh, _ = load_label_map(lh_seg_fname, dtype=np.uint8)
     seg_lh = change_labels(seg_lh, old_labels_hemi, new_labels_lh)
 
-    seg_rh, _ = helpers.load_label_map(rh_seg_fname, dtype=np.uint8)
+    seg_rh, _ = load_label_map(rh_seg_fname, dtype=np.uint8)
     seg_rh = change_labels(seg_rh, old_labels_hemi, new_labels_rh)
 
-    seg_ant, _ = helpers.load_label_map(anterior_seg_fname, dtype=np.uint8)
+    seg_ant, _ = load_label_map(anterior_seg_fname, dtype=np.uint8)
     seg_ant = change_labels(seg_ant, old_labels_ant, new_labels_ant)
 
     assert seg_lh.shape == seg_rh.shape == seg_ant.shape, (
