@@ -1,4 +1,11 @@
 """Provides pipeline for segmenting the cerebellum."""
+# ---------------------------------------------------------------------------
+# Authors: John G Samuelson <johnsam@mit.edu>
+#          Christoph Dinh <christoph.dinh@brain-link.de>
+#          Teemu Taivainen
+# Created: September, 2021 (Modified: July, 2026)
+# License: MIT
+# ---------------------------------------------------------------------------
 
 import logging
 import os
