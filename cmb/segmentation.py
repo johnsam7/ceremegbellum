@@ -25,10 +25,10 @@ if TYPE_CHECKING:
 
 
 def get_segmentation(
-    subjects_dir,
-    subject,
-    cmb_path=None,
-    debug_mode=False,
+    subjects_dir: str,
+    subject: str,
+    cmb_path: str | None = None,
+    debug_mode: bool = False,
 ) -> Nifti1Image:
     """Get cerebellar segmentation for a subject.
 
@@ -81,7 +81,11 @@ def get_segmentation(
 
 
 def _segment_cerebellum(
-    subjects_dir, subject, cmb_path, debug_mode, segm_data_dir
+    subjects_dir: str,
+    subject: str,
+    cmb_path: str,
+    debug_mode: bool,
+    segm_data_dir: str,
 ) -> Nifti1Image:
     """Run the cerebellar segmentation pipeline for a subject.
 
@@ -403,7 +407,19 @@ def _load_and_register_aseg(
     template_ants: "ANTsImage",
     registration: dict,
 ) -> np.ndarray:
-    """Load the FreeSurfer automatic segmentation and register it to template space."""
+    """Load the FreeSurfer automatic segmentation and register it to template space.
+
+    Parameters
+    ----------
+    subjects_dir : str
+        Path to the FreeSurfer subjects directory.
+    subject : str
+        The FreeSurfer subject name.
+    template_ants : ANTsImage
+        The template image in ANTs format.
+    registration : dict
+        The registration from which to apply the forward transforms to the segmentation.
+    """
     import ants
 
     aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
