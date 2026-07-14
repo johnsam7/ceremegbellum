@@ -209,7 +209,8 @@ def change_labels(
         raise ValueError("old_labels and new_labels must have the same length.")
     new_vol = vol.copy()
     for old_label, new_label in zip(old_labels, new_labels):
-        new_vol[vol == old_label] = new_label
+        old_label_mask = vol == old_label
+        new_vol[old_label_mask] = new_label
 
     return new_vol
 
