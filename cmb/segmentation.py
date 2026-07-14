@@ -158,7 +158,9 @@ def _segment_cerebellum(
         output_folder, "registered", "whole", subject + "_0000.nii.gz"
     )
 
-    # Check if registration was already completed
+    # REGISTRATION TO TEMPLATE SPACE
+
+    # Check if registration was already completed.
     if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
         logger.info(
             "Previous registration found for subject %s. Loading cached transforms.",
@@ -179,6 +181,8 @@ def _segment_cerebellum(
             reg_whole_img_fname,
             affine=brain_template_affine,
         )
+
+    # PREDICTION OF CEREBELLAR MASK
 
     mask_output_fname = op.join(
         output_folder, "registered", "mask", subject + ".nii.gz"
@@ -204,6 +208,8 @@ def _segment_cerebellum(
             input_folder=op.join(output_folder, "registered", "whole"),
             output_folder=op.join(output_folder, "registered", "mask"),
         )
+
+    # SPLITTING THE MASK INTO LEFT AND RIGHT HEMISPHERES
 
     # Split into LH and RH using ASEG (the label map from FreeSurfer).
     lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
@@ -237,7 +243,8 @@ def _segment_cerebellum(
             brain_template_affine,
         )
 
-    # Predict LH and RH
+    # PREDICTION OF LEFT AND RIGHT HEMISPHERES
+
     lh_seg_output = op.join(
         output_folder, "registered", "lh_segmented", subject + ".nii.gz"
     )
@@ -287,6 +294,8 @@ def _segment_cerebellum(
             op.join(output_folder, "registered", "rh_segmented"),
         )
 
+    # ANTERIOR LOBE PREDICTION
+
     # Refine lob I-IV into lobs I-III and IV
     lob_seg_output = op.join(
         output_folder, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
@@ -323,6 +332,8 @@ def _segment_cerebellum(
             op.join(output_folder, "registered", "lob_I_IV"),
             op.join(output_folder, "registered", "lob_I_IV_segmented"),
         )
+    # COMBINING THE SEGMENTATIONS
+
     # Combine the LH, RH, and anterior lobe segmentations into a single segmentation
     # and update the labels.
     seg_complete = _assemble_segmentation(
