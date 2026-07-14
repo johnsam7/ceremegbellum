@@ -10,12 +10,16 @@ and NIfTI I/O.
 # License: MIT
 # ---------------------------------------------------------------------------
 
+import logging
 import os
+from typing import Any
 
 import nibabel as nib
 import numpy as np
 from nibabel import Nifti1Image
-from numpy.typing import NDArray
+from numpy.typing import DTypeLike, NDArray
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "save_nifti_from_3darray",
@@ -62,26 +66,26 @@ def load_image_volume(
 
 
 def load_label_map(
-    fname: str, dtype: type | None = None
-) -> tuple[np.ndarray, NDArray[np.float64] | None]:
+    fname: str, dtype: DTypeLike | None = None
+) -> tuple[NDArray[Any], NDArray[np.float64] | None]:
     """Load discrete integer labels to a NumPy array.
 
     Accesses the `dataobj` attribute of the loaded image and converts it to a NumPy
-    of specified type. This is useful for loading label maps without converting them
-    to float (and wasting memory) as would happen with `get_fdata()`.
+    array of specified type. This is useful for loading label maps without converting
+    them to float (and wasting memory) as would happen with `get_fdata()`.
 
     Parameters
     ----------
     fname : str
         Path to the label map file to be loaded. Format should be NIfTI, MGH
         (from FreeSurfer) or other format supported by `nibabel`.
-    dtype : type | None
+    dtype : DTypeLike | None
         The data type of the returned array. If None (default), the data type
         will be inferred from the image data.
 
     Returns
     -------
-    label_map : numpy.ndarray
+    label_map : NDArray[Any]
         3D NumPy array containing the label map data.
     affine : NDArray[np.float64] | None
         The affine transformation matrix associated with the label map data.
@@ -92,7 +96,38 @@ def load_label_map(
     # At runtime it should be a subclass that has the correct methods.
     image_data = img.dataobj  # pyright: ignore[reportAttributeAccessIssue]
     affine = img.affine  # pyright: ignore[reportAttributeAccessIssue]
-    label_map = np.asanyarray(image_data, dtype=dtype)
+    label_map = np.asanyarray(image_data)
+    logger.debug(
+        "Loaded label map %s with shape %s and dtype %s",
+        fname,
+        label_map.shape,
+        label_map.dtype,
+    )
+    if dtype is None:
+        return label_map, affine
+    # Make sure the cast would not cause overflow.
+    target_dtype = np.dtype(dtype)
+    if np.issubdtype(target_dtype, np.integer):
+        # Only check for integer types.
+        info = np.iinfo(target_dtype.type)
+        min_label = label_map.min()
+        max_label = label_map.max()
+        logger.debug(
+            "Label map %s has min value %d and max value %d",
+            fname,
+            min_label,
+            max_label,
+        )
+        if min_label < info.min or max_label > info.max:
+            raise ValueError(
+                f"Cannot safely cast the label map from file {fname} to {dtype}. "
+                f"Label map values are in the range [{min_label}, {max_label}], "
+                "but the target type can only represent values in the range "
+                f"[{info.min}, {info.max}]."
+            )
+    # Do the safe cast.
+    logger.debug("Casting label map %s to dtype %s", fname, dtype)
+    label_map = label_map.astype(dtype)
 
     return label_map, affine
 
