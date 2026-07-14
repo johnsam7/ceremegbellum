@@ -134,7 +134,7 @@ def setup_cerebellum_source_space(
         106,
     ]
     hr_segm = change_labels(
-        hr_segm, old_labels=old_labels, new_labels=np.arange(29)[1:]
+        hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
 
     # Get subject segmentation
