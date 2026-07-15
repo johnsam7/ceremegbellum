@@ -141,7 +141,6 @@ def _segment_cerebellum(
     brain_template, brain_template_affine = load_image_volume(
         op.join(cmb_path, "data", "brain.nii")
     )
-    logger.debug("Brain template data type is %s", brain_template.dtype)
     # Help type checkers understand that the affine is not None.
     assert brain_template_affine is not None, (
         "Brain template should have an affine matrix."
@@ -153,7 +152,6 @@ def _segment_cerebellum(
     subject_mri, subject_affine = load_image_volume(
         op.join(subjects_dir, subject, "mri", "brain.mgz")
     )
-    logger.debug("Subject MRI data type is %s", subject_mri.dtype)
     if subject_affine is None:
         warnings.warn(
             "Subject MRI does not have an affine matrix.", UserWarning, stacklevel=2
@@ -238,7 +236,6 @@ def _segment_cerebellum(
             mask_output_fname,
             dtype=None,  # infer from file on disk
         )
-        logger.debug("Cerebellum mask data type is %s", cerebellum_mask.dtype)
         # Split the cerebellum mask into left and right hemispheres using the
         # registered ASEG.
         _split_cerebellar_hemis_aseg(
@@ -403,10 +400,8 @@ def _extract_lob_I_IV(
     """
     # Get predicted labels for left hemisphere.
     lh_predictions, lh_affine = load_label_map(lh_seg_fname, dtype=None)
-    logger.debug("LH predictions data type is %s", lh_predictions.dtype)
     # Get the left hemisphere image.
     lh_image, _ = load_image_volume(lh_fname)
-    logger.debug("LH image data type is %s", lh_image.dtype)
     assert lh_predictions.shape == lh_image.shape, (
         "LH predictions and image should have the same shape."
     )
@@ -422,8 +417,6 @@ def _extract_lob_I_IV(
 
     rh_predictions, rh_affine = load_label_map(rh_seg_fname, dtype=None)
     rh_image, _ = load_image_volume(rh_fname)
-    logger.debug("RH predictions data type is %s", rh_predictions.dtype)
-    logger.debug("RH image data type is %s", rh_image.dtype)
     assert rh_predictions.shape == rh_image.shape, (
         "RH predictions and image should have the same shape."
     )
@@ -468,7 +461,6 @@ def _load_and_register_aseg(
     import ants
 
     aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
-    logger.debug("ASEG data type after loading is %s", aseg.dtype)
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.

@@ -61,6 +61,13 @@ def load_image_volume(
     img_numpy = img.get_fdata()  # pyright: ignore[reportAttributeAccessIssue]
     affine = img.affine  # pyright: ignore[reportAttributeAccessIssue]
 
+    logger.debug(
+        "Loaded image volume %s with shape %s and dtype %s",
+        fname,
+        img_numpy.shape,
+        img_numpy.dtype,
+    )
+
     return img_numpy, affine
 
 
