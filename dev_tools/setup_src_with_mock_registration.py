@@ -1,4 +1,13 @@
-"""Set up full source space so that nondeterministic ANTs registration is mocked."""
+"""Set up full source space so that nondeterministic ANTs registration is mocked.
+
+Resulting source space is saved to a pickle file.
+
+This script can be utilized in testing. Source spaces created with different versions of
+can be compared with `compare_source_spaces.py`.
+
+NOTE: nnU-Net predictions are not mocked and might still cause nondeterministic
+behavior.
+"""
 
 import os.path as op
 import pickle
@@ -9,6 +18,7 @@ from mne.datasets import sample
 
 from cmb import get_cerebellum_data, setup_full_source_space
 
+# Set path to cerebellum data directory and output file for the source space.
 cerebellum_data_dir = Path("dir/here")
 output_file = Path(__file__).parent / "reference_src.pkl"
 
@@ -48,7 +58,7 @@ def setup_and_save_source_space() -> None:
         cerb_subsampling=cerebellum_subsampling,
         plot_cerebellum=False,
         spacing=spacing,
-        debug_mode=True,  # important to keep nnunet cache from being cleared out
+        debug_mode=False,
     )
 
     with open(output_file, "wb") as f:
