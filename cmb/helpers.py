@@ -106,24 +106,7 @@ def load_label_map(
         return label_map, affine
     # Make sure the cast would not cause overflow.
     dtype = np.dtype(dtype)
-    if np.issubdtype(dtype, np.integer):
-        # Only check for integer types.
-        info = np.iinfo(dtype.type)
-        min_label = label_map.min()
-        max_label = label_map.max()
-        logger.debug(
-            "Label map %s has min value %d and max value %d",
-            fname,
-            min_label,
-            max_label,
-        )
-        if min_label < info.min or max_label > info.max:
-            raise ValueError(
-                f"Cannot safely cast the label map from file {fname} to {dtype.name}. "
-                f"Label map values are in the range [{min_label}, {max_label}], "
-                "but the target type can only represent values in the range "
-                f"[{info.min}, {info.max}]."
-            )
+    _assert_safe_label_map_cast(fname, dtype, label_map)
     # Do the safe cast.
     logger.debug("Casting label map %s to dtype %s", fname, dtype)
     label_map = label_map.astype(dtype)
@@ -316,3 +299,27 @@ def find_connected_regions(vol, print_progress=True):
             logger.info("Done with label %d", val)
 
     return labels2regions
+
+
+def _assert_safe_label_map_cast(
+    fname: str, dtype: np.dtype, label_map: np.ndarray
+) -> None:
+    """Raise an error if casting to the specified integer type would cause overflow."""
+    if np.issubdtype(dtype, np.integer):
+        # Only check for integer types.
+        info = np.iinfo(dtype.type)
+        min_label = label_map.min()
+        max_label = label_map.max()
+        logger.debug(
+            "Label map %s has min value %d and max value %d",
+            fname,
+            min_label,
+            max_label,
+        )
+        if min_label < info.min or max_label > info.max:
+            raise ValueError(
+                f"Cannot safely cast the label map from file {fname} to {dtype.name}. "
+                f"Label map values are in the range [{min_label}, {max_label}], "
+                "but the target type can only represent values in the range "
+                f"[{info.min}, {info.max}]."
+            )
