@@ -2,8 +2,9 @@
 
 Resulting source space is saved to a pickle file.
 
-This script can be utilized in testing. Source spaces created with different versions of
-can be compared with `compare_source_spaces.py`.
+This script can be utilized in testing. Created source spaces can be compared with
+`compare_source_spaces.py`. Furthermore, the final segmentation
+NiIfTI files can be compared with `compare_segmentations.py`.
 
 NOTE: nnU-Net predictions are not mocked and might still cause nondeterministic
 behavior.
