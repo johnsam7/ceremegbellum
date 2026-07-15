@@ -1,4 +1,4 @@
-"""Set up full source space including cerebellum and save it to a pickle file."""
+"""Set up full source space so that nondeterministic ANTs registration is mocked."""
 
 import os.path as op
 import pickle
@@ -32,17 +32,7 @@ def dummy_ants_registration(*args, **kwargs):
     }
 
 
-def dummy_nnunet_prediction(*args, **kwargs):
-    """Mock function to replace nnUNet prediction in tests.
-
-    Test relies on segmentation cache being present, so this is a safeguard to ensure
-    that if the cache is missing, the test fails instead of running nnUNet.
-    """
-    raise RuntimeError("STOP! The cache failed and the script tried to run PyTorch!")
-
-
 @patch("ants.registration", new=dummy_ants_registration)
-@patch("cmb.source_space._run_nnunet_prediction", new=dummy_nnunet_prediction)
 def setup_and_save_source_space() -> None:
     """Set up the source space and save it to a pickle file."""
     get_cerebellum_data(cerebellum_data_dir)
