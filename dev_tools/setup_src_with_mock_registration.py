@@ -10,6 +10,7 @@ NOTE: nnU-Net predictions are not mocked and might still cause nondeterministic
 behavior.
 """
 
+import logging
 import os.path as op
 import pickle
 from pathlib import Path
@@ -18,6 +19,12 @@ from unittest.mock import patch
 from mne.datasets import sample
 
 from cmb import get_cerebellum_data, setup_full_source_space
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 # Set path to cerebellum data directory and output file for the source space.
 cerebellum_data_dir = Path("dir/here")
