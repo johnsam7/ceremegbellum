@@ -19,6 +19,7 @@ from numpy.typing import DTypeLike, NDArray
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "convert_to_ants_image",
     "load_image_volume",
     "load_label_map",
     "save_nifti_from_3darray",
@@ -30,6 +31,31 @@ __all__ = [
     "affine_transform",
     "find_connected_regions",
 ]
+
+
+def convert_to_ants_image(vol: np.ndarray, normalize: bool):
+    """
+    Convert a 3D numpy array to an ANTs image.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        3D numpy array to be converted.
+    normalize : bool
+        If True, normalize the input volume to the range [0, 1]
+        by dividing by its maximum value before conversion.
+
+    Returns
+    -------
+    ants.core.AntsImage
+        The converted ANTs image.
+    """
+    import ants
+
+    if normalize:
+        vol = vol / np.max(vol)
+
+    return ants.from_numpy(vol)
 
 
 def load_image_volume(

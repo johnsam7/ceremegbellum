@@ -21,6 +21,7 @@ from numpy.typing import NDArray
 
 from .helpers import (
     change_labels,
+    convert_to_ants_image,
     load_image_volume,
     load_label_map,
     save_nifti_from_3darray,
@@ -145,8 +146,7 @@ def _segment_cerebellum(
     assert brain_template_affine is not None, (
         "Brain template should have an affine matrix."
     )
-    brain_template = brain_template / np.max(brain_template)
-    template_ants = ants.from_numpy(brain_template)
+    template_ants = convert_to_ants_image(brain_template, normalize=True)
 
     # Load subject MRI.
     subject_mri, subject_affine = load_image_volume(
