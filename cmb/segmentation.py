@@ -350,7 +350,7 @@ def _segment_cerebellum(
 
     # Go back to subject space
     seg_reg_float: NDArray[np.float32] = ants.apply_transforms(
-        fixed=template_ants,
+        fixed=subject_brain_ants,
         moving=seg_complete_ants,
         transformlist=registration["invtransforms"],
         interpolator="genericLabel",
