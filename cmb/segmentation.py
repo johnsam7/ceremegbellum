@@ -156,6 +156,7 @@ def _segment_cerebellum(
         warnings.warn(
             "Subject MRI does not have an affine matrix.", UserWarning, stacklevel=2
         )
+    subject_brain_ants = convert_to_ants_image(subject_mri, normalize=True)
 
     output_folder = op.join(segm_data_dir, "tmp")
     reg_cache_file = op.join(output_folder, "registered", subject + "_reg_cache.pkl")
@@ -177,7 +178,7 @@ def _segment_cerebellum(
     else:
         # Register and save the result.
         registration, subj_registered = _register_subject_to_template(
-            subject_mri,
+            subject_brain_ants,
             template_ants,
             reg_cache_file,
         )
@@ -477,7 +478,7 @@ def _load_and_register_aseg(
 
 
 def _register_subject_to_template(
-    subject_mri: NDArray[np.float64],
+    subj_brain_ants: "ANTsImage",
     template_ants: "ANTsImage",
     reg_cache_file: str,
 ) -> tuple[dict, NDArray[np.float32]]:
@@ -488,9 +489,8 @@ def _register_subject_to_template(
 
     Parameters
     ----------
-    subject_mri : NDArray[np.float64]
-        The subject's MRI image. Does not need to be normalized, as it will be
-        normalized within this function.
+    subj_brain_ants : ANTsImage
+        The subject's brain MRI in ANTs format.
     template_ants : ANTsImage
         The template image in ANTs format.
     reg_cache_file : str
@@ -504,10 +504,6 @@ def _register_subject_to_template(
         The subject's MRI registered to the template space.
     """
     import ants
-
-    # Make sure that normalization is applied (no effect if already normalized).
-    subj_brain = subject_mri / np.max(subject_mri)
-    subj_brain_ants = ants.from_numpy(subj_brain)
 
     # Calculate registration.
     logger.info("Registering subject to template space...")
