@@ -11,6 +11,7 @@ import logging
 import os
 import os.path as op
 import pickle
+import shutil
 import warnings
 from typing import TYPE_CHECKING
 
@@ -506,10 +507,8 @@ def _register_subject_to_template(
     registration = ants.registration(
         fixed=template_ants, moving=subj_brain_ants, type_of_transform="SyNCC"
     )
-
     # Save registration cache.
-    with open(reg_cache_file, "wb") as f:
-        pickle.dump(registration, f)
+    registration = _save_registration(registration, reg_cache_file)
 
     # Apply registration.
     # NOTE: Downcasts to float32.
@@ -792,3 +791,44 @@ def _assemble_segmentation(
     seg_complete[ant_mask] = seg_ant[ant_mask]
 
     return seg_complete
+
+
+def _save_registration(registration: dict, registration_fname: str) -> dict:
+    """Save the ANTs registration results.
+
+    Copies the forward and inverse transform files to a permanent location, updates
+    the registration dictionary with the new paths, and saves the dictionary to a
+    pickle file. Returns the updated registration dictionary.
+    """
+    output_dir = op.dirname(registration_fname)
+    registration_permanent = registration.copy()  # Avoid modifying original dict
+
+    # Copy the forward and inverse transform files to the permanent output directory.
+    for transform_key in ["fwdtransforms", "invtransforms"]:
+        transform = registration_permanent[transform_key]
+        permanent_paths = _save_transform(transform, output_dir)
+        # Overwrite the temporary paths in the dictionary with the permanent ones
+        registration_permanent[transform_key] = permanent_paths
+
+    with open(registration_fname, "wb") as f:
+        pickle.dump(registration_permanent, f)
+    logger.info("Saved registration results to '%s'.", registration_fname)
+
+    return registration_permanent
+
+
+def _save_transform(transform: list[str], output_dir: str) -> list[str]:
+    """Copy the transform files to a permanent location and return the new paths."""
+    permanent_paths = []
+    # Loop over each file for the current transform.
+    for temp_path in transform:
+        # Extract just the filename (e.g., 'tmpxyzWarp.nii.gz').
+        filename = op.basename(temp_path)
+        perm_path = op.join(output_dir, filename)
+
+        if temp_path != perm_path and op.exists(temp_path):
+            shutil.copy(temp_path, perm_path)
+
+        permanent_paths.append(perm_path)
+
+    return permanent_paths
