@@ -587,6 +587,7 @@ def _split_cerebellar_hemis_aseg(
     ).reshape(27, 3)
 
     while len(unsigned_voxels) > 0:
+        starting_voxel_count = len(unsigned_voxels)
         assigned = np.zeros(len(unsigned_voxels))
         type_vals = []
         for c, vox in enumerate(unsigned_voxels):
@@ -614,6 +615,15 @@ def _split_cerebellar_hemis_aseg(
             type_vals
         )
         unsigned_voxels = unsigned_voxels[np.where(assigned == 0)]
+        if len(unsigned_voxels) == starting_voxel_count:
+            warnings.warn(
+                f"During the splitting of the cerebellar mask into left and right "
+                f"hemispheres, {len(unsigned_voxels)} voxels could not be assigned to "
+                "either hemisphere. Leaving them as background (label 0).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            break
 
     final_split = np.zeros(lh_rh_vol.shape, dtype=np.uint8)
     final_split[np.nonzero(mask_org)] = lh_rh_vol[np.nonzero(mask_org)]
