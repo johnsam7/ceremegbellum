@@ -72,10 +72,6 @@ def get_segmentation(
     segm_data_dir = op.join(cmb_path, "data", "segm_folder")
     os.makedirs(segm_data_dir, exist_ok=True)
 
-    mri_path = op.join(subjects_dir, subject, "mri", "orig.mgz")
-    if not op.exists(mri_path):
-        raise FileNotFoundError(f"Could not locate subject MRI at {mri_path}")
-
     if op.exists(op.join(segm_data_dir, subject + ".nii.gz")):
         logger.info(
             "Previous segmentation found on subject %s. Returning old segmentation.",
