@@ -156,28 +156,33 @@ def _segment_cerebellum(
     subject_brain_ants = convert_to_ants_image(subject_mri, normalize=True)
 
     output_folder = op.join(segm_data_dir, "tmp")
-    reg_cache_file = op.join(output_folder, "registered", subject + "_reg_cache.pkl")
-    reg_whole_img_fname = op.join(
-        output_folder, "registered", "whole", subject + "_0000.nii.gz"
-    )
+    reg_output_folder = op.join(output_folder, "registered")
+    reg_forward_fname = op.join(reg_output_folder, subject + "_reg_Composite.h5")
+    reg_inverse_fname = op.join(reg_output_folder, subject + "_reg_InverseComposite.h5")
+    reg_whole_img_fname = op.join(reg_output_folder, "whole", subject + "_0000.nii.gz")
+    reg_files = [reg_forward_fname, reg_inverse_fname, reg_whole_img_fname]
 
     # REGISTRATION TO TEMPLATE SPACE
 
     # Check if registration was already completed.
-    if op.exists(reg_cache_file) and op.exists(reg_whole_img_fname):
+    if all([op.exists(file) for file in reg_files]):
         logger.info(
-            "Previous registration found for subject %s. Loading cached transforms.",
+            "Previous registration found for subject %s. Using cached transforms.",
             subject,
         )
-        with open(reg_cache_file, "rb") as f:
-            registration = pickle.load(f)
+        # Mimic the registration dictionary structure returned by ants.registration.
+        registration = {
+            "fwdtransforms": [reg_forward_fname],
+            "invtransforms": [reg_inverse_fname],
+        }
         subj_registered, _ = load_image_volume(reg_whole_img_fname)
     else:
         # Register and save the result.
+        transform_prefix = reg_forward_fname.replace("Composite.h5", "")
         registration, subj_registered = _register_subject_to_template(
             subject_brain_ants,
             template_ants,
-            reg_cache_file,
+            transform_fname_prefix=transform_prefix,
         )
         _ = save_nifti_from_3darray(
             subj_registered,
@@ -477,7 +482,7 @@ def _load_and_register_aseg(
 def _register_subject_to_template(
     subj_brain_ants: "ANTsImage",
     template_ants: "ANTsImage",
-    reg_cache_file: str,
+    transform_fname_prefix: str,
 ) -> tuple[dict, NDArray[np.float32]]:
     """Register the subject's MRI to the template space using ANTs registration.
 
@@ -490,8 +495,10 @@ def _register_subject_to_template(
         The subject's brain MRI in ANTs format.
     template_ants : ANTsImage
         The template image in ANTs format.
-    reg_cache_file : str
-        Path to the file where the registration results will be cached.
+    transform_fname_prefix : str
+        The prefix for the filenames where the registration transforms will be saved.
+        ANTs saves forward transform to {transform_fname_prefix}Composite.h5 and inverse
+        transform to {transform_fname_prefix}InverseComposite.h5.
 
     Returns
     -------
@@ -505,10 +512,12 @@ def _register_subject_to_template(
     # Calculate registration.
     logger.info("Registering subject to template space...")
     registration = ants.registration(
-        fixed=template_ants, moving=subj_brain_ants, type_of_transform="SyNCC"
+        fixed=template_ants,
+        moving=subj_brain_ants,
+        type_of_transform="SyNCC",
+        outprefix=transform_fname_prefix,  # save transforms
+        write_composite_transform=True,  # combine warp and affine into a single file
     )
-    # Save registration cache.
-    registration = _save_registration(registration, reg_cache_file)
 
     # Apply registration.
     # NOTE: Downcasts to float32.
@@ -791,44 +800,3 @@ def _assemble_segmentation(
     seg_complete[ant_mask] = seg_ant[ant_mask]
 
     return seg_complete
-
-
-def _save_registration(registration: dict, registration_fname: str) -> dict:
-    """Save the ANTs registration results.
-
-    Copies the forward and inverse transform files to a permanent location, updates
-    the registration dictionary with the new paths, and saves the dictionary to a
-    pickle file. Returns the updated registration dictionary.
-    """
-    output_dir = op.dirname(registration_fname)
-    registration_permanent = registration.copy()  # Avoid modifying original dict
-
-    # Copy the forward and inverse transform files to the permanent output directory.
-    for transform_key in ["fwdtransforms", "invtransforms"]:
-        transform = registration_permanent[transform_key]
-        permanent_paths = _save_transform(transform, output_dir)
-        # Overwrite the temporary paths in the dictionary with the permanent ones
-        registration_permanent[transform_key] = permanent_paths
-
-    with open(registration_fname, "wb") as f:
-        pickle.dump(registration_permanent, f)
-    logger.info("Saved registration results to '%s'.", registration_fname)
-
-    return registration_permanent
-
-
-def _save_transform(transform: list[str], output_dir: str) -> list[str]:
-    """Copy the transform files to a permanent location and return the new paths."""
-    permanent_paths = []
-    # Loop over each file for the current transform.
-    for temp_path in transform:
-        # Extract just the filename (e.g., 'tmpxyzWarp.nii.gz').
-        filename = op.basename(temp_path)
-        perm_path = op.join(output_dir, filename)
-
-        if temp_path != perm_path and op.exists(temp_path):
-            shutil.copy(temp_path, perm_path)
-
-        permanent_paths.append(perm_path)
-
-    return permanent_paths
