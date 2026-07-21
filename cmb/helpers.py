@@ -136,9 +136,13 @@ def load_label_map(
         label_map.dtype,
     )
     if dtype is None:
+        # Go with the original data type.
+        return label_map, affine
+    dtype = np.dtype(dtype)
+    if dtype == label_map.dtype:
+        # Already the requested type, no need to cast.
         return label_map, affine
     # Make sure the cast would not cause overflow.
-    dtype = np.dtype(dtype)
     _assert_safe_label_map_cast(fname, dtype, label_map)
     # Do the safe cast.
     logger.debug("Casting label map %s to dtype %s", fname, dtype)
