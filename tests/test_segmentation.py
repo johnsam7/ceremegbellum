@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 import nibabel as nib
 import numpy as np
+import pytest
 from mne.datasets import sample
 from numpy.testing import assert_allclose, assert_array_equal
 from pytest import MonkeyPatch
@@ -13,6 +14,7 @@ from pytest import MonkeyPatch
 from cmb.segmentation import get_segmentation
 
 
+@pytest.mark.requires_data
 def test_segmentation_with_cache(tmp_path: Path) -> None:
     """Test the segmentation on MNE sample subject against a reference segmentation.
 
