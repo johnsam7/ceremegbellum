@@ -405,21 +405,23 @@ def setup_full_source_space(
     Parameters
     ----------
     subject : str
-        Subject name.
+        The FreeSurfer subject name.
     subjects_dir : str
-        Subjects directory.
+        Path to the FreeSurfer subjects directory.
     cerb_dir : str, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
-    plot_cerebellum : Boolean
-        If True, will plot sagittal cross-sectional plots of the cerebellar
-        source space superposed on subject MR data.
+    cerb_subsampling : 'full' | 'sparse' | 'dense'
+        The spacing to use for the cerebellum. Can be either full, sparse or dense.
     spacing : str
         The spacing to use for cortex. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
         or ``'all'`` for all points.
-    cerb_subsampling : 'full' | 'sparse' | 'dense'
-        The spacing to use for the cerebellum. Can be either full, sparse or dense.
+    plot_cerebellum : Boolean
+        If True, will plot sagittal cross-sectional plots of the cerebellar
+        source space superposed on subject MR data.
+    debug_mode : Boolean
+        If True, intermediate results will be saved to disk.
 
 
     Returns
