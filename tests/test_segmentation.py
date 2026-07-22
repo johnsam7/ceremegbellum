@@ -112,6 +112,17 @@ def test_segmentation_with_mock_data_and_mock_predictions(
     # Verify the mock intercepted exactly 4 nnUNet tasks (Mask, LH, RH, Lobe Refine)
     assert mock_nnunet.call_count == 4
 
+    # Verify that the segmentation was also saved to the expected output path.
+    saved_segmentation_fname = template_dir / "segm_folder" / f"{subject}.nii.gz"
+    assert saved_segmentation_fname.exists(), "Segmentation file was not saved."
+
+    saved_segmentation_nifti = nib.Nifti1Image.from_filename(saved_segmentation_fname)
+    assert_array_equal(
+        np.asanyarray(segmentation_nifti.dataobj),
+        np.asanyarray(saved_segmentation_nifti.dataobj),
+        err_msg="Saved segmentation does not match returned segmentation.",
+    )
+
 
 def _set_up_cmb_data(zipped_data_path: Path, output_dir: Path) -> None:
     """Extract CMB data to given output directory.
