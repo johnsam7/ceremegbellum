@@ -31,3 +31,6 @@ htmlcov/
 .vscode/
 *.swp
 *.swo
+
+# Test data
+tests/data/
