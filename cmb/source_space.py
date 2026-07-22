@@ -391,6 +391,7 @@ def calculate_normals(
 def setup_full_source_space(
     subject,
     subjects_dir,
+    cerb_src_geometry=None,
     cerb_dir=None,
     cerb_subsampling="sparse",
     spacing="oct6",
@@ -408,6 +409,10 @@ def setup_full_source_space(
         The FreeSurfer subject name.
     subjects_dir : str
         Path to the FreeSurfer subjects directory.
+    cerb_src_geometry : dict, optional
+        Dictionary containing the cerebellar source space geometry as returned by
+        ``setup_cerebellum_source_space``. If None, the function will call
+        ``setup_cerebellum_source_space`` to create the cerebellar source space.
     cerb_dir : str, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
@@ -447,18 +452,21 @@ def setup_full_source_space(
     if spacing == "all":
         src_cort[0]["use_tris"] = src_cort[0]["tris"]
         src_cort[1]["use_tris"] = src_cort[1]["tris"]
-    cerb_subj_data = setup_cerebellum_source_space(
-        subjects_dir,
-        subject,
-        cerb_dir,
-        calc_nn=True,
-        cerebellum_subsampling=cerb_subsampling,
-        print_fs=True,
-        plot=plot_cerebellum,
-        mirror=False,
-        post_process=True,
-        debug_mode=debug_mode,
-    )
+    if cerb_src_geometry is not None:
+        cerb_subj_data = cerb_src_geometry
+    else:
+        cerb_subj_data = setup_cerebellum_source_space(
+            subjects_dir,
+            subject,
+            cerb_dir,
+            calc_nn=True,
+            cerebellum_subsampling=cerb_subsampling,
+            print_fs=True,
+            plot=plot_cerebellum,
+            mirror=False,
+            post_process=True,
+            debug_mode=debug_mode,
+        )
     cb_data = pickle.load(open(os.path.join(cerb_dir, "data", "cerebellum_geo"), "rb"))
     rr = (
         mne.read_surface(os.path.join(cerb_dir, "data", subject + "_cerb_cxw.fs"))[0]
