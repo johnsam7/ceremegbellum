@@ -10,8 +10,6 @@
 import logging
 import os
 import os.path as op
-import pickle
-import shutil
 import warnings
 from typing import TYPE_CHECKING
 
