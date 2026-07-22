@@ -8,6 +8,7 @@ import nibabel as nib
 import numpy as np
 from mne.datasets import sample
 from numpy.testing import assert_allclose, assert_array_equal
+from pytest import MonkeyPatch
 
 from cmb.segmentation import get_segmentation
 
@@ -59,7 +60,7 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
 
 
 def test_segmentation_with_mock_data_and_mock_predictions(
-    tmp_path, monkeypatch
+    tmp_path: Path, monkeypatch: MonkeyPatch
 ) -> None:
     """Test segmentation with mock data and a mocked nnU-Net prediction function."""
     rng = np.random.default_rng(seed=42)  # For reproducibility
