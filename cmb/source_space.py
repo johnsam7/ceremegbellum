@@ -467,7 +467,6 @@ def setup_full_source_space(
             post_process=True,
             debug_mode=debug_mode,
         )
-    cb_data = pickle.load(open(os.path.join(cerb_dir, "data", "cerebellum_geo"), "rb"))
     rr = (
         mne.read_surface(os.path.join(cerb_dir, "data", subject + "_cerb_cxw.fs"))[0]
         / 1000
