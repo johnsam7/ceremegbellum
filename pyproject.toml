@@ -73,3 +73,8 @@ ignore-decorators = [
 
 [tool.pyright]
 typeCheckingMode = "standard"
+
+[tool.pytest]
+markers = [
+    "requires_data: marks tests that require external data (deselect with '-m \"not requires_data\"')",
+]

@@ -1,8 +1,9 @@
 name: CI
 
 on:
-  pull_request:
-  push:
+  pull_request: 
+  push: 
+    branches: ["main"]
   workflow_dispatch:
   schedule:
     - cron: '30 9 * * 1'
@@ -11,16 +12,16 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -29,4 +30,4 @@ jobs:
         run: pip install -e ".[test]"
 
       - name: Run tests
-        run: pytest
+        run: pytest tests/ -m "not requires_data"
