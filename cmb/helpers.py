@@ -135,6 +135,11 @@ def load_label_map(
         label_map.shape,
         label_map.dtype,
     )
+    # Ensure the array is in the CPU's native byte order to prevent C++ crashes.
+    if not label_map.dtype.isnative:
+        logger.debug("Converting %s to native byte order.", fname)
+        # '=' forces the dtype to the system's native byte order
+        label_map = label_map.astype(label_map.dtype.newbyteorder("="))
     if dtype is None:
         # Go with the original data type.
         return label_map, affine
