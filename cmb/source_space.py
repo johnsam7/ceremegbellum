@@ -15,6 +15,7 @@ them with MNE-Python cortical source spaces.
 import logging
 import os.path as op
 import pickle
+from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
@@ -23,6 +24,9 @@ from numpy.typing import NDArray
 from .helpers import affine_transform, change_labels, load_image_volume
 from .segmentation import get_segmentation
 from .visualization import plot_sagittal
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +195,7 @@ def setup_cerebellum_source_space(
 
     # Clean up the resampled volume by removing low value voxels.
     # Voxels with value below 10 are set to zero.
-    hr_rs = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
+    hr_volume_resampled = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
 
     # Resample the segmentation to the subject's segmentation size.
     hr_labels_scaled = _scale_labels_majority_vote(
@@ -205,35 +209,42 @@ def setup_cerebellum_source_space(
 
     logger.info("Done setting up adaptation to subject.")
 
-    # Register labels of high resolution atlas to labels of subject's segmentation-
+    # Register labels of high resolution atlas to labels of subject's segmentation.
     subj_label_ants = ants.from_numpy(subject_labels.astype(float))
     hr_label_ants = ants.from_numpy(hr_labels_scaled.astype(float))
     logger.info("Fitting labels... ")
+    # Compute the registration.
     reg = registration(
         fixed=subj_label_ants, moving=hr_label_ants, type_of_transform="SyNCC"
     )
+    # Apply the registration to both volume labels and the mesh vertices.
     warped_hr_labels = apply_transforms(
         fixed=subj_label_ants,
         moving=hr_label_ants,
         transformlist=reg["fwdtransforms"],
         interpolator="genericLabel",
     )
-    vox_dir = {"x": list(rr[:, 0]), "y": list(rr[:, 1]), "z": list(rr[:, 2])}
-    pts = pd.DataFrame(data=vox_dir)
-    rrw_0 = np.array(apply_transforms_to_points(3, pts, reg["invtransforms"]))
+    # NOTE: Intentionally using invtransforms to warp the mesh to the subject space.
+    warped_rr = np.array(
+        apply_transforms_to_points(3, _coords_to_dataframe(rr), reg["invtransforms"])
+    )
 
     logger.info("Fitting contrast... ")
     subj_contrast = subj_contrast / np.max(subj_contrast)
-    hr_rs = hr_rs / np.max(hr_rs)
+    hr_volume_resampled = hr_volume_resampled / np.max(hr_volume_resampled)
     subj_ants = ants.from_numpy(subj_contrast)
-    hr_rs_ants = ants.from_numpy(hr_rs)
+    hr_rs_ants = ants.from_numpy(hr_volume_resampled)
+
     hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
     reg = registration(fixed=subj_ants, moving=hr_ants, type_of_transform="SyNCC")
-    vox_dir = {"x": list(rrw_0[:, 0]), "y": list(rrw_0[:, 1]), "z": list(rrw_0[:, 2])}
-    pts = pd.DataFrame(data=vox_dir)
-    rrw_1 = np.array(apply_transforms_to_points(3, pts, reg["invtransforms"]))
+
+    rrw_1 = np.array(
+        apply_transforms_to_points(
+            3, _coords_to_dataframe(warped_rr), reg["invtransforms"]
+        )
+    )
     hr_label_final = apply_transforms(
         fixed=subj_ants,
         moving=warped_hr_labels,
@@ -271,6 +282,14 @@ def setup_cerebellum_source_space(
         logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
+
+
+def _coords_to_dataframe(rr) -> "DataFrame":
+    """Convert (N, 3) array of coords to a pandas DataFrame 'x', 'y', 'z'."""
+    import pandas as pd
+
+    rr_dictionary = {"x": list(rr[:, 0]), "y": list(rr[:, 1]), "z": list(rr[:, 2])}
+    return pd.DataFrame(data=rr_dictionary)
 
 
 def _align_mesh_to_volume(
