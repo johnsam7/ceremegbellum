@@ -85,6 +85,11 @@ def setup_cerebellum_source_space(
     """
     import ants
     import pandas as pd
+    from ants.registration import (
+        apply_transforms,
+        apply_transforms_to_points,
+        registration,
+    )
     from scipy import signal
 
     if cmb_path is None:
@@ -200,15 +205,14 @@ def setup_cerebellum_source_space(
 
     logger.info("Done setting up adaptation to subject.")
 
-    # Register
-
-    logger.info("Fitting labels... ")
+    # Register labels of high resolution atlas to labels of subject's segmentation-
     subj_label_ants = ants.from_numpy(subject_labels.astype(float))
     hr_label_ants = ants.from_numpy(hr_labels_scaled.astype(float))
-    reg = ants.registration(
+    logger.info("Fitting labels... ")
+    reg = registration(
         fixed=subj_label_ants, moving=hr_label_ants, type_of_transform="SyNCC"
     )
-    def_hr_label = ants.apply_transforms(
+    warped_hr_labels = apply_transforms(
         fixed=subj_label_ants,
         moving=hr_label_ants,
         transformlist=reg["fwdtransforms"],
@@ -216,23 +220,23 @@ def setup_cerebellum_source_space(
     )
     vox_dir = {"x": list(rr[:, 0]), "y": list(rr[:, 1]), "z": list(rr[:, 2])}
     pts = pd.DataFrame(data=vox_dir)
-    rrw_0 = np.array(ants.apply_transforms_to_points(3, pts, reg["invtransforms"]))
+    rrw_0 = np.array(apply_transforms_to_points(3, pts, reg["invtransforms"]))
 
     logger.info("Fitting contrast... ")
     subj_contrast = subj_contrast / np.max(subj_contrast)
     hr_rs = hr_rs / np.max(hr_rs)
     subj_ants = ants.from_numpy(subj_contrast)
     hr_rs_ants = ants.from_numpy(hr_rs)
-    hr_ants = ants.apply_transforms(
+    hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
-    reg = ants.registration(fixed=subj_ants, moving=hr_ants, type_of_transform="SyNCC")
+    reg = registration(fixed=subj_ants, moving=hr_ants, type_of_transform="SyNCC")
     vox_dir = {"x": list(rrw_0[:, 0]), "y": list(rrw_0[:, 1]), "z": list(rrw_0[:, 2])}
     pts = pd.DataFrame(data=vox_dir)
-    rrw_1 = np.array(ants.apply_transforms_to_points(3, pts, reg["invtransforms"]))
-    hr_label_final = ants.apply_transforms(
+    rrw_1 = np.array(apply_transforms_to_points(3, pts, reg["invtransforms"]))
+    hr_label_final = apply_transforms(
         fixed=subj_ants,
-        moving=def_hr_label,
+        moving=warped_hr_labels,
         transformlist=reg["fwdtransforms"],
         interpolator="genericLabel",
     )
