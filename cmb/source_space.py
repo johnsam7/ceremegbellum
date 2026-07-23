@@ -156,18 +156,18 @@ def setup_cerebellum_source_space(
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
     cerb_coords = np.nonzero(subj_segm)  # cerebellum is nonzero in segmentation
-    subj_segm_cropped = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
+    subj_segm = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
 
     subj_contrast = np.zeros(subj_mri.shape)
     # Fill the cerebellum region with MRI values.
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
-    subj_contrast_cropped = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
+    subj_contrast = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     logger.info("Setting up adaptation to subject... ")
     hr_vol_scaled = hr_vol
     for axis in range(0, 3):
         hr_vol_scaled = signal.resample(
-            hr_vol_scaled, num=subj_segm_cropped.shape[axis], axis=axis
+            hr_vol_scaled, num=subj_segm.shape[axis], axis=axis
         )
     scf = np.array(hr_vol_scaled.shape) / np.array(hr_vol.shape)
     for x in range(3):
@@ -182,16 +182,16 @@ def setup_cerebellum_source_space(
     # scale labels matrix (by type value vote)
     hr_label_scaled = np.zeros(
         (
-            subj_segm_cropped.shape[0],
-            subj_segm_cropped.shape[1],
-            subj_segm_cropped.shape[2],
+            subj_segm.shape[0],
+            subj_segm.shape[1],
+            subj_segm.shape[2],
         )
     )
     count_matrix = np.zeros(
         (
-            subj_segm_cropped.shape[0],
-            subj_segm_cropped.shape[1],
-            subj_segm_cropped.shape[2],
+            subj_segm.shape[0],
+            subj_segm.shape[1],
+            subj_segm.shape[2],
             100,
         )
     )
@@ -210,9 +210,9 @@ def setup_cerebellum_source_space(
                 count_matrix[target_vox[0], target_vox[1], target_vox[2], ind] = (
                     hr_segm[x, y, z]
                 )
-    for x in range(subj_segm_cropped.shape[0]):
-        for y in range(subj_segm_cropped.shape[1]):
-            for z in range(subj_segm_cropped.shape[2]):
+    for x in range(subj_segm.shape[0]):
+        for y in range(subj_segm.shape[1]):
+            for z in range(subj_segm.shape[2]):
                 votes = count_matrix[x, y, z, :]
                 votes = votes[~np.isnan(votes)]
                 hr_label_scaled[x, y, z] = np.bincount(votes.astype(int)).argmax()
@@ -229,7 +229,7 @@ def setup_cerebellum_source_space(
     logger.info("Done setting up adaptation to subject.")
 
     # Register
-    subj_vec = subj_segm_cropped
+    subj_vec = subj_segm
     hr_vec = hr_label_scaled
 
     logger.info("Fitting labels... ")
@@ -249,9 +249,9 @@ def setup_cerebellum_source_space(
     rrw_0 = np.array(ants.apply_transforms_to_points(3, pts, reg["invtransforms"]))
 
     logger.info("Fitting contrast... ")
-    subj_contrast_cropped = subj_contrast_cropped / np.max(subj_contrast_cropped)
+    subj_contrast = subj_contrast / np.max(subj_contrast)
     hr_rs = hr_rs / np.max(hr_rs)
-    subj_ants = ants.from_numpy(subj_contrast_cropped)
+    subj_ants = ants.from_numpy(subj_contrast)
     hr_rs_ants = ants.from_numpy(hr_rs)
     hr_ants = ants.apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
