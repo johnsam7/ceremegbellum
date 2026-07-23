@@ -145,7 +145,7 @@ def setup_cerebellum_source_space(
             debug_mode=debug_mode,
         ).dataobj
     )
-    subj = np.asanyarray(
+    subj_mri = np.asanyarray(
         nib.load(os.path.join(subjects_dir, subject, "mri", "orig.mgz")).dataobj
     )
 
@@ -153,16 +153,16 @@ def setup_cerebellum_source_space(
     pad = 3
     cerb_coords = np.nonzero(subj_segm)
     cb_range = [
-        [np.min(np.nonzero(subj_segm)[x]) - pad for x in range(3)],
-        [np.max(np.nonzero(subj_segm)[x]) + pad for x in range(3)],
+        [np.min(cerb_coords[x]) - pad for x in range(3)],
+        [np.max(cerb_coords[x]) + pad for x in range(3)],
     ]
     subj_segm = subj_segm[
         cb_range[0][0] : cb_range[1][0],
         cb_range[0][1] : cb_range[1][1],
         cb_range[0][2] : cb_range[1][2],
     ]
-    subj_contrast = np.zeros(subj.shape)
-    subj_contrast[cerb_coords] = subj[cerb_coords]
+    subj_contrast = np.zeros(subj_mri.shape)
+    subj_contrast[cerb_coords] = subj_mri[cerb_coords]
     subj_contrast = subj_contrast[
         cb_range[0][0] : cb_range[1][0],
         cb_range[0][1] : cb_range[1][1],
@@ -282,7 +282,7 @@ def setup_cerebellum_source_space(
     # Visualize results as sagittal (x=const) cross-sections
     if plot:
         fig, ax = plot_sagittal(
-            subj, title="Warped points in subj vol", rr=rr_p, tris=tris
+            subj_mri, title="Warped points in subj vol", rr=rr_p, tris=tris
         )
 
     if print_fs:
