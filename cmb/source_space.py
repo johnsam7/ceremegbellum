@@ -12,6 +12,7 @@ them with MNE-Python cortical source spaces.
 # License: MIT
 # ---------------------------------------------------------------------------
 
+import logging
 import os
 import pickle
 
@@ -22,6 +23,8 @@ from numpy.typing import NDArray
 from .helpers import affine_transform, change_labels
 from .segmentation import get_segmentation
 from .visualization import plot_sagittal
+
+logger = logging.getLogger(__name__)
 
 
 def print_fs_surf(rr, tris, fname, mirror=False):
@@ -89,7 +92,7 @@ def setup_cerebellum_source_space(
 
         cmb_path = CMB_DATA_DIR
 
-    print("starting subject " + subject + "...")
+    logger.info("Starting to set up cerebellar source space for subject %s", subject)
     # Load data
     subj_cerb = {}
     data_dir = os.path.join(cmb_path, "data")
@@ -156,10 +159,11 @@ def setup_cerebellum_source_space(
     subj_segm_cropped = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
 
     subj_contrast = np.zeros(subj_mri.shape)
+    # Fill the cerebellum region with MRI values.
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
     subj_contrast_cropped = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
-    print("Setting up adaptation to subject... ", end="", flush=True)
+    logger.info("Setting up adaptation to subject... ")
     hr_vol_scaled = hr_vol
     for axis in range(0, 3):
         hr_vol_scaled = signal.resample(
@@ -222,14 +226,13 @@ def setup_cerebellum_source_space(
         axis=0,
     )
     rr = rr + correction_vector_2
-    print("Done.")
+    logger.info("Done setting up adaptation to subject.")
 
     # Register
-    print("Fitting... ", end="", flush=True)
     subj_vec = subj_segm_cropped
     hr_vec = hr_label_scaled
 
-    print("Fitting labels... ", end="", flush=True)
+    logger.info("Fitting labels... ")
     subj_label_ants = ants.from_numpy(subj_vec.astype(float))
     hr_label_ants = ants.from_numpy(hr_label_scaled.astype(float))
     reg = ants.registration(
@@ -245,7 +248,7 @@ def setup_cerebellum_source_space(
     pts = pd.DataFrame(data=vox_dir)
     rrw_0 = np.array(ants.apply_transforms_to_points(3, pts, reg["invtransforms"]))
 
-    print("Fitting contrast... ")
+    logger.info("Fitting contrast... ")
     subj_contrast_cropped = subj_contrast_cropped / np.max(subj_contrast_cropped)
     hr_rs = hr_rs / np.max(hr_rs)
     subj_ants = ants.from_numpy(subj_contrast_cropped)
@@ -267,16 +270,16 @@ def setup_cerebellum_source_space(
     rr_p = rrw_1 + cb_range[0]
     subj_cerb.update({"rr": rr_p})
     subj_cerb.update({"tris": tris})
-    print("Done.")
+    logger.info("Done.")
 
     if calc_nn:
-        print("Calculating normals on deformed surface...", end="", flush=True)
+        logger.info("Calculating normals on deformed surface...")
         (nn_def, area, area_list, nan_vertices) = calculate_normals(
             rr_p, tris, print_info=False
         )
         subj_cerb.update({"nn": nn_def})
         subj_cerb.update({"nan_nn": nan_vertices})
-        print("Done.")
+        logger.info("Done.")
 
     # Visualize results as sagittal (x=const) cross-sections
     if plot:
@@ -285,14 +288,13 @@ def setup_cerebellum_source_space(
         )
 
     if print_fs:
-        print("Saving cerebellar surface as fs files...")
+        logger.info("Saving cerebellar surface as fs files...")
         rr_def = rr_p.copy()
         for x in range(3):
             rr_def[:, x] = rr_p[:, x]
-        print_fs_surf(
-            rr_def, tris, os.path.join(data_dir, subject + "_cerb_cxw.fs"), mirror
-        )
-        print("Saved to " + os.path.join(data_dir, subject + "_cerb_cxw.fs"))
+        fs_fname = os.path.join(data_dir, subject + "_cerb_cxw.fs")
+        print_fs_surf(rr_def, tris, fs_fname, mirror)
+        logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
 
@@ -387,8 +389,9 @@ def calculate_normals(
             )
 
     if solid_angle_calc == True:
-        print("solid_angle at the point of observation estimated to:")
-        print(solid_angle)
+        logger.debug(
+            "solid_angle at the point of observation estimated to be %f", solid_angle
+        )
 
     nn = np.zeros((len(rr), 3))
     for c, ele in enumerate(A):
@@ -411,9 +414,9 @@ def calculate_normals(
                 nan_vertices.append(c)
 
     if print_info:
-        print("number of nan normals that have been smoothed = " + str(count))
-        print("Remaining NAN normals = " + str(len(nan_vertices)))
-        print("Total surface area: " + str(area))
+        logger.debug("number of nan normals that have been smoothed = %d", count)
+        logger.debug("Remaining NAN normals = %d", len(nan_vertices))
+        logger.debug("Total surface area: %f", area)
 
     return (nn, area, area_list, nan_vertices)
 
