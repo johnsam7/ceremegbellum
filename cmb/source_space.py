@@ -93,7 +93,6 @@ def setup_cerebellum_source_space(
 
     """
     import ants
-    import pandas as pd
     from ants.registration import (
         apply_transforms,
         apply_transforms_to_points,
@@ -107,7 +106,6 @@ def setup_cerebellum_source_space(
         cmb_path = CMB_DATA_DIR
 
     logger.info("Starting to set up cerebellar source space for subject... %s", subject)
-    subj_cerb = {}
     data_dir = op.join(cmb_path, "data")
 
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
@@ -238,12 +236,16 @@ def setup_cerebellum_source_space(
     subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
     hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
 
+    # Apply the same registration that was used for the labels to warp the atlas volume
+    # to the subject space.
     hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
+    # Register the warped atlas volume to the subject volume to refine the registration.
     reg = registration(fixed=subj_ants, moving=hr_ants, type_of_transform="SyNCC")
 
-    rrw_1 = np.array(
+    # Apply the refined registration to both volume and mesh.
+    rr_double_warped = np.array(
         apply_transforms_to_points(
             3, _coords_to_dataframe(warped_rr), reg["invtransforms"]
         )
@@ -254,32 +256,34 @@ def setup_cerebellum_source_space(
         transformlist=reg["fwdtransforms"],
         interpolator="genericLabel",
     )
+    # Go from bounding box coordinates back to subject voxel coordinates.
+    rr_final = rr_double_warped + cb_range[0]
 
-    rr_p = rrw_1 + cb_range[0]
-    subj_cerb.update({"rr": rr_p})
-    subj_cerb.update({"tris": tris})
+    subj_cerb = dict()
+    subj_cerb["rr"] = rr_final
+    subj_cerb["tris"] = tris
     logger.info("Done.")
 
     if calc_nn:
         logger.info("Calculating normals on deformed surface...")
         (nn_def, area, area_list, nan_vertices) = calculate_normals(
-            rr_p, tris, print_info=False
+            rr_final, tris, print_info=False
         )
-        subj_cerb.update({"nn": nn_def})
-        subj_cerb.update({"nan_nn": nan_vertices})
+        subj_cerb["nn"] = nn_def
+        subj_cerb["nan_nn"] = nan_vertices
         logger.info("Done.")
 
     # Visualize results as sagittal (x=const) cross-sections
     if plot:
         fig, ax = plot_sagittal(
-            subj_mri, title="Warped points in subj vol", rr=rr_p, tris=tris
+            subj_mri, title="Warped points in subj vol", rr=rr_final, tris=tris
         )
 
     if print_fs:
         logger.info("Saving cerebellar surface as fs files...")
-        rr_def = rr_p.copy()
+        rr_def = rr_final.copy()
         for x in range(3):
-            rr_def[:, x] = rr_p[:, x]
+            rr_def[:, x] = rr_final[:, x]
         fs_fname = op.join(data_dir, subject + "_cerb_cxw.fs")
         print_fs_surf(rr_def, tris, fs_fname, mirror)
         logger.info("Saved to %s", fs_fname)
