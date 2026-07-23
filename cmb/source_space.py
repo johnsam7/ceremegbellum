@@ -150,14 +150,14 @@ def setup_cerebellum_source_space(
         nib.load(os.path.join(subjects_dir, subject, "mri", "orig.mgz")).dataobj
     )
 
-    # Mask cerebellum
+    # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
     cerb_coords = np.nonzero(subj_segm)  # cerebellum is nonzero in segmentation
     subj_segm_cropped = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
 
     subj_contrast = np.zeros(subj_mri.shape)
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
-    subj_contrast = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
+    subj_contrast_cropped = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     print("Setting up adaptation to subject... ", end="", flush=True)
     hr_vol_scaled = hr_vol
@@ -246,9 +246,9 @@ def setup_cerebellum_source_space(
     rrw_0 = np.array(ants.apply_transforms_to_points(3, pts, reg["invtransforms"]))
 
     print("Fitting contrast... ")
-    subj_contrast = subj_contrast / np.max(subj_contrast)
+    subj_contrast_cropped = subj_contrast_cropped / np.max(subj_contrast_cropped)
     hr_rs = hr_rs / np.max(hr_rs)
-    subj_ants = ants.from_numpy(subj_contrast)
+    subj_ants = ants.from_numpy(subj_contrast_cropped)
     hr_rs_ants = ants.from_numpy(hr_rs)
     hr_ants = ants.apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
