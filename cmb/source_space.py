@@ -21,7 +21,12 @@ import nibabel as nib
 import numpy as np
 from numpy.typing import NDArray
 
-from .helpers import affine_transform, change_labels, load_image_volume
+from .helpers import (
+    affine_transform,
+    change_labels,
+    convert_to_ants_image,
+    load_image_volume,
+)
 from .segmentation import get_segmentation
 from .visualization import plot_sagittal
 
@@ -230,10 +235,8 @@ def setup_cerebellum_source_space(
     )
 
     logger.info("Fitting contrast... ")
-    subj_contrast = subj_contrast / np.max(subj_contrast)
-    hr_volume_resampled = hr_volume_resampled / np.max(hr_volume_resampled)
-    subj_ants = ants.from_numpy(subj_contrast)
-    hr_rs_ants = ants.from_numpy(hr_volume_resampled)
+    subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
+    hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
 
     hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
