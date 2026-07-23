@@ -92,14 +92,15 @@ def setup_cerebellum_source_space(
 
         cmb_path = CMB_DATA_DIR
 
-    logger.info("Starting to set up cerebellar source space for subject %s", subject)
-    # Load data
+    logger.info("Starting to set up cerebellar source space for subject... %s", subject)
     subj_cerb = {}
     data_dir = op.join(cmb_path, "data")
 
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
         cb_data = pickle.load(cb_geo_file)
 
+    # Load the high-resolution cerebellar mesh. The mesh is in the voxel space of the
+    # high-resolution cerebellar volume.
     if cerebellum_subsampling == "full":
         rr = cb_data["verts_normal"]
         tris = cb_data["faces"]
@@ -183,29 +184,19 @@ def setup_cerebellum_source_space(
     logger.debug("Shape of resampled atlas: %s", hr_vol_scaled.shape)
     logger.debug("Scaling factor: %s", scaling_factor)
 
-    # Scale the vertex coordinates to match the resampled volume.
-    for x in range(3):
-        rr[:, x] = rr[:, x] * scaling_factor[x]
-
     # Clean up the resampled volume by removing low value voxels.
     # Voxels with value below 10 are set to zero.
     hr_rs = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
 
-    non_zero_coo_50 = np.argwhere(hr_vol_scaled > 50)
-
+    # Resample the segmentation to the subject's segmentation size.
     hr_label_scaled = _scale_labels_majority_vote(hr_segm, subj_segm, scaling_factor)
 
-    # Correct verts by co-registering lower left posterior and upper right anterior corners
-    correction_vector_2 = np.mean(
-        [
-            np.min(non_zero_coo_50, axis=0) - np.min(rr, axis=0),
-            np.max(non_zero_coo_50, axis=0) - np.max(rr, axis=0),
-        ],
-        axis=0,
-    )
-    rr = rr + correction_vector_2
-    logger.info("Done setting up adaptation to subject.")
+    # Correct vertices by co-registering lower left posterior and upper right
+    # anterior corners between scaled volume and mesh.
+    non_zero_coords_50 = np.argwhere(hr_vol_scaled > 50)
+    rr = _align_mesh_to_volume(rr, scaling_factor, target_coords=non_zero_coords_50)
 
+    logger.info("Done setting up adaptation to subject.")
     # Register
     subj_vec = subj_segm
     hr_vec = hr_label_scaled
@@ -275,6 +266,46 @@ def setup_cerebellum_source_space(
         logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
+
+
+def _align_mesh_to_volume(
+    rr: NDArray, scaling_factor: NDArray, target_coords: NDArray
+) -> NDArray:
+    """Scale and spatially translates surface mesh to align with a target bounding box.
+
+    Parameters
+    ----------
+    rr : NDArray
+        The N x 3 array of mesh vertices in the source voxel space.
+    scaling_factor : NDArray
+        The scaling factors for the X, Y, and Z axes (3 elements).
+    target_coords : NDArray
+        The coordinates of the target volume (e.g., high-intensity voxels) used
+        to calculate the target bounding box.
+
+    Returns
+    -------
+    NDArray
+        The scaled and spatially shifted N x 3 mesh vertices.
+    """
+    rr_scaled = rr * scaling_factor
+
+    # Correct vertices by co-registering lower left posterior and upper right
+    # anterior corners.
+    target_min_coords = np.min(target_coords, axis=0)
+    target_max_coords = np.max(target_coords, axis=0)
+    mesh_min = np.min(rr_scaled, axis=0)
+    mesh_max = np.max(rr_scaled, axis=0)
+
+    correction_vector_2 = np.mean(
+        [
+            target_min_coords - mesh_min,
+            target_max_coords - mesh_max,
+        ],
+        axis=0,
+    )
+
+    return rr_scaled + correction_vector_2
 
 
 def _scale_labels_majority_vote(
