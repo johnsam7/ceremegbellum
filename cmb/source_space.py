@@ -145,7 +145,7 @@ def setup_cerebellum_source_space(
         hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
     # Get subject segmentation (registered to brain.mgz).
-    subj_segm = np.asanyarray(
+    subject_labels = np.asanyarray(
         get_segmentation(
             subjects_dir,
             subject,
@@ -159,8 +159,8 @@ def setup_cerebellum_source_space(
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
-    cerb_coords = np.nonzero(subj_segm)  # cerebellum is nonzero in segmentation
-    subj_segm = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
+    cerb_coords = np.nonzero(subject_labels)  # cerebellum is nonzero in segmentation
+    subject_labels = _crop_image_volume(subject_labels, cerb_coords, pad=pad)
 
     subj_contrast = np.zeros(subj_mri.shape)
     # Fill the cerebellum region with MRI values.
@@ -173,7 +173,7 @@ def setup_cerebellum_source_space(
     hr_vol_scaled = hr_vol
     for axis in range(3):
         hr_vol_scaled = signal.resample(
-            hr_vol_scaled, num=subj_segm.shape[axis], axis=axis
+            hr_vol_scaled, num=subject_labels.shape[axis], axis=axis
         )
     # Help type checkers understand the type of hr_vol_scaled.
     assert isinstance(hr_vol_scaled, np.ndarray), (
@@ -189,7 +189,9 @@ def setup_cerebellum_source_space(
     hr_rs = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
 
     # Resample the segmentation to the subject's segmentation size.
-    hr_label_scaled = _scale_labels_majority_vote(hr_segm, subj_segm, scaling_factor)
+    hr_labels_scaled = _scale_labels_majority_vote(
+        hr_segm, subject_labels, scaling_factor
+    )
 
     # Correct vertices by co-registering lower left posterior and upper right
     # anterior corners between scaled volume and mesh.
@@ -197,13 +199,12 @@ def setup_cerebellum_source_space(
     rr = _align_mesh_to_volume(rr, scaling_factor, target_coords=non_zero_coords_50)
 
     logger.info("Done setting up adaptation to subject.")
+
     # Register
-    subj_vec = subj_segm
-    hr_vec = hr_label_scaled
 
     logger.info("Fitting labels... ")
-    subj_label_ants = ants.from_numpy(subj_vec.astype(float))
-    hr_label_ants = ants.from_numpy(hr_label_scaled.astype(float))
+    subj_label_ants = ants.from_numpy(subject_labels.astype(float))
+    hr_label_ants = ants.from_numpy(hr_labels_scaled.astype(float))
     reg = ants.registration(
         fixed=subj_label_ants, moving=hr_label_ants, type_of_transform="SyNCC"
     )
@@ -297,7 +298,7 @@ def _align_mesh_to_volume(
     mesh_min = np.min(rr_scaled, axis=0)
     mesh_max = np.max(rr_scaled, axis=0)
 
-    correction_vector_2 = np.mean(
+    translation_vector = np.mean(
         [
             target_min_coords - mesh_min,
             target_max_coords - mesh_max,
@@ -305,7 +306,7 @@ def _align_mesh_to_volume(
         axis=0,
     )
 
-    return rr_scaled + correction_vector_2
+    return rr_scaled + translation_vector
 
 
 def _scale_labels_majority_vote(
