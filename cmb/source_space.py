@@ -17,6 +17,7 @@ import pickle
 
 import nibabel as nib
 import numpy as np
+from numpy.typing import NDArray
 
 from .helpers import affine_transform, change_labels
 from .segmentation import get_segmentation
@@ -152,23 +153,11 @@ def setup_cerebellum_source_space(
     # Mask cerebellum
     pad = 3
     cerb_coords = np.nonzero(subj_segm)  # cerebellum is nonzero in segmentation
-    # cb_range is [[min_x, min_y, min_z], [max_x, max_y, max_z]]
-    cb_range = [
-        [np.min(cerb_coords[x]) - pad for x in range(3)],
-        [np.max(cerb_coords[x]) + pad for x in range(3)],
-    ]
-    subj_segm_cropped = subj_segm[
-        cb_range[0][0] : cb_range[1][0],
-        cb_range[0][1] : cb_range[1][1],
-        cb_range[0][2] : cb_range[1][2],
-    ]
+    subj_segm_cropped = _crop_image_volume(subj_segm, cerb_coords, pad=pad)
+
     subj_contrast = np.zeros(subj_mri.shape)
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
-    subj_contrast = subj_contrast[
-        cb_range[0][0] : cb_range[1][0],
-        cb_range[0][1] : cb_range[1][1],
-        cb_range[0][2] : cb_range[1][2],
-    ]
+    subj_contrast = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     print("Setting up adaptation to subject... ", end="", flush=True)
     hr_vol_scaled = hr_vol
@@ -306,6 +295,39 @@ def setup_cerebellum_source_space(
         print("Saved to " + os.path.join(data_dir, subject + "_cerb_cxw.fs"))
 
     return subj_cerb
+
+
+def _crop_image_volume(
+    vol: NDArray, coords: tuple[NDArray, ...], pad: int = 3
+) -> NDArray:
+    """Crop a 3D volume to the bounding box of non-zero coordinates.
+
+    Parameters
+    ----------
+    vol : NDArray
+        The 3D volume to be cropped.
+    coords : tuple[NDArray, ...]
+        Indices of elements to be included in the cropped volume. Typically obtained
+        from `np.nonzero()`.
+    pad : int, optional
+        The number of voxels to pad around the bounding box. Default is 3.
+
+    Returns
+    -------
+    NDArray
+        The cropped volume.
+    """
+    # coords_range is [[min_x, min_y, min_z], [max_x, max_y, max_z]]
+    coords_range = [
+        [np.min(coords[x]) - pad for x in range(3)],
+        [np.max(coords[x]) + pad + 1 for x in range(3)],
+    ]
+    volume_cropped = vol[
+        coords_range[0][0] : coords_range[1][0],
+        coords_range[0][1] : coords_range[1][1],
+        coords_range[0][2] : coords_range[1][2],
+    ]
+    return volume_cropped
 
 
 def calculate_normals(
