@@ -136,9 +136,7 @@ def setup_cerebellum_source_space(
     hr_segm = change_labels(
         hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
-
     # Get subject segmentation
-    print("Doing segmentation...")
     subj_segm = np.asanyarray(
         get_segmentation(
             subjects_dir,
