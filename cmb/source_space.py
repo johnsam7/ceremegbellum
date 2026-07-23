@@ -13,7 +13,7 @@ them with MNE-Python cortical source spaces.
 # ---------------------------------------------------------------------------
 
 import logging
-import os
+import os.path as op
 import pickle
 
 import nibabel as nib
@@ -95,8 +95,8 @@ def setup_cerebellum_source_space(
     logger.info("Starting to set up cerebellar source space for subject %s", subject)
     # Load data
     subj_cerb = {}
-    data_dir = os.path.join(cmb_path, "data")
-    cb_data = pickle.load(open(os.path.join(data_dir, "cerebellum_geo"), "rb"))
+    data_dir = op.join(cmb_path, "data")
+    cb_data = pickle.load(open(op.join(data_dir, "cerebellum_geo"), "rb"))
     if cerebellum_subsampling == "full":
         rr = cb_data["verts_normal"]
         tris = cb_data["faces"]
@@ -150,7 +150,7 @@ def setup_cerebellum_source_space(
         ).dataobj
     )
     subj_mri = np.asanyarray(
-        nib.load(os.path.join(subjects_dir, subject, "mri", "orig.mgz")).dataobj
+        nib.load(op.join(subjects_dir, subject, "mri", "orig.mgz")).dataobj
     )
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
@@ -304,7 +304,7 @@ def setup_cerebellum_source_space(
         rr_def = rr_p.copy()
         for x in range(3):
             rr_def[:, x] = rr_p[:, x]
-        fs_fname = os.path.join(data_dir, subject + "_cerb_cxw.fs")
+        fs_fname = op.join(data_dir, subject + "_cerb_cxw.fs")
         print_fs_surf(rr_def, tris, fs_fname, mirror)
         logger.info("Saved to %s", fs_fname)
 
@@ -512,10 +512,7 @@ def setup_full_source_space(
             post_process=True,
             debug_mode=debug_mode,
         )
-    rr = (
-        mne.read_surface(os.path.join(cerb_dir, "data", subject + "_cerb_cxw.fs"))[0]
-        / 1000
-    )
+    rr = mne.read_surface(op.join(cerb_dir, "data", subject + "_cerb_cxw.fs"))[0] / 1000
     src_whole = src_cort.copy()
     hemi_src = join_source_spaces(src_cort)
     src_whole[0] = hemi_src
