@@ -165,12 +165,12 @@ def setup_cerebellum_source_space(
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
     cerb_coords = np.nonzero(subject_labels)  # cerebellum is nonzero in segmentation
-    subject_labels = _crop_image_volume(subject_labels, cerb_coords, pad=pad)
+    subject_labels, cb_range = _crop_image_volume(subject_labels, cerb_coords, pad=pad)
 
     subj_contrast = np.zeros(subj_mri.shape)
     # Fill the cerebellum region with MRI values.
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
-    subj_contrast = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
+    subj_contrast, _ = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     logger.info("Setting up adaptation to subject... ")
 
@@ -378,7 +378,7 @@ def _scale_labels_majority_vote(
 
 def _crop_image_volume(
     vol: NDArray, coords: tuple[NDArray, ...], pad: int = 3
-) -> NDArray:
+) -> tuple[NDArray, list]:
     """Crop a 3D volume to the bounding box of non-zero coordinates.
 
     Parameters
@@ -393,20 +393,23 @@ def _crop_image_volume(
 
     Returns
     -------
-    NDArray
+    vol_cropped : NDArray
         The cropped volume.
+    coords_range : list
+        List of two lists containing the minimum and maximum coordinates of the cropped
+        volume [[min_x, min_y, min_z], [max_x, max_y, max_z]].
     """
     # coords_range is [[min_x, min_y, min_z], [max_x, max_y, max_z]]
     coords_range = [
         [max(0, np.min(coords[x]) - pad) for x in range(3)],
         [min(vol.shape[x], np.max(coords[x]) + pad + 1) for x in range(3)],
     ]
-    volume_cropped = vol[
+    vol_cropped = vol[
         coords_range[0][0] : coords_range[1][0],
         coords_range[0][1] : coords_range[1][1],
         coords_range[0][2] : coords_range[1][2],
     ]
-    return volume_cropped
+    return vol_cropped, coords_range
 
 
 def calculate_normals(
