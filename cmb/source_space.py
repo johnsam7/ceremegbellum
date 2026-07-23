@@ -184,12 +184,11 @@ def setup_cerebellum_source_space(
     for x in range(3):
         rr[:, x] = rr[:, x] * scaling_factor[x]
 
-    hr_rs = np.zeros(hr_vol_scaled.shape)
-    non_zero_coo_50 = np.array([np.where(hr_vol_scaled > 50)[x] for x in range(3)]).T
-    non_zero_coo = np.array([np.where(hr_vol_scaled > 10)[x] for x in range(3)]).T
-    hr_rs[non_zero_coo[:, 0], non_zero_coo[:, 1], non_zero_coo[:, 2]] = hr_vol_scaled[
-        non_zero_coo[:, 0], non_zero_coo[:, 1], non_zero_coo[:, 2]
-    ]
+    # Clean up the resampled volume by removing low value voxels.
+    # Voxels with value below 10 are set to zero.
+    hr_rs = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
+
+    non_zero_coo_50 = np.argwhere(hr_vol_scaled > 50)
 
     # scale labels matrix (by type value vote)
     hr_label_scaled = np.zeros(
