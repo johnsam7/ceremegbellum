@@ -96,7 +96,10 @@ def setup_cerebellum_source_space(
     # Load data
     subj_cerb = {}
     data_dir = op.join(cmb_path, "data")
-    cb_data = pickle.load(open(op.join(data_dir, "cerebellum_geo"), "rb"))
+
+    with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
+        cb_data = pickle.load(cb_geo_file)
+
     if cerebellum_subsampling == "full":
         rr = cb_data["verts_normal"]
         tris = cb_data["faces"]
