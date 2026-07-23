@@ -151,12 +151,13 @@ def setup_cerebellum_source_space(
 
     # Mask cerebellum
     pad = 3
-    cerb_coords = np.nonzero(subj_segm)
+    cerb_coords = np.nonzero(subj_segm)  # cerebellum is nonzero in segmentation
+    # cb_range is [[min_x, min_y, min_z], [max_x, max_y, max_z]]
     cb_range = [
         [np.min(cerb_coords[x]) - pad for x in range(3)],
         [np.max(cerb_coords[x]) + pad for x in range(3)],
     ]
-    subj_segm = subj_segm[
+    subj_segm_cropped = subj_segm[
         cb_range[0][0] : cb_range[1][0],
         cb_range[0][1] : cb_range[1][1],
         cb_range[0][2] : cb_range[1][2],
@@ -173,7 +174,7 @@ def setup_cerebellum_source_space(
     hr_vol_scaled = hr_vol
     for axis in range(0, 3):
         hr_vol_scaled = signal.resample(
-            hr_vol_scaled, num=subj_segm.shape[axis], axis=axis
+            hr_vol_scaled, num=subj_segm_cropped.shape[axis], axis=axis
         )
     scf = np.array(hr_vol_scaled.shape) / np.array(hr_vol.shape)
     for x in range(3):
@@ -187,10 +188,19 @@ def setup_cerebellum_source_space(
 
     # scale labels matrix (by type value vote)
     hr_label_scaled = np.zeros(
-        (subj_segm.shape[0], subj_segm.shape[1], subj_segm.shape[2])
+        (
+            subj_segm_cropped.shape[0],
+            subj_segm_cropped.shape[1],
+            subj_segm_cropped.shape[2],
+        )
     )
     count_matrix = np.zeros(
-        (subj_segm.shape[0], subj_segm.shape[1], subj_segm.shape[2], 100)
+        (
+            subj_segm_cropped.shape[0],
+            subj_segm_cropped.shape[1],
+            subj_segm_cropped.shape[2],
+            100,
+        )
     )
     count_matrix[:] = np.nan
     for x in range(hr_segm.shape[0]):
@@ -207,9 +217,9 @@ def setup_cerebellum_source_space(
                 count_matrix[target_vox[0], target_vox[1], target_vox[2], ind] = (
                     hr_segm[x, y, z]
                 )
-    for x in range(subj_segm.shape[0]):
-        for y in range(subj_segm.shape[1]):
-            for z in range(subj_segm.shape[2]):
+    for x in range(subj_segm_cropped.shape[0]):
+        for y in range(subj_segm_cropped.shape[1]):
+            for z in range(subj_segm_cropped.shape[2]):
                 votes = count_matrix[x, y, z, :]
                 votes = votes[~np.isnan(votes)]
                 hr_label_scaled[x, y, z] = np.bincount(votes.astype(int)).argmax()
@@ -227,7 +237,7 @@ def setup_cerebellum_source_space(
 
     # Register
     print("Fitting... ", end="", flush=True)
-    subj_vec = subj_segm
+    subj_vec = subj_segm_cropped
     hr_vec = hr_label_scaled
 
     print("Fitting labels... ", end="", flush=True)
