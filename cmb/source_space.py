@@ -20,7 +20,7 @@ import nibabel as nib
 import numpy as np
 from numpy.typing import NDArray
 
-from .helpers import affine_transform, change_labels
+from .helpers import affine_transform, change_labels, load_image_volume
 from .segmentation import get_segmentation
 from .visualization import plot_sagittal
 
@@ -140,7 +140,7 @@ def setup_cerebellum_source_space(
     hr_segm = change_labels(
         hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
-    # Get subject segmentation
+    # Get subject segmentation (registered to brain.mgz).
     subj_segm = np.asanyarray(
         get_segmentation(
             subjects_dir,
@@ -149,9 +149,9 @@ def setup_cerebellum_source_space(
             debug_mode=debug_mode,
         ).dataobj
     )
-    subj_mri = np.asanyarray(
-        nib.load(op.join(subjects_dir, subject, "mri", "orig.mgz")).dataobj
-    )
+    # Get subject MRI.
+    # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz are aligned.
+    subj_mri, _ = load_image_volume(op.join(subjects_dir, subject, "mri", "orig.mgz"))
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
