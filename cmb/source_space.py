@@ -190,43 +190,7 @@ def setup_cerebellum_source_space(
 
     non_zero_coo_50 = np.argwhere(hr_vol_scaled > 50)
 
-    # scale labels matrix (by type value vote)
-    hr_label_scaled = np.zeros(
-        (
-            subj_segm.shape[0],
-            subj_segm.shape[1],
-            subj_segm.shape[2],
-        )
-    )
-    count_matrix = np.zeros(
-        (
-            subj_segm.shape[0],
-            subj_segm.shape[1],
-            subj_segm.shape[2],
-            100,
-        )
-    )
-    count_matrix[:] = np.nan
-    for x in range(hr_segm.shape[0]):
-        for y in range(hr_segm.shape[1]):
-            for z in range(hr_segm.shape[2]):
-                target_vox = (scaling_factor * (x, y, z)).astype(int)
-                ind = np.min(
-                    np.where(
-                        np.isnan(
-                            count_matrix[target_vox[0], target_vox[1], target_vox[2], :]
-                        )
-                    )
-                )
-                count_matrix[target_vox[0], target_vox[1], target_vox[2], ind] = (
-                    hr_segm[x, y, z]
-                )
-    for x in range(subj_segm.shape[0]):
-        for y in range(subj_segm.shape[1]):
-            for z in range(subj_segm.shape[2]):
-                votes = count_matrix[x, y, z, :]
-                votes = votes[~np.isnan(votes)]
-                hr_label_scaled[x, y, z] = np.bincount(votes.astype(int)).argmax()
+    hr_label_scaled = _scale_labels_majority_vote(hr_segm, subj_segm, scaling_factor)
 
     # Correct verts by co-registering lower left posterior and upper right anterior corners
     correction_vector_2 = np.mean(
@@ -308,6 +272,69 @@ def setup_cerebellum_source_space(
         logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
+
+
+def _scale_labels_majority_vote(
+    hr_segm: NDArray, subj_segm: NDArray, scaling_factor: NDArray
+) -> NDArray:
+    """Scale the labels from the high-resolution segmentation to subject's segmentation.
+
+    NOTE: This function could use some optimization. The custom logic could possibly be
+    replaced with, for example, `scipy.ndimage.zoom`.
+
+    Parameters
+    ----------
+    hr_segm : NDArray
+        High-resolution segmentation volume as a 3D NumPy array.
+    subj_segm : NDArray
+        Subject's segmentation volume as a 3D NumPy array.
+    scaling_factor : NDArray
+        Scaling factor for each axis as a 1D NumPy array of length 3.
+
+    Returns
+    -------
+    hr_label_scaled : NDArray
+        Scaled labels volume as a 3D NumPy array.
+    """
+    # scale labels matrix (by type value vote)
+    hr_label_scaled = np.zeros(
+        (
+            subj_segm.shape[0],
+            subj_segm.shape[1],
+            subj_segm.shape[2],
+        )
+    )
+    count_matrix = np.zeros(
+        (
+            subj_segm.shape[0],
+            subj_segm.shape[1],
+            subj_segm.shape[2],
+            100,
+        )
+    )
+    count_matrix[:] = np.nan
+    for x in range(hr_segm.shape[0]):
+        for y in range(hr_segm.shape[1]):
+            for z in range(hr_segm.shape[2]):
+                target_vox = (scaling_factor * (x, y, z)).astype(int)
+                ind = np.min(
+                    np.where(
+                        np.isnan(
+                            count_matrix[target_vox[0], target_vox[1], target_vox[2], :]
+                        )
+                    )
+                )
+                count_matrix[target_vox[0], target_vox[1], target_vox[2], ind] = (
+                    hr_segm[x, y, z]
+                )
+    for x in range(subj_segm.shape[0]):
+        for y in range(subj_segm.shape[1]):
+            for z in range(subj_segm.shape[2]):
+                votes = count_matrix[x, y, z, :]
+                votes = votes[~np.isnan(votes)]
+                hr_label_scaled[x, y, z] = np.bincount(votes.astype(int)).argmax()
+
+    return hr_label_scaled
 
 
 def _crop_image_volume(
