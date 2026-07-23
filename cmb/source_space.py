@@ -319,8 +319,8 @@ def _crop_image_volume(
     """
     # coords_range is [[min_x, min_y, min_z], [max_x, max_y, max_z]]
     coords_range = [
-        [np.min(coords[x]) - pad for x in range(3)],
-        [np.max(coords[x]) + pad + 1 for x in range(3)],
+        [max(0, np.min(coords[x]) - pad) for x in range(3)],
+        [min(vol.shape[x], np.max(coords[x]) + pad + 1) for x in range(3)],
     ]
     volume_cropped = vol[
         coords_range[0][0] : coords_range[1][0],
