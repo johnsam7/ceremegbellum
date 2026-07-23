@@ -164,14 +164,26 @@ def setup_cerebellum_source_space(
     subj_contrast = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     logger.info("Setting up adaptation to subject... ")
+
+    # Resample the cerebellar volume to the subject's segmentation size.
     hr_vol_scaled = hr_vol
-    for axis in range(0, 3):
+    for axis in range(3):
         hr_vol_scaled = signal.resample(
             hr_vol_scaled, num=subj_segm.shape[axis], axis=axis
         )
-    scf = np.array(hr_vol_scaled.shape) / np.array(hr_vol.shape)
+    # Help type checkers understand the type of hr_vol_scaled.
+    assert isinstance(hr_vol_scaled, np.ndarray), (
+        "Resampled signal should be a NumPy array."
+    )
+    scaling_factor = np.array(hr_vol_scaled.shape) / np.array(hr_vol.shape)
+    logger.debug("Shape of volmetric atlas: %s", hr_vol.shape)
+    logger.debug("Shape of resampled atlas: %s", hr_vol_scaled.shape)
+    logger.debug("Scaling factor: %s", scaling_factor)
+
+    # Scale the vertex coordinates to match the resampled volume.
     for x in range(3):
-        rr[:, x] = rr[:, x] * scf[x]
+        rr[:, x] = rr[:, x] * scaling_factor[x]
+
     hr_rs = np.zeros(hr_vol_scaled.shape)
     non_zero_coo_50 = np.array([np.where(hr_vol_scaled > 50)[x] for x in range(3)]).T
     non_zero_coo = np.array([np.where(hr_vol_scaled > 10)[x] for x in range(3)]).T
@@ -199,7 +211,7 @@ def setup_cerebellum_source_space(
     for x in range(hr_segm.shape[0]):
         for y in range(hr_segm.shape[1]):
             for z in range(hr_segm.shape[2]):
-                target_vox = (scf * (x, y, z)).astype(int)
+                target_vox = (scaling_factor * (x, y, z)).astype(int)
                 ind = np.min(
                     np.where(
                         np.isnan(
