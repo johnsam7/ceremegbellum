@@ -281,11 +281,8 @@ def setup_cerebellum_source_space(
 
     if print_fs:
         logger.info("Saving cerebellar surface as fs files...")
-        rr_def = rr_final.copy()
-        for x in range(3):
-            rr_def[:, x] = rr_final[:, x]
         fs_fname = op.join(data_dir, subject + "_cerb_cxw.fs")
-        print_fs_surf(rr_def, tris, fs_fname, mirror)
+        print_fs_surf(rr_final, tris, fs_fname, mirror)
         logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
