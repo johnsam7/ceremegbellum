@@ -27,7 +27,6 @@ from .helpers import (
     load_image_volume,
 )
 from .segmentation import get_segmentation
-from .visualization import plot_sagittal
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -67,7 +66,6 @@ def create_cerebellar_surface(
     cmb_path: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     print_fs: bool = True,
-    plot: bool = False,
     debug_mode: bool = False,
 ) -> dict:
     """Create a cerebellar mesh in the native subject space.
@@ -91,9 +89,6 @@ def create_cerebellar_surface(
     print_fs : Boolean
         If True, it will print an fs file of the cerebellar source space that can be
         viewed with e.g. freeview.
-    plot : Boolean
-        If True, will plot sagittal cross-sectional plots of the cerebellar source space
-        supposed on subject MR data.
 
     Returns
     -------
@@ -276,12 +271,6 @@ def create_cerebellar_surface(
     rr_final = rr_double_warped + cb_range[0]
 
     subj_cerb = {"rr": rr_final, "tris": tris}
-
-    # Visualize results as sagittal (x=const) cross-sections
-    if plot:
-        fig, ax = plot_sagittal(
-            subj_mri, title="Warped points in subj vol", rr=rr_final, tris=tris
-        )
 
     if print_fs:
         logger.info("Saving cerebellar surface as fs files...")
