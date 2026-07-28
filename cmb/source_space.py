@@ -15,9 +15,8 @@ them with MNE-Python cortical source spaces.
 import logging
 import os.path as op
 import pickle
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
-import nibabel as nib
 import numpy as np
 from numpy.typing import NDArray
 
@@ -63,27 +62,26 @@ def write_surface_in_surface_ras(rr: NDArray, tris: NDArray, fname: str):
 
 
 def setup_cerebellum_source_space(
-    subjects_dir,
-    subject,
-    cmb_path=None,
-    cerebellum_subsampling="sparse",
-    calc_nn=True,
-    print_fs=False,
-    plot=False,
-    mirror=False,
-    post_process=False,
-    debug_mode=False,
-):
+    subject: str,
+    subjects_dir: str | None = None,
+    cmb_path: str | None = None,
+    cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
+    calc_nn: bool = True,
+    print_fs: bool = True,
+    plot: bool = False,
+    debug_mode: bool = False,
+) -> dict:
     """Set up the cerebellar surface source space.
 
     Requires cerebellum geometry file to be downloaded.
 
     Parameters
     ----------
-    subjects_dir : str
-        Subjects directory.
     subject : str
-        Subject name.
+        The FreeSurfer subject name.
+    subjects_dir : str | None
+        The path to the directory containing the FreeSurfer subjects reconstructions.
+        If None, defaults to the SUBJECTS_DIR environment variable.
     cmb_path : str, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
@@ -111,7 +109,13 @@ def setup_cerebellum_source_space(
         apply_transforms_to_points,
         registration,
     )
+    from mne.utils import get_subjects_dir
     from scipy import signal
+
+    # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
+    # Cast Path object to string for compatibility.
+    subjects_dir = str(subjects_dir)
 
     if cmb_path is None:
         from . import CMB_DATA_DIR
