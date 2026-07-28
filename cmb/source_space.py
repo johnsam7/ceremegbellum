@@ -53,9 +53,10 @@ def write_surface_in_surface_ras(rr: NDArray, tris: NDArray, fname: str):
     """
     from nibabel.freesurfer.io import write_geometry
 
-    fs_vox_to_ras = np.array([[-1, 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128]]).T
-    fs_vox = np.hstack((rr, np.ones((len(rr), 1))))
-    ras = np.dot(fs_vox, fs_vox_to_ras)
+    # Convert from FreeSurfer voxel coordinates to surface RAS coordinates.
+    rotation = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    translation = np.array([128, -128, 128])
+    ras = rr @ rotation + translation
 
     write_geometry(fname, ras, tris)
     logger.info("Saved surface geometry to %s", fname)
