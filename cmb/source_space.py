@@ -66,7 +66,6 @@ def create_cerebellar_surface(
     subjects_dir: str | None = None,
     cmb_path: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
-    calc_nn: bool = True,
     print_fs: bool = True,
     plot: bool = False,
     debug_mode: bool = False,
@@ -278,19 +277,7 @@ def create_cerebellar_surface(
     # Go from bounding box coordinates back to subject voxel coordinates.
     rr_final = rr_double_warped + cb_range[0]
 
-    subj_cerb = dict()
-    subj_cerb["rr"] = rr_final
-    subj_cerb["tris"] = tris
-    logger.info("Done.")
-
-    if calc_nn:
-        logger.info("Calculating normals on deformed surface...")
-        (nn_def, area, area_list, nan_vertices) = calculate_normals(
-            rr_final, tris, print_info=False
-        )
-        subj_cerb["nn"] = nn_def
-        subj_cerb["nan_nn"] = nan_vertices
-        logger.info("Done.")
+    subj_cerb = {"rr": rr_final, "tris": tris}
 
     # Visualize results as sagittal (x=const) cross-sections
     if plot:
@@ -545,7 +532,6 @@ def calculate_normals(
 def setup_full_source_space(
     subject,
     subjects_dir,
-    cerb_src_geometry=None,
     cerb_dir=None,
     cerb_subsampling="sparse",
     spacing="oct6",
@@ -606,33 +592,66 @@ def setup_full_source_space(
     if spacing == "all":
         src_cort[0]["use_tris"] = src_cort[0]["tris"]
         src_cort[1]["use_tris"] = src_cort[1]["tris"]
-    if cerb_src_geometry is not None:
-        cerb_subj_data = cerb_src_geometry
+
+    cerb_surf_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
+    if op.exists(cerb_surf_fname):
+        logger.info(
+            "Found cerebellar surface file: %s, skipping creation.", cerb_surf_fname
+        )
     else:
-        cerb_subj_data = create_cerebellar_surface(
-            subjects_dir,
+        logger.info(
+            "Cerebellar surface file not found: %s, creating...", cerb_surf_fname
+        )
+        _ = create_cerebellar_surface(
             subject,
+            subjects_dir,
             cerb_dir,
-            calc_nn=True,
             cerebellum_subsampling=cerb_subsampling,
             print_fs=True,
             plot=plot_cerebellum,
-            mirror=False,
-            post_process=True,
             debug_mode=debug_mode,
         )
-    rr = mne.read_surface(op.join(cerb_dir, "data", subject + "_cerb_cxw.fs"))[0] / 1000
+
+    # Read the geometry of the cerebellar surface mesh.
+    cerb_surf_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
+    surface_data = mne.read_surface(cerb_surf_fname)
+
+    cerb_rr = surface_data[0]
+    assert isinstance(cerb_rr, np.ndarray), "Surface vertices should be a NumPy array."
+    cerb_rr = cerb_rr / 1000.0  # Convert from mm to m!
+
+    cerb_tris = surface_data[1]
+    assert isinstance(cerb_tris, np.ndarray), (
+        "Surface triangles should be a NumPy array."
+    )
+
+    # Calculate normals.
+    logger.info("Calculating normals on deformed surface...")
+    (nn, _, _, nan_vertices) = calculate_normals(cerb_rr, cerb_tris, print_info=False)
+    logger.info("Done.")
+
+    # Make a dictionary to hold the cerebellar source space data.
+    cerb_subj_data = {
+        "rr": cerb_rr,
+        "tris": cerb_tris,
+        "nn": nn,
+        "nan_nn": nan_vertices,
+    }
+
     src_whole = src_cort.copy()
     hemi_src = join_source_spaces(src_cort)
     src_whole[0] = hemi_src
-    src_whole[1]["rr"] = rr
+
+    src_whole[1]["rr"] = cerb_rr
     src_whole[1]["tris"] = cerb_subj_data["tris"]
     src_whole[1]["nn"] = cerb_subj_data["nn"]
     src_whole[1]["ntri"] = src_whole[1]["tris"].shape[0]
     src_whole[1]["use_tris"] = cerb_subj_data["tris"]
-    in_use = np.ones(rr.shape[0]).astype(int)
+
+    in_use = np.ones(cerb_rr.shape[0]).astype(int)
     in_use[cerb_subj_data["nan_nn"]] = 0
     src_whole[1]["inuse"] = in_use
+
     src_whole[1]["nuse"] = int(np.sum(src_whole[1]["inuse"]))
     src_whole[1]["vertno"] = np.nonzero(src_whole[1]["inuse"])[0]
     src_whole[1]["np"] = src_whole[1]["rr"].shape[0]
