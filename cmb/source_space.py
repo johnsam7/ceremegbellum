@@ -88,8 +88,6 @@ def create_cerebellar_surface(
         installation directory.
     cerebellum_subsampling : 'full' | 'sparse' | 'dense'
         The spacing to use for the cerebellum.
-    calc_nn: Boolean
-        If True, it will calculate the normals of the cerebellum source space.
     print_fs : Boolean
         If True, it will print an fs file of the cerebellar source space that can be
         viewed with e.g. freeview.
@@ -123,7 +121,7 @@ def create_cerebellar_surface(
 
         cmb_path = CMB_DATA_DIR
 
-    logger.info("Starting to set up cerebellar source space for subject... %s", subject)
+    logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
 
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
@@ -549,10 +547,6 @@ def setup_full_source_space(
         The FreeSurfer subject name.
     subjects_dir : str
         Path to the FreeSurfer subjects directory.
-    cerb_src_geometry : dict, optional
-        Dictionary containing the cerebellar source space geometry as returned by
-        ``setup_cerebellum_source_space``. If None, the function will call
-        ``setup_cerebellum_source_space`` to create the cerebellar source space.
     cerb_dir : str, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
@@ -567,7 +561,6 @@ def setup_full_source_space(
         source space superposed on subject MR data.
     debug_mode : Boolean
         If True, intermediate results will be saved to disk.
-
 
     Returns
     -------
