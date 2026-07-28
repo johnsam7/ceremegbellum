@@ -236,15 +236,8 @@ def create_cerebellar_surface(
             3, _coords_to_dataframe(warped_rr), reg["invtransforms"]
         )
     )
-    hr_label_final = apply_transforms(
-        fixed=subj_ants,
-        moving=warped_hr_labels,
-        transformlist=reg["fwdtransforms"],
-        interpolator="genericLabel",
-    )
     # Go from bounding box coordinates back to subject voxel coordinates.
     rr_final = rr_double_warped + cb_range[0]
-
     # Convert to FreeSurfer surface RAS coordinates.
     rr_ras = _convert_to_surface_ras(rr_final)
 
