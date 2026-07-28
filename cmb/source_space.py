@@ -294,8 +294,8 @@ def setup_cerebellum_source_space(
 
     if print_fs:
         logger.info("Saving cerebellar surface as fs files...")
-        fs_fname = op.join(data_dir, subject + "_cerb_cxw.fs")
-        write_surface_in_surface_ras(rr_final, tris, fs_fname)
+        surface_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
+        write_surface_in_surface_ras(rr_final, tris, surface_fname)
 
     return subj_cerb
 
