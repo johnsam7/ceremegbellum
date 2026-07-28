@@ -18,6 +18,7 @@ import pickle
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
+from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
 
 from .helpers import (
@@ -32,32 +33,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
-
-
-def write_surface_in_surface_ras(rr: NDArray, tris: NDArray, fname: str):
-    """Write surface geometry to a FreeSurfer surface file in surface RAS coordinates.
-
-    Surface RAS is the FreeSurfer coordinate frame, making the output compatible with
-    FreeSurfer tools like freeview.
-
-    Parameters
-    ----------
-    rr : NDArray
-        Array of vertex positions in the FreeSurfer voxel space.
-    tris : NDArray
-        Array of triangle indices defining the mesh faces.
-    fname : str
-        Path to the output FreeSurfer surface file.
-    """
-    from nibabel.freesurfer.io import write_geometry
-
-    # Convert from FreeSurfer voxel coordinates to surface RAS coordinates.
-    rotation = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
-    translation = np.array([128, -128, 128])
-    ras = rr @ rotation + translation
-
-    write_geometry(fname, ras, tris)
-    logger.info("Saved surface geometry to %s", fname)
 
 
 def create_cerebellar_surface(
@@ -92,9 +67,9 @@ def create_cerebellar_surface(
 
     Returns
     -------
-    subj_cerb: dictionary
-        Dictionary containing geometry data: vertex positions (rr), faces (tris) and
-        normals (nn, if calc_nn is True).
+    subj_cerb: dict
+        Dictionary with the cerebellar mesh geometry in surface RAS coordinates.
+        Has keys 'rr' for the vertices and 'tris' for the triangles.
 
     """
     import ants
@@ -270,14 +245,14 @@ def create_cerebellar_surface(
     # Go from bounding box coordinates back to subject voxel coordinates.
     rr_final = rr_double_warped + cb_range[0]
 
-    subj_cerb = {"rr": rr_final, "tris": tris}
+    # Convert to FreeSurfer surface RAS coordinates.
+    rr_ras = _convert_to_surface_ras(rr_final)
 
     if print_fs:
-        logger.info("Saving cerebellar surface as fs files...")
         surface_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-        write_surface_in_surface_ras(rr_final, tris, surface_fname)
+        write_geometry(surface_fname, rr_ras, tris)
 
-    return subj_cerb
+    return {"rr": rr_ras, "tris": tris}
 
 
 def _coords_to_dataframe(rr) -> "DataFrame":
@@ -425,6 +400,29 @@ def _crop_image_volume(
         coords_range[0][2] : coords_range[1][2],
     ]
     return vol_cropped, coords_range
+
+
+def _convert_to_surface_ras(rr: NDArray) -> NDArray:
+    """Convert surface geometry to FreeSurfer surface RAS coordinates.
+
+    Surface RAS is the FreeSurfer coordinate frame, making the output compatible with
+    FreeSurfer tools like freeview.
+
+    Parameters
+    ----------
+    rr : NDArray
+        N x 3 Array of vertex positions in the FreeSurfer voxel space.
+
+    Returns
+    -------
+    NDArray
+        N x 3 Array of vertex positions in FreeSurfer surface RAS coordinates.
+    """
+    rotation = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    translation = np.array([128, -128, 128])
+    ras = rr @ rotation + translation
+
+    return ras
 
 
 def calculate_normals(
