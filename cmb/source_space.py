@@ -61,7 +61,7 @@ def write_surface_in_surface_ras(rr: NDArray, tris: NDArray, fname: str):
     logger.info("Saved surface geometry to %s", fname)
 
 
-def setup_cerebellum_source_space(
+def create_cerebellar_surface(
     subject: str,
     subjects_dir: str | None = None,
     cmb_path: str | None = None,
@@ -71,9 +71,11 @@ def setup_cerebellum_source_space(
     plot: bool = False,
     debug_mode: bool = False,
 ) -> dict:
-    """Set up the cerebellar surface source space.
+    """Create a cerebellar mesh in the native subject space.
 
-    Requires cerebellum geometry file to be downloaded.
+    Runs the reconstruction step of ARCUS, fitting a high-resolution cerebellar atlas to
+    the segmentation of the subject's cerebellum. Outputs a cerebellar mesh in
+    FreeSurfer surface RAS coordinates.
 
     Parameters
     ----------
@@ -607,7 +609,7 @@ def setup_full_source_space(
     if cerb_src_geometry is not None:
         cerb_subj_data = cerb_src_geometry
     else:
-        cerb_subj_data = setup_cerebellum_source_space(
+        cerb_subj_data = create_cerebellar_surface(
             subjects_dir,
             subject,
             cerb_dir,
