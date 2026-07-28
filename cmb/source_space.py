@@ -36,12 +36,29 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def print_fs_surf(rr, tris, fname, mirror=False):
-    """Convert to RAS coords and print surface to be plotted with Freeview."""
-    fsVox2RAS = np.array([[-1, 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128]]).T
+def write_surface_in_surface_ras(
+    rr: NDArray, tris: NDArray, fname: str, mirror: bool = False
+):
+    """Write surface geometry to a FreeSurfer surface file in surface RAS coordinates.
 
+    Surface RAS is the FreeSurfer coordinate frame, making the output compatible with
+    FreeSurfer tools like freeview.
+
+    Parameters
+    ----------
+    rr : NDArray
+        Array of vertex positions in the FreeSurfer voxel space.
+    tris : NDArray
+        Array of triangle indices defining the mesh faces.
+    fname : str
+        Path to the output FreeSurfer surface file.
+    mirror : bool, optional
+        If True, the x-coordinates of the vertices will be mirrored. This is useful for
+        aligning with MNE's source space conventions. Default is False.
+    """
+    fs_vox_to_ras = np.array([[-1, 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128]]).T
     fs_vox = np.hstack((rr, np.ones((len(rr), 1))))
-    ras = np.dot(fs_vox, fsVox2RAS)
+    ras = np.dot(fs_vox, fs_vox_to_ras)
     if mirror:
         ras[:, 0] = -ras[
             :, 0
@@ -282,7 +299,7 @@ def setup_cerebellum_source_space(
     if print_fs:
         logger.info("Saving cerebellar surface as fs files...")
         fs_fname = op.join(data_dir, subject + "_cerb_cxw.fs")
-        print_fs_surf(rr_final, tris, fs_fname, mirror)
+        write_surface_in_surface_ras(rr_final, tris, fs_fname, mirror)
         logger.info("Saved to %s", fs_fname)
 
     return subj_cerb
