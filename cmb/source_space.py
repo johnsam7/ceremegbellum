@@ -206,13 +206,7 @@ def create_cerebellar_surface(
     reg = registration(
         fixed=subj_label_ants, moving=hr_label_ants, type_of_transform="SyNCC"
     )
-    # Apply the registration to both volume labels and the mesh vertices.
-    warped_hr_labels = apply_transforms(
-        fixed=subj_label_ants,
-        moving=hr_label_ants,
-        transformlist=reg["fwdtransforms"],
-        interpolator="genericLabel",
-    )
+    # Apply the registration to the mesh vertices.
     # NOTE: Intentionally using invtransforms to warp the mesh to the subject space.
     warped_rr = np.array(
         apply_transforms_to_points(3, _coords_to_dataframe(rr), reg["invtransforms"])
@@ -222,8 +216,7 @@ def create_cerebellar_surface(
     subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
     hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
 
-    # Apply the same registration that was used for the labels to warp the atlas volume
-    # to the subject space.
+    # Also warp the volume template to the subject space.
     hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
