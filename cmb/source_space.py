@@ -16,6 +16,7 @@ import logging
 import os
 import os.path as op
 import pickle
+import warnings
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -43,6 +44,7 @@ def create_cerebellar_surface(
     cmb_path: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     save_mesh: bool = True,
+    mesh_fname: str | None = None,
     save_registration_cache: bool = False,
 ) -> dict:
     """Create a cerebellar mesh in the native subject space.
@@ -65,6 +67,9 @@ def create_cerebellar_surface(
         The spacing to use for the cerebellum.
     save_mesh : Boolean
         If True, write the cerebellar mesh to disk.
+    mesh_fname : str | None
+        The file path to save the cerebellar mesh. If None, defaults to
+        ``<subjects_dir>/<subject>/surf/cerebellum.white``.
     save_registration_cache : Boolean
         If True, it will save the registration transforms to a cache directory.
         Default is False.
@@ -93,6 +98,15 @@ def create_cerebellar_surface(
         from . import CMB_DATA_DIR
 
         cmb_path = CMB_DATA_DIR
+
+    if not save_mesh and mesh_fname is not None:
+        warnings.warn(
+            "mesh_fname is specified but save_mesh is False, mesh will not be saved.",
+            UserWarning,
+            stacklevel=2,
+        )
+    if mesh_fname is None:
+        mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
 
     logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
@@ -257,8 +271,7 @@ def create_cerebellar_surface(
     rr_ras = _convert_to_surface_ras(rr_final)
 
     if save_mesh:
-        surface_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-        write_geometry(surface_fname, rr_ras, tris)
+        write_geometry(mesh_fname, rr_ras, tris)
 
     return {"rr": rr_ras, "tris": tris}
 
@@ -746,8 +759,6 @@ def join_source_spaces(src_orig):
             axis=0,
         )
     except Exception:
-        import warnings
-
         warnings.warn(
             "Failed to concatenate use_tris, use_tris will be put to None. This means you will not be able to visualize"
             " the cortex in 3d but can still do all computational operations."
