@@ -108,6 +108,9 @@ def create_cerebellar_surface(
         )
     if mesh_fname is None:
         mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
+    else:
+        # Ensure the directory for the mesh file exists.
+        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
 
     logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
