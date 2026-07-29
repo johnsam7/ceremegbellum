@@ -35,13 +35,16 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
     test_cmb_data = test_data_dir / "sample_mesh_creation_cache.zip"
     set_up_cmb_data(test_cmb_data, cmb_path)
 
+    mesh_fname = str(tmp_path / "cerebellum_mesh" / "output_mesh.fif")
+
     surface = create_cerebellar_surface(
         subject,
         subjects_dir,
         str(cmb_path),
         cerebellum_subsampling="sparse",
-        print_fs=True,
-        debug_mode=True,  # to use the cached registration
+        save_mesh=True,
+        mesh_fname=mesh_fname,
+        registration_caching=True,
     )
     true_rr, true_tris = mne.read_surface(model_surface_path)  # pyright: ignore[reportAssignmentType]
     assert isinstance(true_rr, np.ndarray), "True vertices are not a numpy array."
@@ -59,4 +62,22 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
         surface["tris"],
         true_tris,
         err_msg="Surface triangles do not match reference surface.",
+    )
+    # Check that mesh file was saved and is correct.
+    assert op.exists(mesh_fname), "Mesh file was not saved."
+    saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
+    assert isinstance(saved_rr, np.ndarray), "Saved vertices are not a numpy array."
+    assert isinstance(saved_tris, np.ndarray), "Saved triangles are not a numpy array."
+
+    assert_allclose(
+        saved_rr,
+        surface["rr"],
+        rtol=1e-5,
+        atol=1e-4,
+        err_msg="Saved mesh vertices do not match returned surface vertices.",
+    )
+    assert_array_equal(
+        saved_tris,
+        surface["tris"],
+        err_msg="Saved mesh triangles do not match returned surface triangles.",
     )
