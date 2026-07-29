@@ -45,7 +45,7 @@ def create_cerebellar_surface(
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     save_mesh: bool = True,
     mesh_fname: str | None = None,
-    save_registration_cache: bool = False,
+    registration_caching: bool = False,
 ) -> dict:
     """Create a cerebellar mesh in the native subject space.
 
@@ -70,9 +70,10 @@ def create_cerebellar_surface(
     mesh_fname : str | None
         The file path to save the cerebellar mesh. If None, defaults to
         ``<subjects_dir>/<subject>/surf/cerebellum.white``.
-    save_registration_cache : Boolean
-        If True, it will save the registration transforms to a cache directory.
-        Default is False.
+    registration_caching : Boolean
+        If True, it will attemp to read cached registration transforms from disk, and if
+        not found, will save the transforms to disk for future use. Defaults to False,
+        which means that registration will be computed without caching.
 
     Returns
     -------
@@ -111,7 +112,7 @@ def create_cerebellar_surface(
     logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
 
-    if save_registration_cache:
+    if registration_caching:
         # Save registration transforms to a cache directory.
         registration_cache_dir = op.join(data_dir, "atlas_fitting_cache")
         os.makedirs(registration_cache_dir, exist_ok=True)
@@ -173,7 +174,7 @@ def create_cerebellar_surface(
             subjects_dir,
             subject,
             cmb_path,
-            debug_mode=save_registration_cache,
+            debug_mode=registration_caching,
         ).dataobj
     )
     # Get subject MRI.
@@ -687,7 +688,7 @@ def setup_full_source_space(
             cerb_dir,
             cerebellum_subsampling=cerb_subsampling,
             save_mesh=True,
-            save_registration_cache=debug_mode,
+            registration_caching=debug_mode,
         )
 
     # Read the geometry of the cerebellar surface mesh.
