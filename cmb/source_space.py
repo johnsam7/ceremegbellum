@@ -42,8 +42,8 @@ def create_cerebellar_surface(
     subjects_dir: str | None = None,
     cmb_path: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
-    print_fs: bool = True,
-    debug_mode: bool = False,
+    save_mesh: bool = True,
+    save_registration_cache: bool = False,
 ) -> dict:
     """Create a cerebellar mesh in the native subject space.
 
@@ -63,9 +63,11 @@ def create_cerebellar_surface(
         installation directory.
     cerebellum_subsampling : 'full' | 'sparse' | 'dense'
         The spacing to use for the cerebellum.
-    print_fs : Boolean
-        If True, it will print an fs file of the cerebellar source space that can be
-        viewed with e.g. freeview.
+    save_mesh : Boolean
+        If True, write the cerebellar mesh to disk.
+    save_registration_cache : Boolean
+        If True, it will save the registration transforms to a cache directory.
+        Default is False.
 
     Returns
     -------
@@ -95,7 +97,7 @@ def create_cerebellar_surface(
     logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
 
-    if debug_mode:
+    if save_registration_cache:
         # Save registration transforms to a cache directory.
         registration_cache_dir = op.join(data_dir, "atlas_fitting_cache")
         os.makedirs(registration_cache_dir, exist_ok=True)
@@ -157,7 +159,7 @@ def create_cerebellar_surface(
             subjects_dir,
             subject,
             cmb_path,
-            debug_mode=debug_mode,
+            debug_mode=save_registration_cache,
         ).dataobj
     )
     # Get subject MRI.
@@ -254,7 +256,7 @@ def create_cerebellar_surface(
     # Convert to FreeSurfer surface RAS coordinates.
     rr_ras = _convert_to_surface_ras(rr_final)
 
-    if print_fs:
+    if save_mesh:
         surface_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
         write_geometry(surface_fname, rr_ras, tris)
 
@@ -608,7 +610,6 @@ def setup_full_source_space(
     cerb_dir=None,
     cerb_subsampling="sparse",
     spacing="oct6",
-    plot_cerebellum=False,
     debug_mode=False,
 ):
     """Set up a full surface source space that includes the cerebellum.
@@ -631,9 +632,6 @@ def setup_full_source_space(
         The spacing to use for cortex. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
         or ``'all'`` for all points.
-    plot_cerebellum : Boolean
-        If True, will plot sagittal cross-sectional plots of the cerebellar
-        source space superposed on subject MR data.
     debug_mode : Boolean
         If True, intermediate results will be saved to disk.
 
@@ -675,9 +673,8 @@ def setup_full_source_space(
             subjects_dir,
             cerb_dir,
             cerebellum_subsampling=cerb_subsampling,
-            print_fs=True,
-            plot=plot_cerebellum,
-            debug_mode=debug_mode,
+            save_mesh=True,
+            save_registration_cache=debug_mode,
         )
 
     # Read the geometry of the cerebellar surface mesh.
