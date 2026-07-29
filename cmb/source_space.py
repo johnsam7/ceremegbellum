@@ -447,8 +447,8 @@ def _convert_to_surface_ras(rr: NDArray) -> NDArray:
 
 
 def _get_registration(
-    fixed: ANTsImage,
-    moving: ANTsImage,
+    fixed: "ANTsImage",
+    moving: "ANTsImage",
     type_of_transform: str = "SyNCC",
     reg_cache_dir: str | None = None,
     reg_fname_prefix: str = "",
