@@ -13,6 +13,7 @@ them with MNE-Python cortical source spaces.
 # ---------------------------------------------------------------------------
 
 import logging
+import os
 import os.path as op
 import pickle
 from typing import TYPE_CHECKING, Literal
@@ -30,6 +31,7 @@ from .helpers import (
 from .segmentation import get_segmentation
 
 if TYPE_CHECKING:
+    from ants.core.ants_image import ANTsImage
     from pandas import DataFrame
 
 logger = logging.getLogger(__name__)
@@ -76,7 +78,6 @@ def create_cerebellar_surface(
     from ants.registration import (
         apply_transforms,
         apply_transforms_to_points,
-        registration,
     )
     from mne.utils import get_subjects_dir
     from scipy import signal
@@ -93,6 +94,14 @@ def create_cerebellar_surface(
 
     logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
+
+    if debug_mode:
+        # Save registration transforms to a cache directory.
+        registration_cache_dir = op.join(data_dir, "atlas_fitting_cache")
+        os.makedirs(registration_cache_dir, exist_ok=True)
+    else:
+        # No caching.
+        registration_cache_dir = None
 
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
         cb_data = pickle.load(cb_geo_file)
@@ -203,9 +212,14 @@ def create_cerebellar_surface(
     hr_label_ants = ants.from_numpy(hr_labels_scaled.astype(float))
     logger.info("Fitting labels... ")
     # Compute the registration.
-    reg = registration(
-        fixed=subj_label_ants, moving=hr_label_ants, type_of_transform="SyNCC"
+    reg = _get_registration(
+        fixed=subj_label_ants,
+        moving=hr_label_ants,
+        type_of_transform="SyNCC",
+        reg_cache_dir=registration_cache_dir,
+        reg_fname_prefix=f"{subject}_labels",
     )
+
     # Apply the registration to the mesh vertices.
     # NOTE: Intentionally using invtransforms to warp the mesh to the subject space.
     warped_rr = np.array(
@@ -221,7 +235,13 @@ def create_cerebellar_surface(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
     # Register the warped atlas volume to the subject volume to refine the registration.
-    reg = registration(fixed=subj_ants, moving=hr_ants, type_of_transform="SyNCC")
+    reg = _get_registration(
+        fixed=subj_ants,
+        moving=hr_ants,
+        type_of_transform="SyNCC",
+        reg_cache_dir=registration_cache_dir,
+        reg_fname_prefix=f"{subject}_contrast",
+    )
 
     # Apply the refined registration to both volume and mesh.
     rr_double_warped = np.array(
@@ -409,6 +429,88 @@ def _convert_to_surface_ras(rr: NDArray) -> NDArray:
     ras = rr @ rotation + translation
 
     return ras
+
+
+def _get_registration(
+    fixed: ANTsImage,
+    moving: ANTsImage,
+    type_of_transform: str = "SyNCC",
+    reg_cache_dir: str | None = None,
+    reg_fname_prefix: str = "",
+) -> dict:
+    """Get or compute the registration between two images.
+
+    Parameters
+    ----------
+    fixed : ANTsImage
+        The fixed image for registration.
+    moving : ANTsImage
+        The moving image for registration.
+    type_of_transform : str
+        The type of transform to use for registration. Default is "SyNCC".
+    reg_cache_dir : str | None
+        Directory to cache registration results. If None (default), registration will
+        be computed without caching.
+    reg_fname_prefix : str
+        Prefix for the registration output filenames. For example, if reg_fname_prefix
+        is 'subject1', the forward transform file will be saved as
+        'subject1_reg_Composite.h5' and the inverse as
+        'subject1_reg_InverseComposite.h5'.
+
+    Returns
+    -------
+    dict
+        Dictionary containing file paths for forward and inverse transforms,
+        as returned by ANTs registration. Keys are 'fwdtransforms' and 'invtransforms'.
+    """
+    from ants.registration import registration
+
+    if reg_cache_dir is None:
+        # Perform registration without caching.
+        logger.info("Performing registration...")
+        reg = registration(
+            fixed=fixed, moving=moving, type_of_transform=type_of_transform
+        )
+        logger.info("Registration complete.")
+        return reg
+    os.makedirs(reg_cache_dir, exist_ok=True)
+
+    # Cache consists of forward and inverse tranforms.
+    reg_forward_fname = f"{reg_fname_prefix}_Composite.h5"
+    reg_inverse_fname = f"{reg_fname_prefix}_InverseComposite.h5"
+    reg_forward_path = op.join(reg_cache_dir, reg_forward_fname)
+    reg_inverse_path = op.join(reg_cache_dir, reg_inverse_fname)
+
+    if op.exists(reg_forward_path) and op.exists(reg_inverse_path):
+        logger.info(
+            "Using existing registration transforms:\n  %s\n  %s",
+            reg_forward_path,
+            reg_inverse_path,
+        )
+        reg = {
+            "fwdtransforms": [reg_forward_path],
+            "invtransforms": [reg_inverse_path],
+        }
+        return reg
+
+    # Perform registration and save the transforms to the cache directory.
+
+    # ANTs will automatically append 'Composite.h5' and 'InverseComposite.h5'
+    transform_fname_prefix = op.join(reg_cache_dir, f"{reg_fname_prefix}_")
+    logger.info(
+        "Performing registration and saving transforms to cache:\n  %s\n  %s",
+        reg_forward_path,
+        reg_inverse_path,
+    )
+    reg = registration(
+        fixed=fixed,
+        moving=moving,
+        type_of_transform=type_of_transform,
+        outprefix=transform_fname_prefix,  # save transforms
+        write_composite_transform=True,  # combine warp and affine to a single file
+    )
+    logger.info("Registration complete. Transforms saved to cache.")
+    return reg
 
 
 def calculate_normals(
