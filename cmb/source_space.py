@@ -112,7 +112,6 @@ def create_cerebellar_surface(
         # Ensure the directory for the mesh file exists.
         os.makedirs(op.dirname(mesh_fname), exist_ok=True)
 
-    logger.info("Starting to set up cerebellar source space for subject %s...", subject)
     data_dir = op.join(cmb_path, "data")
 
     if registration_caching:
@@ -122,6 +121,8 @@ def create_cerebellar_surface(
     else:
         # No caching.
         registration_cache_dir = None
+
+    logger.info("Starting to create cerebellar surface for subject %s...", subject)
 
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
         cb_data = pickle.load(cb_geo_file)
