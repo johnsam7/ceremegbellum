@@ -128,8 +128,8 @@ def create_cerebellar_surface(
     with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
         cb_data = pickle.load(cb_geo_file)
 
-    # Load the high-resolution cerebellar mesh. The mesh is in the voxel space of the
-    # high-resolution cerebellar volume.
+    # Load the template cerebellar mesh. The mesh is in the voxel space of the
+    # volumetric atlas.
     if cerebellum_subsampling == "full":
         rr = cb_data["verts_normal"]
         tris = cb_data["faces"]
@@ -138,8 +138,12 @@ def create_cerebellar_surface(
         tris = cb_data["dw_data"][cerebellum_subsampling + "_tris"]
         rr = affine_transform(1, np.array([0, 0, 0]), [np.pi / 2, 0, 0], rr)
 
-    hr_vol = cb_data["hr_vol"]
+    # Get the volumetric atlas (high resolution segmentation).
     hr_segm = cb_data["parcellation"]["volume"].copy()
+    # Get virtual MRI volume of the atlas.
+    hr_vol = cb_data["hr_vol"]
+
+    # Adjust the labels of the volumetric atlas to match the subject's segmentation.
     old_labels = [
         12,
         33,
@@ -193,12 +197,14 @@ def create_cerebellar_surface(
 
     subj_contrast = np.zeros(subj_mri.shape)
     # Fill the cerebellum region with MRI values.
+    # Can use cerb_coords to index because subject MRI and segmentation are aligned.
     subj_contrast[cerb_coords] = subj_mri[cerb_coords]
     subj_contrast, _ = _crop_image_volume(subj_contrast, cerb_coords, pad=pad)
 
     logger.info("Setting up adaptation to subject... ")
 
     # Resample the cerebellar volume to the subject's segmentation size.
+    logger.debug("Resampling template MRI to the subject's segmentation size...")
     hr_vol_scaled = hr_vol
     for axis in range(3):
         hr_vol_scaled = signal.resample(
@@ -218,6 +224,9 @@ def create_cerebellar_surface(
     hr_volume_resampled = np.where(hr_vol_scaled > 10, hr_vol_scaled, 0)
 
     # Resample the segmentation to the subject's segmentation size.
+    logger.debug(
+        "Resampling template segmentation to the subject's segmentation size..."
+    )
     hr_labels_scaled = _scale_labels_majority_vote(
         hr_segm, subject_labels, scaling_factor
     )
@@ -233,13 +242,13 @@ def create_cerebellar_surface(
     subj_label_ants = ants.from_numpy(subject_labels.astype(float))
     hr_label_ants = ants.from_numpy(hr_labels_scaled.astype(float))
     logger.info("Fitting labels... ")
-    # Compute the registration.
+    # Compute or get cached registration.
     reg = _get_registration(
         fixed=subj_label_ants,
         moving=hr_label_ants,
         type_of_transform="SyNCC",
         reg_cache_dir=registration_cache_dir,
-        reg_fname_prefix=f"{subject}_labels",
+        reg_fname_prefix=f"{subject}_labels_",
     )
 
     # Apply the registration to the mesh vertices.
@@ -251,7 +260,6 @@ def create_cerebellar_surface(
     logger.info("Fitting contrast... ")
     subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
     hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
-
     # Also warp the volume template to the subject space.
     hr_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
@@ -262,7 +270,7 @@ def create_cerebellar_surface(
         moving=hr_ants,
         type_of_transform="SyNCC",
         reg_cache_dir=registration_cache_dir,
-        reg_fname_prefix=f"{subject}_contrast",
+        reg_fname_prefix=f"{subject}_contrast_",
     )
 
     # Apply the refined registration to both volume and mesh.
@@ -396,7 +404,7 @@ def _scale_labels_majority_vote(
 def _crop_image_volume(
     vol: NDArray, coords: tuple[NDArray, ...], pad: int = 3
 ) -> tuple[NDArray, list]:
-    """Crop a 3D volume to the bounding box of non-zero coordinates.
+    """Crop a 3D volume to the bounding box of given coordinates, with optional padding.
 
     Parameters
     ----------
@@ -474,9 +482,9 @@ def _get_registration(
         be computed without caching.
     reg_fname_prefix : str
         Prefix for the registration output filenames. For example, if reg_fname_prefix
-        is 'subject1', the forward transform file will be saved as
-        'subject1_reg_Composite.h5' and the inverse as
-        'subject1_reg_InverseComposite.h5'.
+        is 'subject1_', the forward transform file will be saved as
+        'subject1_Composite.h5' and the inverse as
+        'subject1_InverseComposite.h5'.
 
     Returns
     -------
@@ -497,8 +505,8 @@ def _get_registration(
     os.makedirs(reg_cache_dir, exist_ok=True)
 
     # Cache consists of forward and inverse tranforms.
-    reg_forward_fname = f"{reg_fname_prefix}_Composite.h5"
-    reg_inverse_fname = f"{reg_fname_prefix}_InverseComposite.h5"
+    reg_forward_fname = f"{reg_fname_prefix}Composite.h5"
+    reg_inverse_fname = f"{reg_fname_prefix}InverseComposite.h5"
     reg_forward_path = op.join(reg_cache_dir, reg_forward_fname)
     reg_inverse_path = op.join(reg_cache_dir, reg_inverse_fname)
 
