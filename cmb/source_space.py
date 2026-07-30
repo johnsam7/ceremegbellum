@@ -525,7 +525,7 @@ def _get_registration(
     # Perform registration and save the transforms to the cache directory.
 
     # ANTs will automatically append 'Composite.h5' and 'InverseComposite.h5'
-    transform_fname_prefix = op.join(reg_cache_dir, f"{reg_fname_prefix}_")
+    transform_fname_prefix = op.join(reg_cache_dir, reg_fname_prefix)
     logger.info(
         "Performing registration and saving transforms to cache:\n  %s\n  %s",
         reg_forward_path,
