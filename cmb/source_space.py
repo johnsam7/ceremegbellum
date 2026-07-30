@@ -261,13 +261,13 @@ def create_cerebellar_surface(
     subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
     hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
     # Also warp the volume template to the subject space.
-    hr_ants = apply_transforms(
+    hr_rs_ants = apply_transforms(
         fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
     )
     # Register the warped atlas volume to the subject volume to refine the registration.
     reg = _get_registration(
         fixed=subj_ants,
-        moving=hr_ants,
+        moving=hr_rs_ants,
         type_of_transform="SyNCC",
         reg_cache_dir=registration_cache_dir,
         reg_fname_prefix=f"{subject}_contrast_",
