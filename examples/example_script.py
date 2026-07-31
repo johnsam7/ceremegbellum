@@ -53,8 +53,7 @@ print(f"Cerebellar mesh created with {rr.shape[0]} vertices and {tris.shape[0]} 
 src_whole = setup_full_source_space(
     subject,
     subjects_dir,
-    cerb_dir=None,
-    cerb_subsampling=cerebellum_subsampling,
+    cerebellum_surf_fname=None,  # find from the default location
     spacing=cerebral_spacing,
 )
 # %% Compute forward and inverse operators
