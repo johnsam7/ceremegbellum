@@ -1,5 +1,6 @@
 import os.path as op
 import pickle
+import sys
 from pathlib import Path
 
 import mne
@@ -8,6 +9,7 @@ import numpy as np
 import pytest
 from mne.datasets import sample
 from numpy.testing import assert_allclose, assert_array_equal
+from pytest_mock import MockerFixture
 
 from cmb.source_space import create_cerebellar_surface
 
@@ -129,9 +131,90 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
     )
 
 
+class TestRegistrationCache:
+    """Test the registration caching mechanism in create_cerebellar_surface."""
+
+    def test_without_caching(self, tmp_path: Path, mocker: MockerFixture) -> None:
+        """Test that no cache is created when registration_caching=False."""
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        cache_dir = cmb_dir / "data" / "atlas_fitting_cache"
+
+        # Get ANTS registration function this way because of namespace
+        # collision of ants.registration module and the ants.registration function.
+        ants_reg_module = sys.modules["ants.registration"]
+        ants_registration = mocker.spy(ants_reg_module, "registration")
+
+        create_cerebellar_surface(
+            subject=subject,
+            subjects_dir=str(subjects_dir),
+            cmb_path=str(cmb_dir),
+            cerebellum_subsampling="full",
+            save_mesh=False,
+            registration_caching=False,
+        )
+        assert not cache_dir.exists() or not any(cache_dir.iterdir()), (
+            "Cache directory should be empty or not exist when no caching is used."
+        )
+        assert ants_registration.call_count == 2, (
+            "Expected 2 calls to ANTS registration (one for labels, one for contrast)"
+        )
+
+    def test_with_caching(self, tmp_path: Path, mocker: MockerFixture) -> None:
+        """Test that cache is created and used when registration_caching=True."""
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        cache_dir = cmb_dir / "data" / "atlas_fitting_cache"
+
+        # Get ANTS registration function this way because of namespace
+        # collision of ants.registration module and the ants.registration function.
+        ants_reg_module = sys.modules["ants.registration"]
+        ants_registration = mocker.spy(ants_reg_module, "registration")
+
+        # First run: should create cache.
+        create_cerebellar_surface(
+            subject=subject,
+            subjects_dir=str(subjects_dir),
+            cmb_path=str(cmb_dir),
+            cerebellum_subsampling="full",
+            save_mesh=False,
+            registration_caching=True,
+        )
+        assert cache_dir.exists() and any(cache_dir.iterdir()), (
+            "Cache directory should exist and contain files after first run."
+        )
+        assert ants_registration.call_count == 2, (
+            "Expected 2 calls to ANTS registration (one for labels, one for contrast)"
+        )
+        first_call_count = ants_registration.call_count
+
+        # Second run: should use cache, so no additional calls to ANTS registration.
+        create_cerebellar_surface(
+            subject=subject,
+            subjects_dir=str(subjects_dir),
+            cmb_path=str(cmb_dir),
+            cerebellum_subsampling="full",
+            save_mesh=False,
+            registration_caching=True,
+        )
+        second_call_count = ants_registration.call_count
+
+        assert second_call_count == first_call_count, (
+            "ANTS registration should not be called again when using cached transforms."
+        )
+
+
 def _create_mock_data(
     tmp_path: Path, rng: np.random.Generator, subject: str
 ) -> tuple[Path, Path, np.ndarray, np.ndarray]:
+    """Create mock data suitable for testing cerebellar mesh creation.
+
+    Subsampling must be set to 'full'.
+    """
     # Setup mock MRI directory and save a fake MRI there.
     subjects_dir = tmp_path / "subjects"
     subj_mri_dir = subjects_dir / subject / "mri"
