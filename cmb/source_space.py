@@ -46,7 +46,7 @@ def create_cerebellar_surface(
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     save_mesh: bool | str = True,
     registration_caching: bool = False,
-) -> dict:
+) -> tuple[NDArray, NDArray]:
     """Create a cerebellar mesh in the native subject space.
 
     Runs the reconstruction step of ARCUS, fitting a high-resolution cerebellar atlas to
@@ -76,10 +76,10 @@ def create_cerebellar_surface(
 
     Returns
     -------
-    subj_cerb: dict
-        Dictionary with the cerebellar mesh geometry in surface RAS coordinates.
-        Has keys 'rr' for the vertices and 'tris' for the triangles.
-
+    rr_ras : NDArray
+        n_vertices x 3 array of vertex positions in FreeSurfer surface RAS coordinates.
+    tris : NDArray
+        n_faces x 3 array of triangle vertex indices defining the mesh faces.
     """
     import ants
     from ants.registration import (
@@ -282,7 +282,7 @@ def create_cerebellar_surface(
     if save_mesh:
         write_geometry(mesh_fname, rr_ras, tris)
 
-    return {"rr": rr_ras, "tris": tris}
+    return rr_ras, tris
 
 
 def _coords_to_dataframe(rr) -> "DataFrame":
