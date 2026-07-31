@@ -8,6 +8,7 @@ from mne.datasets import sample
 
 from cmb import (
     CMB_DATA_DIR,
+    create_cerebellar_surface,
     get_cerebellum_data,
     setup_full_source_space,
 )
@@ -15,47 +16,59 @@ from cmb import (
     visualization as cmb_viz,
 )
 
+# Set paths to subject data.
 data_path = sample.data_path()
 
-# Paths to subject data
+subject = "sample"
+subjects_dir = op.join(data_path, "subjects")
+
 sample_dir = op.join(data_path, "MEG", "sample")
 raw_fname = op.join(sample_dir, "sample_audvis_raw.fif")
-subjects_dir = op.join(data_path, "subjects")
-subject = "sample"
 trans = op.join(sample_dir, "sample_audvis_raw-trans.fif")
 fname_cov = op.join(sample_dir, "sample_audvis-cov.fif")
 evo_fname = op.join(sample_dir, "sample_audvis-ave.fif")
 
-# Check if the required data are available and download if not
-get_cerebellum_data()
+# %% Check if the required data are available and download if not.
+# Use the default location (CMB_DATA_DIR) for the data.
+get_cerebellum_data(cmb_path=None)
 
-# %%
-# Load cerebellum geometry.
-with open(op.join(CMB_DATA_DIR, "data", "cerebellum_geo"), "rb") as f:
-    cb_data = pickle.load(f)
+# %% Set parameters.
 # Use spacing 2 to get an approximately equal grid density in cerebral
 # and cerebellar cortices
-spacing = 2
+cerebral_spacing = 2
 cerebellum_subsampling = "sparse"
 
-# %% # Setup source space using the segmented data
+# %% Segment cerebellum and fit the atlas, yielding a cerebellar mesh in the
+# native subject space.
+rr, tris = create_cerebellar_surface(
+    subject,
+    subjects_dir,
+    cmb_path=None,
+    cerebellum_subsampling=cerebellum_subsampling,
+    save_mesh=True,  # save to subjects_dir/subject/surf/cerebellum.white
+)
+print(f"Cerebellar mesh created with {rr.shape[0]} vertices and {tris.shape[0]} faces.")
+
+# %% # Setup source space with cerebellum and cortex using the created mesh.
 src_whole = setup_full_source_space(
     subject,
     subjects_dir,
+    cerb_dir=None,
     cerb_subsampling=cerebellum_subsampling,
-    plot_cerebellum=False,
-    spacing=spacing,
+    spacing=cerebral_spacing,
 )
-# %%
-# Compute forward and inverse operators
+# %% Compute forward and inverse operators
 conductivity = (0.3, 0.006, 0.3)
+# Important not to use too large mindist because the cerebellar cortex and inner skull
+# boundary are usually within 5 mm.
 mindist = 3.0
-# important not to use too large mindist because the cerebellar cortex and inner skull boundary are usually within 5 mm
+
 model = mne.make_bem_model(
     subject=subject, ico=4, conductivity=conductivity, subjects_dir=subjects_dir
 )
 bem = mne.make_bem_solution(model)
-# IF too many source space points are lost, the inner skull boundary is too tight and need to be expanded.
+# If too many source space points are lost, the inner skull boundary is too tight and
+# needs to be expanded.
 info = mne.io.read_info(raw_fname)
 fwd = mne.make_forward_solution(
     info, trans, src_whole, bem=bem, mindist=mindist, eeg=True, n_jobs=1
@@ -66,8 +79,12 @@ noise_cov = mne.read_cov(fname_cov)
 inverse_operator = mne.minimum_norm.make_inverse_operator(
     info, fwd, noise_cov, depth=None, fixed=True
 )
-# %%
-# Example forward simulation from patch in right lobule VIIIa
+
+# %% Load the cerebellum geometry for simulations and visualization.
+with open(op.join(CMB_DATA_DIR, "data", "cerebellum_geo"), "rb") as f:
+    cb_data = pickle.load(f)
+
+# %% Example forward simulation from patch in right lobule VIIIa
 label = cb_data["parcellation"]["fine labels"][714]
 active_verts = np.where(
     np.isin(cb_data["dw_data"][cerebellum_subsampling], label.vertices)
@@ -111,7 +128,6 @@ _ = cmb_viz.plot_flatmap(
     offscreen=False,
     screenshot_fname=None,
 )
-
 # %% Estimate activation from simulated data
 evo = mne.read_evokeds(evo_fname)[0]
 sens = np.zeros(evo.info["nchan"])
@@ -129,7 +145,6 @@ estimate = mne.minimum_norm.apply_inverse(
 n_verts_cortex_fwd = fwd["src"][0]["nuse"]
 
 estimate_cerebellum = np.linalg.norm(estimate.data[n_verts_cortex_fwd:, :], axis=1)
-
 estimate_cortex = np.linalg.norm(estimate.data[:n_verts_cortex_fwd, :], axis=1)
 
 # %% Plot the estimated activation on cerebellum and cortex.
@@ -144,7 +159,7 @@ cortex_estimate_prepared = cmb_viz.morph_cortex_data(
     cort_data=estimate_cortex, fwd_cortex_src=fwd["src"][0]
 )
 
-cmb_viz.plot_normal(
+_ = cmb_viz.plot_normal(
     src_cerebellum=fwd["src"][1],
     cerebellum_data=cerebellum_estimate_prepared,
     src_cortex=fwd["src"][0],
@@ -152,7 +167,7 @@ cmb_viz.plot_normal(
     cmap="Reds",
     clim=(0, 10000),
 )
-cmb_viz.plot_flatmap(
+_ = cmb_viz.plot_flatmap(
     cb_data,
     cerebellum_estimate_prepared,
     cerebellum_subsampling,
@@ -160,8 +175,7 @@ cmb_viz.plot_flatmap(
     clim=(0, 10000),
 )
 
-# %%
-# Sensitivity maps - cerebellum only
+# %% Sensitivity maps - cerebellum only
 for ch_type in ["mag", "grad", "eeg"]:
     ch_inds = mne.channel_indices_by_type(fwd["info"])
     signal_norms_cb = np.linalg.norm(
@@ -183,8 +197,7 @@ for ch_type in ["mag", "grad", "eeg"]:
         cb_data, signal_norms_cb_prepared, cerebellum_subsampling, cmap="Reds"
     )
 
-# %%
-# Sensitivity maps - with cortex
+# %% Sensitivity maps - with cortex
 for ch_type in ["mag", "grad", "eeg"]:
     ch_inds = mne.channel_indices_by_type(fwd["info"])
     signal_norms = np.linalg.norm(fwd["sol"]["data"][ch_inds[ch_type], :], axis=0)
@@ -198,8 +211,7 @@ for ch_type in ["mag", "grad", "eeg"]:
         subsampling=cerebellum_subsampling,
         smoothing_steps=0,
     )
-
-    cmb_viz.plot_normal(
+    _ = cmb_viz.plot_normal(
         src_cerebellum=fwd["src"][1],
         cerebellum_data=signal_norms_cerebellum_prepared,
         src_cortex=fwd["src"][0],
