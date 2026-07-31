@@ -20,6 +20,7 @@ import pickle
 import warnings
 from typing import TYPE_CHECKING, Literal
 
+import mne
 import numpy as np
 from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
@@ -86,11 +87,10 @@ def create_cerebellar_surface(
         apply_transforms,
         apply_transforms_to_points,
     )
-    from mne.utils import get_subjects_dir
     from scipy import signal
 
     # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
+    subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
     # Cast Path object to string for compatibility.
     subjects_dir = str(subjects_dir)
 
@@ -627,81 +627,57 @@ def calculate_normals(
 
 
 def setup_full_source_space(
-    subject,
-    subjects_dir,
-    cerb_dir=None,
-    cerb_subsampling="sparse",
-    spacing="oct6",
-    debug_mode=False,
-):
+    subject: str,
+    subjects_dir: str | None = None,
+    cerebellum_surf_fname: str | None = None,
+    spacing: str | int = "oct6",
+) -> mne.SourceSpaces:
     """Set up a full surface source space that includes the cerebellum.
 
-    The first element in the returned list is the combined cerebral hemispheric source
-    space and the second element is the cerebellar source space.
+    The first element in the returned `SourceSpaces` list is the combined cerebral
+    hemispheric source space and the second element is the cerebellar source space.
 
     Parameters
     ----------
     subject : str
         The FreeSurfer subject name.
-    subjects_dir : str
-        Path to the FreeSurfer subjects directory.
-    cerb_dir : str, optional
-        Path to cerebellum data folder. If None, defaults to the package
-        installation directory.
-    cerb_subsampling : 'full' | 'sparse' | 'dense'
-        The spacing to use for the cerebellum. Can be either full, sparse or dense.
-    spacing : str
-        The spacing to use for cortex. Can be ``'ico#'`` for a recursively subdivided
-        icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        or ``'all'`` for all points.
-    debug_mode : Boolean
-        If True, intermediate results will be saved to disk.
+    subjects_dir : str | None
+        The path to the directory containing the FreeSurfer subjects reconstructions.
+        If None, defaults to the SUBJECTS_DIR environment variable.
+    cerebellum_surf_fname : str | None
+        Path to the cerebellum surface mesh file. If None, defaults to
+        ``<subjects_dir>/<subject>/surf/cerebellum.white``
+    spacing : str | int
+        The spacing parameter for ``mne.setup_source_space``.
 
     Returns
     -------
-    src_whole: list
+    src_whole: mne.SourceSpaces
         List containing two source space elements: the cerebral cortex and the
         cerebellar cortex.
-
     """
-    import mne
+    subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
+    # Cast Path object to string for compatibility.
+    subjects_dir = str(subjects_dir)
 
-    if cerb_dir is None:
-        from . import CMB_DATA_DIR
-
-        cerb_dir = CMB_DATA_DIR
-
-    assert cerb_subsampling in ["full", "sparse", "dense"], (
-        "cerb_subsampling must be either 'full', 'sparse' or 'dense'"
-    )
+    logger.info("Setting up cerebral source space for subject %s...", subject)
     src_cort = mne.setup_source_space(
-        subject=subject, subjects_dir=subjects_dir, spacing=spacing, add_dist=False
+        subject=subject,
+        subjects_dir=subjects_dir,
+        spacing=spacing,  # pyright: ignore[reportArgumentType],
+        add_dist=False,
     )
     if spacing == "all":
-        src_cort[0]["use_tris"] = src_cort[0]["tris"]
-        src_cort[1]["use_tris"] = src_cort[1]["tris"]
-
-    cerb_surf_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-    if op.exists(cerb_surf_fname):
-        logger.info(
-            "Found cerebellar surface file: %s, skipping creation.", cerb_surf_fname
-        )
-    else:
-        logger.info(
-            "Cerebellar surface file not found: %s, creating...", cerb_surf_fname
-        )
-        _ = create_cerebellar_surface(
-            subject,
-            subjects_dir,
-            cerb_dir,
-            cerebellum_subsampling=cerb_subsampling,
-            save_mesh=True,
-            registration_caching=debug_mode,
-        )
+        # use_tris is None when spacing is 'all', idk if it is intentional.
+        src_cort[0]["use_tris"] = src_cort[0]["tris"]  # pyright: ignore
+        src_cort[1]["use_tris"] = src_cort[1]["tris"]  # pyright: ignore
 
     # Read the geometry of the cerebellar surface mesh.
-    cerb_surf_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-    surface_data = mne.read_surface(cerb_surf_fname)
+    if cerebellum_surf_fname is None:
+        cerebellum_surf_fname = op.join(
+            subjects_dir, subject, "surf", "cerebellum.white"
+        )
+    surface_data = mne.read_surface(cerebellum_surf_fname)
 
     cerb_rr = surface_data[0]
     assert isinstance(cerb_rr, np.ndarray), "Surface vertices should be a NumPy array."
@@ -724,6 +700,8 @@ def setup_full_source_space(
         "nn": nn,
         "nan_nn": nan_vertices,
     }
+
+    logger.info("Concatenating cerebellar source space with cerebral source space...")
 
     src_whole = src_cort.copy()
     hemi_src = join_source_spaces(src_cort)
