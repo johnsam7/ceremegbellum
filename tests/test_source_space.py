@@ -51,39 +51,34 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
         registration_caching=True,
     )
     true_rr, true_tris = mne.read_surface(model_surface_path)  # pyright: ignore[reportAssignmentType]
-    assert isinstance(true_rr, np.ndarray), "True vertices are not a numpy array."
-    assert isinstance(true_tris, np.ndarray), "True triangles are not a numpy array."
+    assert isinstance(true_rr, np.ndarray)
+    assert isinstance(true_tris, np.ndarray)
 
-    # Assert that the surface vertices and triangles match exactly.
     assert_allclose(
         surface["rr"],
         true_rr,
         rtol=1e-5,
         atol=1e-4,
-        err_msg="Surface vertices do not match reference surface.",
     )
     assert_array_equal(
         surface["tris"],
         true_tris,
-        err_msg="Surface triangles do not match reference surface.",
     )
     # Check that mesh file was saved and is correct.
     assert op.exists(mesh_fname), "Mesh file was not saved."
     saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
-    assert isinstance(saved_rr, np.ndarray), "Saved vertices are not a numpy array."
-    assert isinstance(saved_tris, np.ndarray), "Saved triangles are not a numpy array."
+    assert isinstance(saved_rr, np.ndarray)
+    assert isinstance(saved_tris, np.ndarray)
 
     assert_allclose(
         saved_rr,
         surface["rr"],
         rtol=1e-5,
         atol=1e-4,
-        err_msg="Saved mesh vertices do not match returned surface vertices.",
     )
     assert_array_equal(
         saved_tris,
         surface["tris"],
-        err_msg="Saved mesh triangles do not match returned surface triangles.",
     )
 
 
