@@ -94,6 +94,44 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
     rng = np.random.default_rng(seed=42)  # For reproducibility
     subject = "mock_subject"
 
+    subjects_dir, cmb_dir, verts, faces = _create_mock_data(tmp_path, rng, subject)
+
+    mesh_fname = tmp_path / "cerebellum_mesh" / "output_mesh.surf"
+
+    surface = create_cerebellar_surface(
+        subject=subject,
+        subjects_dir=str(subjects_dir),
+        cmb_path=str(cmb_dir),
+        cerebellum_subsampling="full",
+        save_mesh=True,
+        mesh_fname=str(mesh_fname),
+        registration_caching=False,
+    )
+
+    assert surface["rr"].shape == verts.shape
+    assert surface["tris"].shape == faces.shape
+
+    # Verify the saved mesh.
+    assert mesh_fname.exists(), "Mesh file was not saved to the expected location."
+    saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
+    assert isinstance(saved_rr, np.ndarray)
+    assert isinstance(saved_tris, np.ndarray)
+
+    assert_allclose(
+        saved_rr,
+        surface["rr"],
+        rtol=1e-5,
+        atol=1e-4,
+    )
+    assert_array_equal(
+        saved_tris,
+        surface["tris"],
+    )
+
+
+def _create_mock_data(
+    tmp_path: Path, rng: np.random.Generator, subject: str
+) -> tuple[Path, Path, np.ndarray, np.ndarray]:
     # Setup mock MRI directory and save a fake MRI there.
     subjects_dir = tmp_path / "subjects"
     subj_mri_dir = subjects_dir / subject / "mri"
@@ -133,34 +171,4 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
     with open(cmb_data_dir / "cerebellum_geo", "wb") as f:
         pickle.dump(fake_geo, f)
 
-    mesh_fname = tmp_path / "cerebellum_mesh" / "output_mesh.surf"
-
-    surface = create_cerebellar_surface(
-        subject=subject,
-        subjects_dir=str(subjects_dir),
-        cmb_path=str(cmb_dir),
-        cerebellum_subsampling="full",
-        save_mesh=True,
-        mesh_fname=str(mesh_fname),
-        registration_caching=False,
-    )
-
-    assert surface["rr"].shape == verts.shape
-    assert surface["tris"].shape == faces.shape
-
-    # Verify the saved mesh.
-    assert mesh_fname.exists(), "Mesh file was not saved to the expected location."
-    saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
-    assert isinstance(saved_rr, np.ndarray)
-    assert isinstance(saved_tris, np.ndarray)
-
-    assert_allclose(
-        saved_rr,
-        surface["rr"],
-        rtol=1e-5,
-        atol=1e-4,
-    )
-    assert_array_equal(
-        saved_tris,
-        surface["tris"],
-    )
+    return subjects_dir, cmb_dir, verts, faces
