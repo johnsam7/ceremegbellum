@@ -3,6 +3,8 @@ import pickle
 import sys
 from pathlib import Path
 
+# Need this to make sure that ants.registration is available for mocking in tests
+import ants.registration  # ruff: ignore[F401]
 import mne
 import nibabel as nib
 import numpy as np
@@ -41,13 +43,12 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
 
     mesh_fname = str(tmp_path / "cerebellum_mesh" / "output_mesh.surf")
 
-    surface = create_cerebellar_surface(
+    rr, tris = create_cerebellar_surface(
         subject,
         subjects_dir,
         str(cmb_path),
         cerebellum_subsampling="sparse",
-        save_mesh=True,
-        mesh_fname=mesh_fname,
+        save_mesh=mesh_fname,
         registration_caching=True,
     )
     true_rr, true_tris = mne.read_surface(model_surface_path)  # pyright: ignore[reportAssignmentType]
@@ -55,13 +56,13 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
     assert isinstance(true_tris, np.ndarray)
 
     assert_allclose(
-        surface["rr"],
+        rr,
         true_rr,
         rtol=1e-5,
         atol=1e-4,
     )
     assert_array_equal(
-        surface["tris"],
+        tris,
         true_tris,
     )
     # Check that mesh file was saved and is correct.
@@ -72,13 +73,13 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
 
     assert_allclose(
         saved_rr,
-        surface["rr"],
+        true_rr,
         rtol=1e-5,
         atol=1e-4,
     )
     assert_array_equal(
         saved_tris,
-        surface["tris"],
+        true_tris,
     )
 
 
@@ -93,22 +94,20 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
 
     subjects_dir, cmb_dir, verts, faces = _create_mock_data(tmp_path, rng, subject)
 
-    mesh_fname = tmp_path / "cerebellum_mesh" / "output_mesh.surf"
-
-    surface = create_cerebellar_surface(
+    rr, tris = create_cerebellar_surface(
         subject=subject,
         subjects_dir=str(subjects_dir),
         cmb_path=str(cmb_dir),
         cerebellum_subsampling="full",
-        save_mesh=True,
-        mesh_fname=str(mesh_fname),
+        save_mesh=True,  # save to FreeSurfer default location
         registration_caching=False,
     )
 
-    assert surface["rr"].shape == verts.shape
-    assert surface["tris"].shape == faces.shape
+    assert rr.shape == verts.shape
+    assert tris.shape == faces.shape
 
     # Verify the saved mesh.
+    mesh_fname = subjects_dir / subject / "surf" / "cerebellum.white"
     assert mesh_fname.exists(), "Mesh file was not saved to the expected location."
     saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
     assert isinstance(saved_rr, np.ndarray)
@@ -116,13 +115,13 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
 
     assert_allclose(
         saved_rr,
-        surface["rr"],
+        rr,
         rtol=1e-5,
         atol=1e-4,
     )
     assert_array_equal(
         saved_tris,
-        surface["tris"],
+        tris,
     )
 
 
