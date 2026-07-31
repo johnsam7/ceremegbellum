@@ -44,8 +44,7 @@ def create_cerebellar_surface(
     subjects_dir: str | None = None,
     cmb_path: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
-    save_mesh: bool = True,
-    mesh_fname: str | None = None,
+    save_mesh: bool | str = True,
     registration_caching: bool = False,
 ) -> dict:
     """Create a cerebellar mesh in the native subject space.
@@ -66,11 +65,10 @@ def create_cerebellar_surface(
         installation directory.
     cerebellum_subsampling : 'full' | 'sparse' | 'dense'
         The spacing to use for the cerebellum.
-    save_mesh : Boolean
-        If True, write the cerebellar mesh to disk.
-    mesh_fname : str | None
-        The file path to save the cerebellar mesh. If None, defaults to
-        ``<subjects_dir>/<subject>/surf/cerebellum.white``.
+    save_mesh : bool | str
+        If True (default), saves the cerebellar mesh to
+        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a string is provided,
+        saves the mesh to the specified path. If False, does not save the mesh to disk.
     registration_caching : Boolean
         If True, it will attemp to read cached registration transforms from disk, and if
         not found, will save the transforms to disk for future use. Defaults to False,
@@ -101,17 +99,14 @@ def create_cerebellar_surface(
 
         cmb_path = CMB_DATA_DIR
 
-    if not save_mesh and mesh_fname is not None:
-        warnings.warn(
-            "mesh_fname is specified but save_mesh is False, mesh will not be saved.",
-            UserWarning,
-            stacklevel=2,
-        )
-    if mesh_fname is None:
-        mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-    else:
-        # Ensure the directory for the mesh file exists.
+    if isinstance(save_mesh, str):
+        mesh_fname = save_mesh
         os.makedirs(op.dirname(mesh_fname), exist_ok=True)
+    elif save_mesh is True:
+        mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
+        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
+    else:
+        mesh_fname = None
 
     data_dir = op.join(cmb_path, "data")
 
