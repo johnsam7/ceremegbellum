@@ -26,10 +26,12 @@ else:
     _OFFSCREEN = False
 
 import math
+from pathlib import Path
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
+import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 from matplotlib.axes import Axes
@@ -794,21 +796,56 @@ def morph_cerebellum_data(
 
 
 def plot_sagittal(
-    vol,
-    show_only_midline=False,
-    sag_ind=None,
-    rr=None,
-    nn=None,
-    tris=None,
-    cmap="gray_r",
-    linewidth=1.0,
+    vol: str | Path | np.ndarray,
+    sag_ind: list[int] | None = None,
+    rr: np.ndarray | None = None,
+    nn: np.ndarray | None = None,
+    tris: np.ndarray | None = None,
+    show_only_midline: bool = False,
+    cmap: str = "gray_r",
+    linewidth: float = 1.0,
     title="Subject MRI sagittal slices",
 ) -> Figure:
+    """Plot sagittal slices of a 3D MRI volume with optional surface mesh overlay.
+
+    Parameters
+    ----------
+    vol : str | Path | np.ndarray
+        3D MRI volume data or path to the MRI volume file.
+    sag_ind : list[int] | None, optional
+        List of sagittal slice indices to plot. If None, will plot 6 evenly spaced
+        slices across the volume. If `show_only_midline` is True, this parameter is
+        ignored.
+    rr : np.ndarray | None, optional
+        Vertex coordinates of the surface mesh. Should be of shape (n_vertices, 3).
+    nn : np.ndarray | None, optional
+        Normal vectors at each vertex of the surface mesh. Should be of shape
+        (n_vertices, 3).
+    tris : np.ndarray | None, optional
+        Triangular faces of the surface mesh. Should be of shape (n_faces, 3).
+    show_only_midline : bool, optional
+        If True, will only plot the midline sagittal slice of the volume. Default is False.
+    cmap : str, optional
+        Colormap to use for displaying the MRI slices. Default is "gray_r".
+    linewidth : float, optional
+        Line width for the surface mesh overlay. Default is 1.0.
+    title : str, optional
+        Title for the figure. Default is "Subject MRI sagittal slices".
+    """
+    if isinstance(vol, str) or isinstance(vol, Path):
+        vol = nib.load(vol).get_fdata()  # pyright: ignore[reportAttributeAccessIssue]
+    if not isinstance(vol, np.ndarray) or vol.ndim != 3:
+        raise ValueError(
+            "vol must be a 3D numpy array or a path to the MRI volume file."
+        )
+
     if show_only_midline:
         sag_ind = [vol.shape[0] // 2]
     elif sag_ind is None:
         x_width = vol.shape[0]
-        sag_ind = np.linspace(int(x_width * 0.1), int(x_width * 0.9), 6).astype(int)
+        sag_ind = list(
+            np.linspace(int(x_width * 0.1), int(x_width * 0.9), 6).astype(int)
+        )
 
     # Dynamically size the grid
     n_plots = len(sag_ind)
