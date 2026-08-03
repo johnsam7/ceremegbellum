@@ -25,6 +25,8 @@ if os.environ.get("DISPLAY") is None and os.name != "nt":
 else:
     _OFFSCREEN = False
 
+import math
+
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
@@ -791,35 +793,39 @@ def morph_cerebellum_data(
     return data_interpolated
 
 
-def plot_sagittal(vol, only_show_midline=False, **kwargs):
-    sag_ind = kwargs.get("sag_ind")
-    title = kwargs.get("title")
-    rr = kwargs.get("rr")
-    nn = kwargs.get("nn")
-    tris = kwargs.get("tris")
-    cmap = kwargs.get("cmap")
-    linewidth = kwargs.get("linewidth")
-    if cmap is None:
-        cmap = "gray_r"
-    if linewidth is None:
-        linewidth = 1.0
-    fig, ax = plt.subplots(3, 2)
-    fig.suptitle(title)
-
-    if sag_ind is None:
+def plot_sagittal(
+    vol,
+    show_only_midline=False,
+    sag_ind=None,
+    rr=None,
+    nn=None,
+    tris=None,
+    cmap="gray_r",
+    linewidth=1.0,
+    title="Subject MRI sagittal slices",
+) -> Figure:
+    if show_only_midline:
+        sag_ind = [vol.shape[0] // 2]
+    elif sag_ind is None:
         x_width = vol.shape[0]
         sag_ind = np.linspace(int(x_width * 0.1), int(x_width * 0.9), 6).astype(int)
 
-    if only_show_midline:
-        sag_ind = [sag_ind[3]]
+    # Dynamically size the grid
+    n_plots = len(sag_ind)
+    cols = min(3, n_plots)
+    rows = math.ceil(n_plots / cols)
 
-    for c, slice_ind in enumerate(sag_ind):
-        image = vol[slice_ind, :, :]
-        plt.subplot(3, 2, c + 1)
+    fig, _ = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4), squeeze=False)
+    fig.suptitle(title)
+
+    for c, slice_idx in enumerate(sag_ind):
+        image = vol[slice_idx, :, :]
+        plt.subplot(rows, cols, c + 1)
         plt.imshow(image, cmap=cmap)
+        plt.title(f"Slice {slice_idx}")
 
-        if tris is not None:
-            z_0 = slice_ind
+        if tris is not None and rr is not None:
+            z_0 = slice_idx
             cart_ind = 0
             xy = [x for x in range(3) if not x == cart_ind]
             intersecting_tris = []
@@ -858,12 +864,12 @@ def plot_sagittal(vol, only_show_midline=False, **kwargs):
                     xy_points[:, 1], xy_points[:, 0], color="red", linewidth=linewidth
                 )
 
-        if nn is not None:
-            ptsp = np.where(np.abs(rr[:, 0] - (slice_ind - 0.5)) < 1.0)[0]
+        if nn is not None and rr is not None:
+            ptsp = np.where(np.abs(rr[:, 0] - (slice_idx - 0.5)) < 1.0)[0]
             x_tp = rr[ptsp, 2]
             y_tp = rr[ptsp, 1]
             plt.quiver(
                 x_tp, y_tp, nn[ptsp, 2], -nn[ptsp, 1], scale=1, scale_units="inches"
             )
 
-    return fig, ax
+    return fig
