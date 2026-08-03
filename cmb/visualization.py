@@ -796,11 +796,9 @@ def morph_cerebellum_data(
 
 
 def plot_sagittal(
-    vol: str | Path | np.ndarray,
+    vol_fname: str | Path,
     sag_ind: list[int] | None = None,
-    rr: np.ndarray | None = None,
-    nn: np.ndarray | None = None,
-    tris: np.ndarray | None = None,
+    mesh_fname: str | Path | None = None,
     show_only_midline: bool = False,
     cmap: str = "gray_r",
     linewidth: float = 1.0,
@@ -810,19 +808,15 @@ def plot_sagittal(
 
     Parameters
     ----------
-    vol : str | Path | np.ndarray
-        3D MRI volume data or path to the MRI volume file.
+    vol : str | Path
+        Path to the MRI volume file (e.g. orig.mgz).
     sag_ind : list[int] | None, optional
         List of sagittal slice indices to plot. If None, will plot 6 evenly spaced
         slices across the volume. If `show_only_midline` is True, this parameter is
         ignored.
-    rr : np.ndarray | None, optional
-        Vertex coordinates of the surface mesh. Should be of shape (n_vertices, 3).
-    nn : np.ndarray | None, optional
-        Normal vectors at each vertex of the surface mesh. Should be of shape
-        (n_vertices, 3).
-    tris : np.ndarray | None, optional
-        Triangular faces of the surface mesh. Should be of shape (n_faces, 3).
+    mesh_fname : str | Path | None, optional
+        Path to the surface mesh file. If None (default), no surface mesh will be
+        overlaid on the MRI slices.
     show_only_midline : bool, optional
         If True, will only plot the midline sagittal slice of the volume. Default is False.
     cmap : str, optional
@@ -832,12 +826,28 @@ def plot_sagittal(
     title : str, optional
         Title for the figure. Default is "Subject MRI sagittal slices".
     """
-    if isinstance(vol, str) or isinstance(vol, Path):
-        vol = nib.load(vol).get_fdata()  # pyright: ignore[reportAttributeAccessIssue]
-    if not isinstance(vol, np.ndarray) or vol.ndim != 3:
-        raise ValueError(
-            "vol must be a 3D numpy array or a path to the MRI volume file."
+    import mne
+    from nibabel.affines import apply_affine
+
+    mri_vol = nib.load(vol_fname)
+    vol = mri_vol.get_fdata()  # pyright: ignore[reportAttributeAccessIssue]
+
+    if mesh_fname is not None:
+        rr, tris = mne.read_surface(mesh_fname)  # pyright: ignore
+        # Transform the surface mesh coordinates from surface RAS to MRI voxel space.
+        vox2ras_tkr = mri_vol.header.get_vox2ras_tkr()  # pyright: ignore[reportAttributeAccessIssue]
+        tkr2vox = np.linalg.inv(vox2ras_tkr)
+        rr = apply_affine(tkr2vox, rr)
+
+        # Help IDE type checkers with assertions.
+        assert isinstance(rr, np.ndarray), (
+            "Surface mesh coordinates must be a numpy array."
         )
+        assert isinstance(tris, np.ndarray), (
+            "Surface mesh triangles must be a numpy array."
+        )
+    else:
+        rr, tris = None, None
 
     if show_only_midline:
         sag_ind = [vol.shape[0] // 2]
@@ -900,13 +910,5 @@ def plot_sagittal(
                 plt.plot(
                     xy_points[:, 1], xy_points[:, 0], color="red", linewidth=linewidth
                 )
-
-        if nn is not None and rr is not None:
-            ptsp = np.where(np.abs(rr[:, 0] - (slice_idx - 0.5)) < 1.0)[0]
-            x_tp = rr[ptsp, 2]
-            y_tp = rr[ptsp, 1]
-            plt.quiver(
-                x_tp, y_tp, nn[ptsp, 2], -nn[ptsp, 1], scale=1, scale_units="inches"
-            )
 
     return fig
