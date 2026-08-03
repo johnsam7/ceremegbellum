@@ -49,6 +49,12 @@ rr, tris = create_cerebellar_surface(
 )
 print(f"Cerebellar mesh created with {rr.shape[0]} vertices and {tris.shape[0]} faces.")
 
+# %% Visualize the cerebellar mesh in the subject's MRI volume.
+_ = cmb_viz.plot_sagittal(
+    vol_fname=op.join(subjects_dir, subject, "mri", "orig.mgz"),
+    mesh_fname=op.join(subjects_dir, subject, "surf", "cerebellum.white"),
+)
+
 # %% # Setup source space with cerebellum and cortex using the created mesh.
 src_whole = setup_full_source_space(
     subject,
