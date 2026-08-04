@@ -13,7 +13,7 @@ from mne.datasets import sample
 from numpy.testing import assert_allclose, assert_array_equal
 from pytest_mock import MockerFixture
 
-from cmb.source_space import create_cerebellar_surface
+from cmb.source_space import _join_source_spaces, create_cerebellar_surface
 
 from .helpers import set_up_cmb_data
 
@@ -200,6 +200,102 @@ class TestRegistrationCache:
         assert second_call_count == first_call_count, (
             "ANTS registration should not be called again when using cached transforms."
         )
+
+
+@pytest.mark.requires_data
+class TestSourceSpaceJoining:
+    """Test the _join_source_spaces function for different 'use_tris' scenarios."""
+
+    def test_source_space_joining_with_use_tris(self) -> None:
+        """Test that _join_source_spaces correctly joins two source spaces.
+
+        Covers the case where the 'use_tris' field is not None, which occurs
+        when using spacing defined with a string.
+        """
+        # Use MNE sample subject.
+        data_path = sample.data_path()
+        subjects_dir = data_path / "subjects"
+        subject = "sample"
+
+        src_file = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
+        src = mne.read_source_spaces(src_file, verbose=False)
+        src_orig = src.copy()
+        src_joined = _join_source_spaces(src)
+
+        self._assert_correct_joining(src_orig, src_joined)
+        # Check "use_tris" separately.
+        offset = src_orig[0]["np"]
+        expected_use_tris = np.concatenate(
+            (src_orig[0]["use_tris"], src_orig[1]["use_tris"] + offset), axis=0
+        )
+        assert_array_equal(src_joined["use_tris"], expected_use_tris)
+
+    def test_source_space_joining_without_use_tris(self) -> None:
+        """Test that _join_source_spaces correctly joins two source spaces.
+
+        Covers the case where the 'use_tris' field is None, which occurs
+        when using spacing defined with an integer.
+        """
+        # Use MNE sample subject.
+        data_path = sample.data_path()
+        subjects_dir = data_path / "subjects"
+        subject = "sample"
+
+        src = mne.setup_source_space(
+            subject,
+            spacing=2,  # pyright: ignore[reportArgumentType]
+            subjects_dir=subjects_dir,
+            add_dist=False,
+        )
+        assert src[0]["use_tris"] is None
+        assert src[1]["use_tris"] is None
+
+        src_orig = src.copy()
+        src_joined = _join_source_spaces(src)
+
+        self._assert_correct_joining(src_orig, src_joined)
+        # Check "use_tris" separately.
+        assert src_joined["use_tris"] is None
+
+    def _assert_correct_joining(
+        self, src_orig: mne.SourceSpaces, src_joined: dict
+    ) -> None:
+        """Assert that joined source space has correct properties.
+
+        Skips "use_tris" field.
+        """
+        # Assert scalar values are properly summed.
+        assert src_joined["np"] == src_orig[0]["np"] + src_orig[1]["np"]
+        assert src_joined["ntri"] == src_orig[0]["ntri"] + src_orig[1]["ntri"]
+        assert src_joined["nuse"] == src_orig[0]["nuse"] + src_orig[1]["nuse"]
+        assert (
+            src_joined["nuse_tri"] == src_orig[0]["nuse_tri"] + src_orig[1]["nuse_tri"]
+        )
+
+        # Assert raw concatenations (no offsets).
+        expected_inuse = np.concatenate((src_orig[0]["inuse"], src_orig[1]["inuse"]))
+        assert_array_equal(src_joined["inuse"], expected_inuse)
+
+        expected_nn = np.concatenate((src_orig[0]["nn"], src_orig[1]["nn"]), axis=0)
+        assert_array_equal(src_joined["nn"], expected_nn)
+
+        expected_rr = np.concatenate((src_orig[0]["rr"], src_orig[1]["rr"]), axis=0)
+        assert_array_equal(src_joined["rr"], expected_rr)
+
+        # Assert offset concatenations
+        # Triangles from the right hemisphere must be offset by the total point count of
+        # the left.
+        offset = src_orig[0]["np"]
+
+        expected_tris = np.concatenate(
+            (src_orig[0]["tris"], src_orig[1]["tris"] + offset), axis=0
+        )
+        assert_array_equal(src_joined["tris"], expected_tris)
+
+        # Assert dynamically generated vertno
+        # The 'vertno' array should strictly contain the indices where 'inuse' == 1
+        expected_vertno = np.nonzero(expected_inuse)[0]
+        assert_array_equal(src_joined["vertno"], expected_vertno)
 
 
 def _create_mock_data(
