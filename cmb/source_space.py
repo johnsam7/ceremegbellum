@@ -704,7 +704,7 @@ def setup_full_source_space(
     logger.info("Concatenating cerebellar source space with cerebral source space...")
 
     src_whole = src_cort.copy()
-    hemi_src = join_source_spaces(src_cort)
+    hemi_src = _join_source_spaces(src_cort)
     src_whole[0] = hemi_src
 
     src_whole[1]["rr"] = cerb_rr
@@ -724,7 +724,7 @@ def setup_full_source_space(
     return src_whole
 
 
-def join_source_spaces(src_orig):
+def _join_source_spaces(src_orig):
     if len(src_orig) != 2:
         raise ValueError("Input must be two source spaces")
 
