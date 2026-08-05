@@ -226,6 +226,7 @@ def plot_normal(
     cortex_data: npt.NDArray[np.floating] | None = None,
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    show=True,
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
@@ -253,6 +254,8 @@ def plot_normal(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
+    show : bool, optional
+        Whether to show the plot immediately, by default True.
     notebook_inline : bool, optional
         Whether to render the plot inline in a Jupyter notebook, by default False.
     offscreen : bool | None, optional
@@ -328,8 +331,15 @@ def plot_normal(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved normal view to {screenshot_fname}")
 
-    if not offscreen:
-        plotter.show()
+    if show:
+        if offscreen:
+            warnings.warn(
+                "Showing the plot is not supported in offscreen mode.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        else:
+            plotter.show()
 
     return plotter
 
