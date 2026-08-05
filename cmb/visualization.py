@@ -269,8 +269,8 @@ def plot_normal(
     -------
     pv.Plotter
         The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
-        via `plotter.meshes['cerebellum_mesh']`, and the cortex mesh (if provided)
-        via `plotter.meshes['cortex_mesh']`.
+        via ``plotter.actors['cerebellum_mesh']`` and the cortex mesh (if provided) via
+        ``plotter.actors['cortex_mesh']``.
     """
     try:
         import pyvista as pv
