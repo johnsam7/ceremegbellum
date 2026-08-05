@@ -268,7 +268,9 @@ def plot_normal(
     Returns
     -------
     pv.Plotter
-        The PyVista plotter object.
+        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
+        via `plotter.meshes['cerebellum_mesh']`, and the cortex mesh (if provided)
+        via `plotter.meshes['cortex_mesh']`.
     """
     try:
         import pyvista as pv
@@ -312,6 +314,7 @@ def plot_normal(
         cmap=cmap,
         scalar_bar_args={"color": "black"},
         clim=clim,
+        name="cerebellum_mesh",
     )
 
     if src_cortex is not None:
@@ -320,7 +323,9 @@ def plot_normal(
             cortex_data = np.zeros(len(src_cortex["rr"]))
 
         cortex_mesh = _make_pyvista_mesh(src_cortex, cortex_data)
-        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap, clim=clim)
+        plotter.add_mesh(
+            cortex_mesh, scalars="scalars", cmap=cmap, clim=clim, name="cortex_mesh"
+        )
 
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
