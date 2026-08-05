@@ -704,7 +704,7 @@ def setup_full_source_space(
     logger.info("Concatenating cerebellar source space with cerebral source space...")
 
     src_whole = src_cort.copy()
-    hemi_src = join_source_spaces(src_cort)
+    hemi_src = _join_source_spaces(src_cort)
     src_whole[0] = hemi_src
 
     src_whole[1]["rr"] = cerb_rr
@@ -724,12 +724,15 @@ def setup_full_source_space(
     return src_whole
 
 
-def join_source_spaces(src_orig):
+def _join_source_spaces(src_orig: mne.SourceSpaces) -> dict:
+    """Join the two hemispheric source spaces into a single source space."""
     if len(src_orig) != 2:
         raise ValueError("Input must be two source spaces")
 
-    src_joined = src_orig.copy()
-    src_joined = src_joined[0]
+    # Use the left hemisphere source space as the base for the joined source space.
+    src_joined = src_orig.copy()[0]
+    assert isinstance(src_joined, dict), "Source space should be a dictionary."
+
     src_joined["inuse"] = np.concatenate((src_orig[0]["inuse"], src_orig[1]["inuse"]))
     src_joined["nn"] = np.concatenate((src_orig[0]["nn"], src_orig[1]["nn"]), axis=0)
     src_joined["np"] = src_orig[0]["np"] + src_orig[1]["np"]
@@ -740,17 +743,18 @@ def join_source_spaces(src_orig):
     src_joined["tris"] = np.concatenate(
         (src_orig[0]["tris"], src_orig[1]["tris"] + src_orig[0]["np"]), axis=0
     )
-    try:
+    if src_orig[0]["use_tris"] is None or src_orig[1]["use_tris"] is None:
+        logger.info(
+            "One of the source spaces has 'use_tris' set to None. Setting 'use_tris' "
+            "to None for the joined source space."
+        )
+        src_joined["use_tris"] = None
+    else:
         src_joined["use_tris"] = np.concatenate(
             (src_orig[0]["use_tris"], src_orig[1]["use_tris"] + src_orig[0]["np"]),
             axis=0,
         )
-    except Exception:
-        warnings.warn(
-            "Failed to concatenate use_tris, use_tris will be put to None. This means you will not be able to visualize"
-            " the cortex in 3d but can still do all computational operations."
-        )
-        src_joined["use_tris"] = None
+
     src_joined["vertno"] = np.nonzero(src_joined["inuse"])[0]
 
     return src_joined
