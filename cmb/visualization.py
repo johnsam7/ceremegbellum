@@ -862,7 +862,7 @@ def plot_sagittal(
     cols = min(3, n_plots)
     rows = math.ceil(n_plots / cols)
 
-    fig, _ = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4), squeeze=False)
+    fig = plt.figure(figsize=(cols * 4, rows * 4))
     fig.suptitle(title)
 
     for c, slice_idx in enumerate(sag_ind):
