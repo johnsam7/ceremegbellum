@@ -209,7 +209,7 @@ def create_cerebellar_surface(
         "Resampled signal should be a NumPy array."
     )
     scaling_factor = np.array(hr_vol_scaled.shape) / np.array(hr_vol.shape)
-    logger.debug("Shape of volmetric atlas: %s", hr_vol.shape)
+    logger.debug("Shape of volumetric atlas: %s", hr_vol.shape)
     logger.debug("Shape of resampled atlas: %s", hr_vol_scaled.shape)
     logger.debug("Scaling factor: %s", scaling_factor)
 
