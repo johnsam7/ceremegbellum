@@ -808,7 +808,7 @@ def plot_sagittal(
 
     Parameters
     ----------
-    vol : str | Path
+    vol_fname : str | Path
         Path to the MRI volume file (e.g. orig.mgz).
     sag_ind : list[int] | None, optional
         List of sagittal slice indices to plot. If None, will plot 6 evenly spaced
