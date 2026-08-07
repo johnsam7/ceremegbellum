@@ -17,7 +17,6 @@ import logging
 import os
 import os.path as op
 import pickle
-import warnings
 from typing import TYPE_CHECKING, Literal
 
 import mne
