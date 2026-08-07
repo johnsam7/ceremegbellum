@@ -31,6 +31,7 @@ htmlcov/
 .vscode/
 *.swp
 *.swo
+.spyproject/
 
 # Test data
 tests/data/

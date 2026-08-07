@@ -10,8 +10,6 @@
 import logging
 import os
 import os.path as op
-import pickle
-import shutil
 import warnings
 from typing import TYPE_CHECKING
 
@@ -117,6 +115,7 @@ def _segment_cerebellum(
         The cerebellar segmentation as a NIfTI image object.
     """
     import ants
+    from ants.registration import apply_transforms
 
     # Create temporary directories for intermediate files.
     rel_paths = [
@@ -351,7 +350,7 @@ def _segment_cerebellum(
     seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
-    seg_reg_float: NDArray[np.float32] = ants.apply_transforms(
+    seg_reg_float: NDArray[np.float32] = apply_transforms(
         fixed=template_ants,
         moving=seg_complete_ants,
         transformlist=registration["invtransforms"],
@@ -462,18 +461,19 @@ def _load_and_register_aseg(
         Data type is preserved from the original aseg.mgz file.
     """
     import ants
+    from ants.registration import apply_transforms
 
     aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
-    aseg_registered_float: NDArray[np.float32] = ants.apply_transforms(
+    aseg_registered_float: NDArray[np.float32] = apply_transforms(
         fixed=template_ants,
         moving=aseg_ants,
         transformlist=registration["fwdtransforms"],
         interpolator="genericLabel",
     ).numpy()
-    # Convert back to original dat type of aseg.
+    # Convert back to original data type of aseg.
     aseg_registered = aseg_registered_float.round().astype(aseg.dtype)
 
     return aseg_registered
@@ -507,11 +507,11 @@ def _register_subject_to_template(
     subj_registered : NDArray[np.float32]
         The subject's MRI registered to the template space.
     """
-    import ants
+    from ants.registration import apply_transforms, registration
 
     # Calculate registration.
     logger.info("Registering subject to template space...")
-    registration = ants.registration(
+    registration = registration(
         fixed=template_ants,
         moving=subj_brain_ants,
         type_of_transform="SyNCC",
@@ -521,7 +521,7 @@ def _register_subject_to_template(
 
     # Apply registration.
     # NOTE: Downcasts to float32.
-    subj_registered_ants: ANTsImage = ants.apply_transforms(
+    subj_registered_ants: ANTsImage = apply_transforms(
         fixed=template_ants,
         moving=subj_brain_ants,
         transformlist=registration["fwdtransforms"],
@@ -694,7 +694,7 @@ def _run_nnunet_prediction(
             model_folder,
             input_folder,
             output_folder,
-            folds=None,
+            folds=None,  # pyright: ignore[reportArgumentType]
             save_npz=False,
             num_threads_preprocessing=6,
             num_threads_nifti_save=2,
