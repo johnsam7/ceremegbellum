@@ -213,7 +213,7 @@ class TestSourceSpaceJoining:
         when using spacing defined with a string.
         """
         # Use MNE sample subject.
-        data_path = sample.data_path()
+        data_path = Path(sample.data_path())
         subjects_dir = data_path / "subjects"
         subject = "sample"
 
@@ -237,7 +237,7 @@ class TestSourceSpaceJoining:
         when using spacing defined with an integer.
         """
         # Use MNE sample subject.
-        data_path = sample.data_path()
+        data_path = Path(sample.data_path())
         subjects_dir = data_path / "subjects"
         subject = "sample"
 
