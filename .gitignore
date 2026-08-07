@@ -32,3 +32,7 @@ htmlcov/
 *.swp
 *.swo
 .spyproject/
+
+# Test data
+tests/data/
+
