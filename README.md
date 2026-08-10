@@ -4,7 +4,7 @@ CMB is a Python package for **fitting a high-resolution cerebellar atlas to stan
 
 For more information about the method, please see:
 
-> Samuelsson, J. G., J. D.Schmahmann, M. I.Sereno, B.Rosen, and M. S.Hämäläinen. 2026. “A Digital Anatomical Atlas of the Human Cerebellum at Subfolial Resolution.” Human Brain Mapping47, no. 4: e70497. https://doi.org/10.1002/hbm.70497.
+> Samuelsson, J. G., J. D.Schmahmann, M. I.Sereno, B.Rosen, and M. S.Hämäläinen. 2026. “A Digital Anatomical Atlas of the Human Cerebellum at Subfolial Resolution.” Human Brain Mapping47, no. 4: e70497. <https://doi.org/10.1002/hbm.70497>.
 
 ## Features
 
