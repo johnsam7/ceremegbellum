@@ -336,15 +336,14 @@ def plot_normal(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved normal view to {screenshot_fname}")
 
-    if show:
-        if offscreen:
-            warnings.warn(
-                "Showing the plot is not supported in offscreen mode.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-        else:
-            plotter.show()
+    if show and offscreen:
+        warnings.warn(
+            "Showing the plot is not supported in offscreen mode.",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif show:
+        plotter.show()
 
     return plotter
 
