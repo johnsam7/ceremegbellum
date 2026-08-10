@@ -1,6 +1,5 @@
 import os
 import os.path as op
-import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -12,6 +11,8 @@ from numpy.testing import assert_allclose, assert_array_equal
 from pytest import MonkeyPatch
 
 from cmb.segmentation import get_segmentation
+
+from .helpers import set_up_cmb_data
 
 
 @pytest.mark.requires_data
@@ -35,7 +36,7 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
     # a temporary directory.
     test_cmb_data = test_data_dir / "sample_segmentation_cache.zip"
     cmb_path = tmp_path / "cmb"
-    _set_up_cmb_data(test_cmb_data, output_dir=cmb_path)
+    set_up_cmb_data(test_cmb_data, cmb_path)
 
     segmentation_nifti = get_segmentation(
         subjects_dir, subject, str(cmb_path), debug_mode=False
@@ -122,20 +123,6 @@ def test_segmentation_with_mock_data_and_mock_predictions(
         np.asanyarray(saved_segmentation_nifti.dataobj),
         err_msg="Saved segmentation does not match returned segmentation.",
     )
-
-
-def _set_up_cmb_data(zipped_data_path: Path, output_dir: Path) -> None:
-    """Extract CMB data to given output directory.
-
-    Parameters
-    ----------
-    zipped_data_path : str
-        Path to the zipped CMB data.
-    output_dir : str
-        Directory where the data should be extracted.
-    """
-    with zipfile.ZipFile(zipped_data_path, "r") as zf:
-        zf.extractall(output_dir)
 
 
 def _fake_nnunet_prediction(
