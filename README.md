@@ -16,7 +16,7 @@ For more information about the method, please see:
 ## Requirements
 
 - Python >= 3.10
-- [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) (installed automatically as a dependency)
+- [nnU-Net (v1)](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) (installed automatically as a dependency)
 - [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (not required to run the package, but `recon-all` outputs are required)
 
 ## Installation
