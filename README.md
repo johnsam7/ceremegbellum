@@ -4,7 +4,7 @@ CMB is a Python package for **fitting a high-resolution cerebellar atlas to stan
 
 For more information about the method, please see:
 
-> Samuelsson, J. G., J. D.Schmahmann, M. I.Sereno, B.Rosen, and M. S.Hämäläinen. 2026. “A Digital Anatomical Atlas of the Human Cerebellum at Subfolial Resolution.” Human Brain Mapping47, no. 4: e70497. https://doi.org/10.1002/hbm.70497.
+> Samuelsson, J. G., J. D.Schmahmann, M. I.Sereno, B.Rosen, and M. S.Hämäläinen. 2026. “A Digital Anatomical Atlas of the Human Cerebellum at Subfolial Resolution.” Human Brain Mapping 47, no. 4: e70497. <https://doi.org/10.1002/hbm.70497>.
 
 ## Features
 
@@ -16,21 +16,19 @@ For more information about the method, please see:
 ## Requirements
 
 - Python >= 3.10
-- [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (for MRI conversion and recon-all)
-- [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) (installed automatically as a dependency)
+- [nnU-Net (v1)](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) (installed automatically as a dependency)
+- [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (not required to run the package, but `recon-all` outputs are required)
 
 ## Installation
 
-1. Install [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) for your system.
-
-2. Clone this repository and navigate to project root.
+1. Clone this repository and navigate to project root.
 
    ```bash
    git clone https://github.com/johnsam7/ceremegbellum.git
    cd ceremegbellum
    ```
 
-3. Create a new virtual environment for Cere-MEG-Bellum and activate it.
+2. Create a new virtual environment for Cere-MEG-Bellum and activate it.
    You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
    [venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
    `uv` and `conda` are good options because they can also manage the Python version without
@@ -48,7 +46,7 @@ For more information about the method, please see:
    source cmb-env/bin/activate
    ```
 
-4. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
+3. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
    [PyTorch website](https://pytorch.org/get-started/locally/).Here is an **example** command for
    NVIDIA GPUs with CUDA 12.6 support.
 
@@ -61,7 +59,7 @@ For more information about the method, please see:
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
    ```
 
-5. Install Cere-MEG-Bellum with rest of the dependencies.
+4. Install Cere-MEG-Bellum with rest of the dependencies.
 
    ```bash
    pip install ".[viz]"
