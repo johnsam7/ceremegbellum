@@ -448,7 +448,8 @@ def plot_inflated(
     Returns
     -------
     pv.Plotter
-        The PyVista plotter object.
+        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
+        via ``plotter.actors['cerebellum_mesh']``.
     """
     try:
         import pyvista as pv
@@ -492,6 +493,7 @@ def plot_inflated(
         cmap=cmap,
         clim=clim,
         scalar_bar_args={"color": "black"},
+        name="cerebellum_mesh",
     )
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
