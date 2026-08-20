@@ -226,7 +226,7 @@ def plot_normal(
     cortex_data: npt.NDArray[np.floating] | None = None,
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
-    show=True,
+    show: bool = True,
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
