@@ -9,7 +9,34 @@ on:
     - cron: '30 9 * * 1'
 
 jobs:
+  lint-and-typecheck:
+    name: Lint & type check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.5  # uv version
+          enable-cache: true
+          python-version: 3.12  # run linting and type checking on Python 3.12
+
+      - name: Install the project and dependencies
+        run: uv sync --all-extras
+
+      - name: Run Ruff linter
+        run: uv run ruff check --no-cache .
+
+      - name: Run Ruff formatter
+        run: uv run ruff format --check .
+
+      - name: Run Pyright type check
+        run: uv run pyright
+
   test:
+    name: Test Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,15 +46,17 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: 0.12.5  # uv version
+          enable-cache: true
           python-version: ${{ matrix.python-version }}
 
-      - name: Install
-        run: pip install -e ".[test]"
+      - name: Install the project and dependencies
+        run: uv sync --all-extras
 
       - name: Run tests
-        run: pytest tests/ -m "not requires_data"
+        run: uv run pytest tests/ -m "not requires_data"  # only run tests that do not require data files
