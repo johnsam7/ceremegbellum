@@ -77,6 +77,10 @@ ignore-decorators = [
 
 [tool.pyright]
 typeCheckingMode = "standard"
+exclude = [
+  "dev_tools",
+  "**/node_modules", "**/__pycache__", "**/.*", "cmb-env",
+]
 
 [tool.pytest]
 markers = [
