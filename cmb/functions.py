@@ -1,8 +1,6 @@
 import os
 import shutil
 
-import mne
-
 
 def get_cerebellum_data(cmb_path: str | None = None):
     """Check if the required cerebellum data are available and download if not.
