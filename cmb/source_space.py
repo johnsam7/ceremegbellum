@@ -577,7 +577,7 @@ def calculate_normals(
         A[row[0]].append(nn_fc)
         A[row[1]].append(nn_fc)
         A[row[2]].append(nn_fc)
-        if solid_angle_calc == True:
+        if solid_angle_calc:
             R1 = rr[row[0]] - obs_point
             R2 = rr[row[1]] - obs_point
             R3 = rr[row[2]] - obs_point
@@ -592,7 +592,7 @@ def calculate_normals(
                 )
             )
 
-    if solid_angle_calc == True:
+    if solid_angle_calc:
         logger.debug(
             "solid_angle at the point of observation estimated to be %f", solid_angle
         )
@@ -706,19 +706,19 @@ def setup_full_source_space(
     hemi_src = _join_source_spaces(src_cort)
     src_whole[0] = hemi_src
 
-    src_whole[1]["rr"] = cerb_rr
-    src_whole[1]["tris"] = cerb_subj_data["tris"]
-    src_whole[1]["nn"] = cerb_subj_data["nn"]
-    src_whole[1]["ntri"] = src_whole[1]["tris"].shape[0]
-    src_whole[1]["use_tris"] = cerb_subj_data["tris"]
+    src_whole[1]["rr"] = cerb_rr  # pyright: ignore[reportCallIssue, reportArgumentType]
+    src_whole[1]["tris"] = cerb_subj_data["tris"]  # pyright: ignore[reportArgumentType, reportCallIssue]
+    src_whole[1]["nn"] = cerb_subj_data["nn"]  # pyright: ignore[reportArgumentType, reportCallIssue]
+    src_whole[1]["ntri"] = src_whole[1]["tris"].shape[0]  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue, reportArgumentType]
+    src_whole[1]["use_tris"] = cerb_subj_data["tris"]  # pyright: ignore[reportArgumentType, reportCallIssue]
 
     in_use = np.ones(cerb_rr.shape[0]).astype(int)
     in_use[cerb_subj_data["nan_nn"]] = 0
-    src_whole[1]["inuse"] = in_use
+    src_whole[1]["inuse"] = in_use  # pyright: ignore[reportArgumentType, reportCallIssue]
 
-    src_whole[1]["nuse"] = int(np.sum(src_whole[1]["inuse"]))
-    src_whole[1]["vertno"] = np.nonzero(src_whole[1]["inuse"])[0]
-    src_whole[1]["np"] = src_whole[1]["rr"].shape[0]
+    src_whole[1]["nuse"] = int(np.sum(src_whole[1]["inuse"]))  # pyright: ignore[reportArgumentType, reportCallIssue]
+    src_whole[1]["vertno"] = np.nonzero(src_whole[1]["inuse"])[0]  # pyright: ignore[reportArgumentType, reportCallIssue]
+    src_whole[1]["np"] = src_whole[1]["rr"].shape[0]  # pyright: ignore[reportCallIssue, reportAttributeAccessIssue, reportArgumentType]
 
     return src_whole
 

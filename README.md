@@ -78,7 +78,8 @@ if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rend
 
 ```python
 import os
-os.environ.pop('DISPLAY', None)
+
+os.environ.pop("DISPLAY", None)
 ```
 
 ## Quick Start
