@@ -226,6 +226,7 @@ def plot_normal(
     cortex_data: npt.NDArray[np.floating] | None = None,
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    show: bool = True,
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
@@ -253,6 +254,8 @@ def plot_normal(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
+    show : bool, optional
+        Whether to show the plot immediately, by default True.
     notebook_inline : bool, optional
         Whether to render the plot inline in a Jupyter notebook, by default False.
     offscreen : bool | None, optional
@@ -265,7 +268,9 @@ def plot_normal(
     Returns
     -------
     pv.Plotter
-        The PyVista plotter object.
+        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
+        via ``plotter.actors['cerebellum_mesh']`` and the cortex mesh (if provided) via
+        ``plotter.actors['cortex_mesh']``.
     """
     try:
         import pyvista as pv
@@ -309,6 +314,7 @@ def plot_normal(
         cmap=cmap,
         scalar_bar_args={"color": "black"},
         clim=clim,
+        name="cerebellum_mesh",
     )
 
     if src_cortex is not None:
@@ -317,7 +323,9 @@ def plot_normal(
             cortex_data = np.zeros(len(src_cortex["rr"]))
 
         cortex_mesh = _make_pyvista_mesh(src_cortex, cortex_data)
-        plotter.add_mesh(cortex_mesh, scalars="scalars", cmap=cmap, clim=clim)
+        plotter.add_mesh(
+            cortex_mesh, scalars="scalars", cmap=cmap, clim=clim, name="cortex_mesh"
+        )
 
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
@@ -328,7 +336,13 @@ def plot_normal(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved normal view to {screenshot_fname}")
 
-    if not offscreen:
+    if show and offscreen:
+        warnings.warn(
+            "Showing the plot is not supported in offscreen mode.",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif show:
         plotter.show()
 
     return plotter
@@ -398,6 +412,7 @@ def plot_inflated(
     subsampling: Literal["dense", "sparse"],
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    show: bool = True,
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
@@ -419,6 +434,8 @@ def plot_inflated(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
+    show : bool, optional
+        Whether to show the plot immediately, by default True.
     notebook_inline : bool, optional
         Whether to render the plot inline in a Jupyter notebook, by default False.
     offscreen : bool | None, optional
@@ -431,7 +448,8 @@ def plot_inflated(
     Returns
     -------
     pv.Plotter
-        The PyVista plotter object.
+        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
+        via ``plotter.actors['cerebellum_mesh']``.
     """
     try:
         import pyvista as pv
@@ -475,6 +493,7 @@ def plot_inflated(
         cmap=cmap,
         clim=clim,
         scalar_bar_args={"color": "black"},
+        name="cerebellum_mesh",
     )
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
@@ -485,7 +504,13 @@ def plot_inflated(
         plotter.screenshot(screenshot_fname)
         logger.info(f"Saved inflated view to {screenshot_fname}")
 
-    if not offscreen:
+    if show and offscreen:
+        warnings.warn(
+            "Showing the plot is not supported in offscreen mode.",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif show:
         plotter.show()
 
     return plotter
@@ -497,6 +522,7 @@ def plot_flatmap(
     subsampling: Literal["dense", "sparse"],
     cmap: str | None = None,
     clim: tuple[float, float] | None = None,
+    show: bool = True,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
 ) -> Figure:
@@ -518,6 +544,8 @@ def plot_flatmap(
     clim : tuple[float, float] | None, optional
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
+    show : bool, optional
+        Whether to show the plot immediately, by default True.
     offscreen : bool | None, optional
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
@@ -570,8 +598,14 @@ def plot_flatmap(
         fig.savefig(screenshot_fname, dpi=300, bbox_inches="tight", transparent=True)
         logger.info(f"Saved flatmap view to {screenshot_fname}")
 
-    if not offscreen:
-        fig.show()
+    if show and offscreen:
+        warnings.warn(
+            "Showing the plot is not supported in offscreen mode.",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif show:
+        plt.show()
 
     return fig
 
