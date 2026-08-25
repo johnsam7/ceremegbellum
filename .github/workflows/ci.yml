@@ -24,7 +24,7 @@ jobs:
           python-version: 3.12  # run linting and type checking on Python 3.12
 
       - name: Install the project and dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-extras
 
       - name: Run Ruff linter
         run: uv run ruff check --no-cache .
