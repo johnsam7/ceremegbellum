@@ -17,7 +17,7 @@ import logging
 import os
 import os.path as op
 import pickle
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import mne
 import numpy as np
@@ -255,8 +255,11 @@ def create_cerebellar_surface(
     subj_ants = convert_to_ants_image(subj_contrast, normalize=True)
     hr_rs_ants = convert_to_ants_image(hr_volume_resampled, normalize=True)
     # Also warp the volume template to the subject space.
-    hr_rs_ants = apply_transforms(
-        fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
+    hr_rs_ants = cast(
+        "ANTsImage",
+        apply_transforms(
+            fixed=subj_ants, moving=hr_rs_ants, transformlist=reg["fwdtransforms"]
+        ),
     )
     # Register the warped atlas volume to the subject volume to refine the registration.
     reg = _get_registration(

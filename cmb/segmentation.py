@@ -11,7 +11,7 @@ import logging
 import os
 import os.path as op
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import nibabel as nib
 import numpy as np
@@ -350,14 +350,18 @@ def _segment_cerebellum(
     seg_complete_ants = ants.from_numpy(seg_complete)
 
     # Go back to subject space
-    seg_reg_float: NDArray[np.float32] = apply_transforms(
-        fixed=template_ants,
-        moving=seg_complete_ants,
-        transformlist=registration["invtransforms"],
-        interpolator="genericLabel",
-    ).numpy()
-    # Convert back to uint8.
-    seg_reg = seg_reg_float.round().astype(np.uint8)
+    # Use cast to help type checkers understand that the result is an ANTsImage.
+    seg_reg_ants = cast(
+        "ANTsImage",
+        apply_transforms(
+            fixed=template_ants,
+            moving=seg_complete_ants,
+            transformlist=registration["invtransforms"],
+            interpolator="genericLabel",
+        ),
+    )
+    # numpy() returns a float32 array, convert it back to uint8.
+    seg_reg = seg_reg_ants.numpy().round().astype(np.uint8)
 
     final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
     save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
@@ -467,11 +471,14 @@ def _load_and_register_aseg(
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
-    aseg_registered_float: NDArray[np.float32] = apply_transforms(
-        fixed=template_ants,
-        moving=aseg_ants,
-        transformlist=registration["fwdtransforms"],
-        interpolator="genericLabel",
+    aseg_registered_float: NDArray[np.float32] = cast(
+        "ANTsImage",
+        apply_transforms(
+            fixed=template_ants,
+            moving=aseg_ants,
+            transformlist=registration["fwdtransforms"],
+            interpolator="genericLabel",
+        ),
     ).numpy()
     # Convert back to original data type of aseg.
     aseg_registered = aseg_registered_float.round().astype(aseg.dtype)
@@ -521,11 +528,14 @@ def _register_subject_to_template(
 
     # Apply registration.
     # NOTE: Downcasts to float32.
-    subj_registered_ants: ANTsImage = apply_transforms(
-        fixed=template_ants,
-        moving=subj_brain_ants,
-        transformlist=registration["fwdtransforms"],
-        interpolator="nearestNeighbor",
+    subj_registered_ants = cast(
+        "ANTsImage",
+        apply_transforms(
+            fixed=template_ants,
+            moving=subj_brain_ants,
+            transformlist=registration["fwdtransforms"],
+            interpolator="nearestNeighbor",
+        ),
     )
     subj_registered = subj_registered_ants.numpy()
 
