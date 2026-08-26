@@ -241,9 +241,9 @@ def change_labels(
 
 
 def rotation(angles, rr):
-    """
-    Rotates points rr around x-axis angles[0], y-axis angles[1] and z-axis angles[2]
-    around its center of gravity.
+    """Rotate points rr around x-axis angles[0], y-axis angles[1] and z-axis angles[2].
+
+    Rotation happens around the center of the points rr.
     """
     a, b, c = angles
     rot_mat = np.array(
@@ -269,23 +269,17 @@ def rotation(angles, rr):
 
 
 def translation(r_0, rr):
-    """
-    Translates points rr by r_0
-    """
+    """Translate points rr by r_0."""
     return rr + r_0
 
 
 def scale(c, rr):
-    """
-    Scales points rr by c
-    """
+    """Scale points rr by c."""
     return c * rr
 
 
 def affine_transform(c, r_0, angles, rr):
-    """
-    Performs an affine transformation by rotation, translation and scaling.
-    """
+    """Perform an affine transformation by rotation, translation and scaling."""
     rr = rotation(angles, rr)
     rr = translation(r_0, rr)
     rr = scale(c, rr)
@@ -293,11 +287,7 @@ def affine_transform(c, r_0, angles, rr):
 
 
 def find_connected_regions(vol, print_progress=True):
-    """
-    Finds connected regions in vol labeled by integers except for 0.
-    """
-    f_vox2int = {}
-    voxels_removed = np.array([[]]).reshape((0, 3))
+    """Find connected regions in vol labeled by integers except for 0."""
     delta = np.array(
         [
             [[[x, y, z] for x in np.arange(-1, 2)] for y in np.arange(-1, 2)]

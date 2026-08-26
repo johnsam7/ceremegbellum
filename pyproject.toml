@@ -42,8 +42,8 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["pyvista>=0.43"]
-test = ["pytest>=8.0", "pytest-cov>=5.0", "pytest-mock"]
-all = ["cmb[viz]", "cmb[test]"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "pytest-mock", "ruff", "pyright"]
+all = ["cmb[viz]", "cmb[dev]"]
 
 [project.urls]
 Homepage = "https://github.com/johnsam7/ceremegbellum"
@@ -56,6 +56,11 @@ version = {attr = "cmb._version.__version__"}
 [tool.setuptools.packages.find]
 include = ["cmb*"]
 
+# Ruff config
+[tool.ruff]
+extend-exclude = [
+  "dev_tools",
+]
 [tool.ruff.lint]
 select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 ignore = [
@@ -63,7 +68,6 @@ ignore = [
   "D104",  # Missing docstring in public package
   "D413",  # Missing blank line after last section
 ]
-
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
@@ -73,6 +77,10 @@ ignore-decorators = [
 
 [tool.pyright]
 typeCheckingMode = "standard"
+exclude = [
+  "dev_tools",
+  "**/node_modules", "**/__pycache__", "**/.*", "cmb-env",
+]
 
 [tool.pytest]
 markers = [

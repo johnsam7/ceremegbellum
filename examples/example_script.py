@@ -82,7 +82,11 @@ fwd = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True, copy=Tr
 
 noise_cov = mne.read_cov(fname_cov)
 inverse_operator = mne.minimum_norm.make_inverse_operator(
-    info, fwd, noise_cov, depth=None, fixed=True
+    info,
+    fwd,
+    noise_cov,
+    depth=None,  # pyright: ignore[reportArgumentType]
+    fixed=True,  # pyright: ignore[reportArgumentType]
 )
 
 # %% Load the cerebellum geometry for simulations and visualization.
@@ -134,9 +138,9 @@ _ = cmb_viz.plot_flatmap(
     screenshot_fname=None,
 )
 # %% Estimate activation from simulated data
-evo = mne.read_evokeds(evo_fname)[0]
+evo = mne.read_evokeds(evo_fname)[0]  # pyright: ignore[reportIndexIssue]
 sens = np.zeros(evo.info["nchan"])
-all_chs = mne.pick_types(evo.info, meg=True, eeg=True, exclude=[])
+all_chs = mne.pick_types(evo.info, meg=True, eeg=True, exclude=[])  # pyright: ignore[reportArgumentType]
 sens[all_chs] = np.sum(
     fwd["sol"]["data"][:, fwd["src"][0]["nuse"] + active_verts] * 10**-7, axis=1
 )
@@ -146,11 +150,14 @@ evo._data[all_chs] = np.repeat(
 estimate = mne.minimum_norm.apply_inverse(
     evo, inverse_operator, 1 / 9, "sLORETA", verbose="WARNING"
 )
+assert isinstance(estimate, mne.SourceEstimate)
+estimate_data = estimate.data
+assert isinstance(estimate_data, np.ndarray)
 # How many cortex vertices used in the forward solution.
 n_verts_cortex_fwd = fwd["src"][0]["nuse"]
 
-estimate_cerebellum = np.linalg.norm(estimate.data[n_verts_cortex_fwd:, :], axis=1)
-estimate_cortex = np.linalg.norm(estimate.data[:n_verts_cortex_fwd, :], axis=1)
+estimate_cerebellum = np.linalg.norm(estimate_data[n_verts_cortex_fwd:, :], axis=1)
+estimate_cortex = np.linalg.norm(estimate_data[:n_verts_cortex_fwd, :], axis=1)
 
 # %% Plot the estimated activation on cerebellum and cortex.
 cerebellum_estimate_prepared = cmb_viz.morph_cerebellum_data(

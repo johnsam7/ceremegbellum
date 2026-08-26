@@ -852,7 +852,8 @@ def plot_sagittal(
         Path to the surface mesh file. If None (default), no surface mesh will be
         overlaid on the MRI slices.
     show_only_midline : bool, optional
-        If True, will only plot the midline sagittal slice of the volume. Default is False.
+        If True, will only plot the midline sagittal slice of the volume.
+        Default is False.
     cmap : str, optional
         Colormap to use for displaying the MRI slices. Default is "gray_r".
     linewidth : float, optional
