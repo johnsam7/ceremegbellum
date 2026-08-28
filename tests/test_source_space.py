@@ -10,6 +10,7 @@ import nibabel as nib
 import numpy as np
 import pytest
 from mne.datasets import sample
+from nibabel import Nifti1Image
 from numpy.testing import assert_allclose, assert_array_equal
 from pytest_mock import MockerFixture
 
@@ -43,8 +44,13 @@ def test_create_cerebellar_surface_with_cache(tmp_path: Path) -> None:
 
     mesh_fname = str(tmp_path / "cerebellum_mesh" / "output_mesh.surf")
 
+    # NOTE: Loading segmentation from old default location.
+    segmentation = Nifti1Image.from_filename(
+        cmb_path / "data" / "segm_folder" / f"{subject}.nii.gz"
+    )
     rr, tris = create_cerebellar_surface(
         subject,
+        segmentation,
         subjects_dir,
         str(cmb_path),
         cerebellum_subsampling="sparse",
@@ -94,8 +100,13 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
 
     subjects_dir, cmb_dir, verts, faces = _create_mock_data(tmp_path, rng, subject)
 
+    # NOTE: Loading segmentation from old default location.
+    segmentation = Nifti1Image.from_filename(
+        cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+    )
     rr, tris = create_cerebellar_surface(
         subject=subject,
+        segmentation=segmentation,
         subjects_dir=str(subjects_dir),
         cmb_dir=str(cmb_dir),
         cerebellum_subsampling="full",
@@ -135,6 +146,9 @@ class TestRegistrationCache:
 
         subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
         cache_dir = cmb_dir / "data" / "atlas_fitting_cache"
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
 
         # Get ANTS registration function this way because of namespace
         # collision of ants.registration module and the ants.registration function.
@@ -143,6 +157,7 @@ class TestRegistrationCache:
 
         create_cerebellar_surface(
             subject=subject,
+            segmentation=segmentation,
             subjects_dir=str(subjects_dir),
             cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
@@ -163,6 +178,9 @@ class TestRegistrationCache:
 
         subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
         cache_dir = cmb_dir / "data" / "atlas_fitting_cache"
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
 
         # Get ANTS registration function this way because of namespace
         # collision of ants.registration module and the ants.registration function.
@@ -172,6 +190,7 @@ class TestRegistrationCache:
         # First run: should create cache.
         create_cerebellar_surface(
             subject=subject,
+            segmentation=segmentation,
             subjects_dir=str(subjects_dir),
             cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
@@ -189,6 +208,7 @@ class TestRegistrationCache:
         # Second run: should use cache, so no additional calls to ANTS registration.
         create_cerebellar_surface(
             subject=subject,
+            segmentation=segmentation,
             subjects_dir=str(subjects_dir),
             cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
