@@ -10,6 +10,7 @@ from cmb import (
     CMB_DATA_DIR,
     create_cerebellar_surface,
     get_cerebellum_data,
+    get_segmentation,
     setup_full_source_space,
 )
 from cmb import (
@@ -40,10 +41,11 @@ cerebellum_subsampling = "sparse"
 
 # %% Segment cerebellum and fit the atlas, yielding a cerebellar mesh in the
 # native subject space.
+segmentation = get_segmentation(subjects_dir, subject)
 rr, tris = create_cerebellar_surface(
     subject,
+    segmentation,
     subjects_dir,
-    cmb_dir=None,
     cerebellum_subsampling=cerebellum_subsampling,
     save_mesh=True,  # save to subjects_dir/subject/surf/cerebellum.white
 )
