@@ -68,7 +68,7 @@ def get_segmentation(
         If False (default), returns the existing segmentation if it exists.
     intermediate_caching : bool, optional
         If True, reuses existing intermediate registration and nnU-Net predictions from
-        ``<cmb_path>/data/segm_folder/tmp`` and keeps newly generated intermediates
+        ``<cmb_dir>/data/segm_folder/tmp`` and keeps newly generated intermediates
         there. If False (default), uses a temporary work directory for this run
         without touching any existing intermediate cache.
 
