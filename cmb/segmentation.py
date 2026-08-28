@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 def get_segmentation(
     subjects_dir: PathLike | str,
     subject: str,
-    cmb_path: PathLike | str | None = None,
+    cmb_dir: PathLike | str | None = None,
     segmentation_fname: PathLike | str | None = None,
     save_segmentation: bool = True,
     overwrite: bool = False,
@@ -54,7 +54,7 @@ def get_segmentation(
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : PathLike | str | None, optional
+    cmb_dir : PathLike | str | None, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
     segmentation_fname : PathLike | str | None, optional
@@ -80,12 +80,12 @@ def get_segmentation(
     """
     # Handle path inputs and defaults.
     subjects_dir = Path(subjects_dir)
-    if cmb_path is None:
+    if cmb_dir is None:
         from cmb import CMB_DATA_DIR
 
-        cmb_path = Path(CMB_DATA_DIR)
+        cmb_dir = Path(CMB_DATA_DIR)
     else:
-        cmb_path = Path(cmb_path)
+        cmb_dir = Path(cmb_dir)
     if segmentation_fname is None:
         segmentation_file = (
             subjects_dir / subject / "mri" / "cerebellum_segmentation.nii.gz"
@@ -103,16 +103,16 @@ def get_segmentation(
     # Make segmentation with trained nnUnet model.
 
     if intermediate_caching:
-        intermediate_files_dir = cmb_path / "data" / "segm_folder" / "tmp"
+        intermediate_files_dir = cmb_dir / "data" / "segm_folder" / "tmp"
         intermediate_files_dir.mkdir(parents=True, exist_ok=True)
         segmentation = _segment_cerebellum(
-            subjects_dir, subject, cmb_path, intermediate_files_dir
+            subjects_dir, subject, cmb_dir, intermediate_files_dir
         )
     else:
         with tempfile.TemporaryDirectory() as tmp_dir:
             intermediate_files_dir = Path(tmp_dir)
             segmentation = _segment_cerebellum(
-                subjects_dir, subject, cmb_path, intermediate_files_dir
+                subjects_dir, subject, cmb_dir, intermediate_files_dir
             )
     if save_segmentation:
         segmentation_file.parent.mkdir(parents=True, exist_ok=True)
@@ -124,7 +124,7 @@ def get_segmentation(
 def _segment_cerebellum(
     subjects_dir: Path,
     subject: str,
-    cmb_path: Path,
+    cmb_dir: Path,
     intermediate_files_dir: Path,
 ) -> Nifti1Image:
     """Run the cerebellar segmentation pipeline for a subject.
@@ -135,7 +135,7 @@ def _segment_cerebellum(
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : Path
+    cmb_dir : Path
         Path to the CMB data directory.
     intermediate_files_dir : Path
         Path to the directory where intermediate files (registration and nnU-Net
@@ -149,7 +149,7 @@ def _segment_cerebellum(
     import ants
     from ants.registration import apply_transforms
 
-    set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
+    set_nnunet_paths(results_folder=op.join(cmb_dir, "nnUNet", "RESULTS_FOLDER"))
 
     # Create temporary directories for intermediate files.
     rel_paths = [
@@ -169,7 +169,7 @@ def _segment_cerebellum(
 
     # Load brain template to get a common space.
     brain_template, brain_template_affine = load_image_volume(
-        op.join(cmb_path, "data", "brain.nii")
+        op.join(cmb_dir, "data", "brain.nii")
     )
     # Help type checkers understand that the affine is not None.
     assert brain_template_affine is not None, (
@@ -234,7 +234,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running mask prediction for subject %s.", subject)
         model_folder = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -301,7 +301,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running LH prediction for subject %s.", subject)
         model_folder_lh = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -322,7 +322,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running RH prediction for subject %s.", subject)
         model_folder_rh = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -366,7 +366,7 @@ def _segment_cerebellum(
         # Run the refinement model.
         logger.info("Running anterior lobe refinement for subject %s.", subject)
         model_folder_refine = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
