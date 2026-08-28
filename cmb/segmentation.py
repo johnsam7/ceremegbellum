@@ -11,6 +11,8 @@ import logging
 import os
 import os.path as op
 import warnings
+from os import PathLike
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import nibabel as nib
@@ -35,22 +37,35 @@ logger = logging.getLogger(__name__)
 
 
 def get_segmentation(
-    subjects_dir: str,
+    subjects_dir: PathLike | str,
     subject: str,
-    cmb_path: str | None = None,
+    cmb_path: PathLike | str | None = None,
+    segmentation_fname: PathLike | str | None = None,
+    save_segmentation: bool = True,
+    overwrite: bool = False,
     debug_mode: bool = False,
 ) -> Nifti1Image:
     """Get cerebellar segmentation for a subject.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : PathLike | str
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : str, optional
+    cmb_path : PathLike | str | None, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
+    segmentation_fname : PathLike | str | None, optional
+        The path to load/save the segmentation. If None (default), uses the default path
+        ``<subjects_dir>/<subject>/mri/cerebellum_segmentation.nii.gz``.
+    save_segmentation : bool, optional
+        If True (default), saves a newly computed segmentation to disk.
+        If False, newly computed segmentations are returned without saving.
+        Existing saved segmentations are still loaded unless ``overwrite=True``.
+    overwrite : bool, optional
+        If True, always computes the segmentation and overwrites any existing file.
+        If False (default), returns the existing segmentation if it exists.
     debug_mode : bool, optional
         If True, keeps intermediate files for debugging. If False (default), cleans up
         intermediate files after segmentation.
@@ -60,30 +75,37 @@ def get_segmentation(
     nibabel.Nifti1Image
         The cerebellar segmentation as a NIfTI image object.
     """
+    # Handle path inputs and defaults.
+    subjects_dir = Path(subjects_dir)
     if cmb_path is None:
-        from . import CMB_DATA_DIR
+        from cmb import CMB_DATA_DIR
 
-        cmb_path = CMB_DATA_DIR
+        cmb_path = Path(CMB_DATA_DIR)
+    else:
+        cmb_path = Path(cmb_path)
+    if segmentation_fname is None:
+        segmentation_file = (
+            subjects_dir / subject / "mri" / "cerebellum_segmentation.nii.gz"
+        )
+    else:
+        segmentation_file = Path(segmentation_fname)
 
-    set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
-
-    # Make directory for segmentation results if it doesn't exist.
-    segm_data_dir = op.join(cmb_path, "data", "segm_folder")
-    os.makedirs(segm_data_dir, exist_ok=True)
-
-    if op.exists(op.join(segm_data_dir, subject + ".nii.gz")):
+    if not overwrite and segmentation_file.exists():
         logger.info(
             "Previous segmentation found on subject %s. Returning old segmentation.",
             subject,
         )
-        return nib.Nifti1Image.from_filename(
-            op.join(segm_data_dir, subject + ".nii.gz")
-        )
-    else:
-        # No previous segmentaion found, make segmentation with trained nnUnet model.
-        return _segment_cerebellum(
-            subjects_dir, subject, cmb_path, debug_mode, segm_data_dir
-        )
+        return nib.Nifti1Image.from_filename(segmentation_file)
+
+    # No previous segmentation found, make segmentation with trained nnUnet model.
+    segmentation = _segment_cerebellum(
+        str(subjects_dir), subject, str(cmb_path), debug_mode
+    )
+    if save_segmentation:
+        segmentation_file.parent.mkdir(parents=True, exist_ok=True)
+        nib.save(segmentation, segmentation_file)
+
+    return segmentation
 
 
 def _segment_cerebellum(
@@ -91,7 +113,6 @@ def _segment_cerebellum(
     subject: str,
     cmb_path: str,
     debug_mode: bool,
-    segm_data_dir: str,
 ) -> Nifti1Image:
     """Run the cerebellar segmentation pipeline for a subject.
 
@@ -106,8 +127,6 @@ def _segment_cerebellum(
     debug_mode : bool
         If True, keeps intermediate files for debugging. If False, cleans up
         intermediate files after segmentation.
-    segm_data_dir : str
-        Path to the directory where segmentation results will be stored.
 
     Returns
     -------
@@ -116,6 +135,12 @@ def _segment_cerebellum(
     """
     import ants
     from ants.registration import apply_transforms
+
+    set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
+
+    # Make directory for segmentation results if it doesn't exist.
+    segm_data_dir = op.join(cmb_path, "data", "segm_folder")
+    os.makedirs(segm_data_dir, exist_ok=True)
 
     # Create temporary directories for intermediate files.
     rel_paths = [
@@ -363,9 +388,6 @@ def _segment_cerebellum(
     # numpy() returns a float32 array, convert it back to uint8.
     seg_reg = seg_reg_ants.numpy().round().astype(np.uint8)
 
-    final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
-    save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
-
     if not debug_mode:
         for rel_path in rel_paths:
             cleanup_dir = op.join(segm_data_dir, rel_path)
@@ -374,8 +396,7 @@ def _segment_cerebellum(
                     if f.endswith((".nii.gz", ".pkl", ".json")):
                         os.remove(op.join(cleanup_dir, f))
 
-    final_seg_nifti = nib.Nifti1Image.from_filename(final_seg_output_fname)
-    return final_seg_nifti
+    return nib.Nifti1Image(seg_reg, subject_affine)
 
 
 def _extract_lob_I_IV(
