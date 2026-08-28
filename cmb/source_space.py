@@ -18,6 +18,7 @@ import os
 import os.path as op
 import pickle
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 import mne
@@ -43,10 +44,10 @@ logger = logging.getLogger(__name__)
 def create_cerebellar_surface(
     subject: str,
     segmentation: Nifti1Image,
-    subjects_dir: str | None = None,
-    cmb_dir: str | None = None,
+    subjects_dir: os.PathLike[str] | str | None = None,
+    cmb_dir: os.PathLike[str] | str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
-    save_mesh: bool | str = True,
+    save_mesh: bool | os.PathLike[str] | str = True,
     registration_caching: bool = False,
 ) -> tuple[NDArray, NDArray]:
     """Create a cerebellar mesh in the native subject space.
@@ -62,17 +63,17 @@ def create_cerebellar_surface(
     segmentation : Nifti1Image
         The subject's cerebellar segmentation as a Nifti1Image. This can be obtained
         using the `get_segmentation` function.
-    subjects_dir : str | None
+    subjects_dir : path-like | None, optional
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
-    cmb_path : str, optional
+    cmb_dir: path-like | None, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
     cerebellum_subsampling : 'full' | 'sparse' | 'dense'
         The spacing to use for the cerebellum.
-    save_mesh : bool | str
+    save_mesh : bool | path-like, optional
         If True (default), saves the cerebellar mesh to
-        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a string is provided,
+        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a path is provided,
         saves the mesh to the specified path. If False, does not save the mesh to disk.
     registration_caching : Boolean
         If True, it will attemp to read cached registration transforms from disk, and if
@@ -95,22 +96,24 @@ def create_cerebellar_surface(
 
     # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
-    # Cast Path object to string for compatibility.
-    subjects_dir = str(subjects_dir)
+    assert subjects_dir is not None, (
+        "subjects_dir returned by mne.utils.get_subjects_dir should not be None."
+    )
+    subjects_dir = Path(subjects_dir)  # ensure the type is Path
 
     if cmb_dir is None:
         from . import CMB_DATA_DIR
 
-        cmb_dir = CMB_DATA_DIR
-
-    if isinstance(save_mesh, str):
-        mesh_fname = save_mesh
-        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
-    elif save_mesh is True:
-        mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
+        cmb_dir = Path(CMB_DATA_DIR)
     else:
-        mesh_fname = None
+        cmb_dir = Path(cmb_dir)
+
+    if isinstance(save_mesh, (str, os.PathLike)):
+        mesh_file = Path(save_mesh)
+    elif save_mesh is True:
+        mesh_file = subjects_dir / subject / "surf" / "cerebellum.white"
+    else:
+        mesh_file = None
 
     data_dir = op.join(cmb_dir, "data")
 
@@ -294,8 +297,8 @@ def create_cerebellar_surface(
     # Convert to FreeSurfer surface RAS coordinates.
     rr_ras = _convert_to_surface_ras(rr_final)
 
-    if save_mesh:
-        write_geometry(mesh_fname, rr_ras, tris)
+    if mesh_file is not None:
+        write_geometry(os.fspath(mesh_file), rr_ras, tris)
 
     return rr_ras, tris
 
