@@ -17,10 +17,12 @@ import logging
 import os
 import os.path as op
 import pickle
+import warnings
 from typing import TYPE_CHECKING, Literal, cast
 
 import mne
 import numpy as np
+from nibabel import Nifti1Image
 from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
 
@@ -30,7 +32,6 @@ from .helpers import (
     convert_to_ants_image,
     load_image_volume,
 )
-from .segmentation import get_segmentation
 
 if TYPE_CHECKING:
     from ants.core.ants_image import ANTsImage
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 def create_cerebellar_surface(
     subject: str,
+    segmentation: Nifti1Image,
     subjects_dir: str | None = None,
     cmb_dir: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
@@ -57,6 +59,9 @@ def create_cerebellar_surface(
     ----------
     subject : str
         The FreeSurfer subject name.
+    segmentation : Nifti1Image
+        The subject's cerebellar segmentation as a Nifti1Image. This can be obtained
+        using the `get_segmentation` function.
     subjects_dir : str | None
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
@@ -171,13 +176,26 @@ def create_cerebellar_surface(
     hr_segm = change_labels(
         hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
-    # Get subject segmentation (registered to brain.mgz).
-    subject_labels = np.asanyarray(
-        get_segmentation(subjects_dir, subject, cmb_dir).dataobj
-    )
     # Get subject MRI.
-    # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz are aligned.
-    subj_mri, _ = load_image_volume(op.join(subjects_dir, subject, "mri", "orig.mgz"))
+    # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz
+    # should be aligned.
+    subj_mri, subj_affine = load_image_volume(
+        op.join(subjects_dir, subject, "mri", "orig.mgz")
+    )
+    seg_affine = segmentation.affine
+    if seg_affine is None or subj_affine is None:
+        warnings.warn(
+            "Segmentation affine and/or subject affine is None. Cannot verify "
+            "alignment with subject MRI. Proceeding without affine check.",
+            UserWarning,
+            stacklevel=2,
+        )
+    else:
+        if not np.allclose(subj_affine, seg_affine):
+            raise ValueError(
+                "Subject MRI and segmentation are not aligned based on affine matrices."
+            )
+    subject_labels = np.asanyarray(segmentation.dataobj)
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
