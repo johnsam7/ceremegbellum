@@ -39,7 +39,11 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
     set_up_cmb_data(test_cmb_data, cmb_path)
 
     segmentation_nifti = get_segmentation(
-        subjects_dir, subject, str(cmb_path), debug_mode=False
+        subjects_dir,
+        subject,
+        cmb_path,
+        save_segmentation=False,
+        intermediate_caching=True,
     )
     true_segmentation_nifti = nib.Nifti1Image.from_filename(model_segmentation_path)
 
@@ -96,10 +100,11 @@ def test_segmentation_with_mock_data_and_mock_predictions(
     nib.save(nib.Nifti1Image(tiny_brain, affine), template_dir / "brain.nii")
 
     segmentation_nifti = get_segmentation(
-        subjects_dir=str(subjects_dir),
+        subjects_dir=subjects_dir,
         subject=subject,
-        cmb_path=str(cmb_path),
-        debug_mode=False,
+        cmb_dir=cmb_path,
+        save_segmentation=True,
+        segmentation_fname=None,  # Use default location
     )
     assert segmentation_nifti is not None
     assert segmentation_nifti.shape == (20, 20, 20)
@@ -114,7 +119,9 @@ def test_segmentation_with_mock_data_and_mock_predictions(
     assert mock_nnunet.call_count == 4
 
     # Verify that the segmentation was also saved to the expected output path.
-    saved_segmentation_fname = template_dir / "segm_folder" / f"{subject}.nii.gz"
+    saved_segmentation_fname = (
+        subjects_dir / subject / "mri" / "cerebellum_segmentation.nii.gz"
+    )
     assert saved_segmentation_fname.exists(), "Segmentation file was not saved."
 
     saved_segmentation_nifti = nib.Nifti1Image.from_filename(saved_segmentation_fname)
