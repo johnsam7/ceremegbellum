@@ -173,12 +173,7 @@ def create_cerebellar_surface(
     )
     # Get subject segmentation (registered to brain.mgz).
     subject_labels = np.asanyarray(
-        get_segmentation(
-            subjects_dir,
-            subject,
-            cmb_path,
-            debug_mode=registration_caching,
-        ).dataobj
+        get_segmentation(subjects_dir, subject, cmb_path).dataobj
     )
     # Get subject MRI.
     # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz are aligned.
