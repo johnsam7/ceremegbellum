@@ -12,7 +12,6 @@ import os
 import os.path as op
 import tempfile
 import warnings
-from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -38,10 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_segmentation(
-    subjects_dir: PathLike | str,
+    subjects_dir: os.PathLike[str] | str,
     subject: str,
-    cmb_dir: PathLike | str | None = None,
-    segmentation_fname: PathLike | str | None = None,
+    cmb_dir: os.PathLike[str] | str | None = None,
+    segmentation_fname: os.PathLike[str] | str | None = None,
     save_segmentation: bool = True,
     overwrite: bool = False,
     intermediate_caching: bool = False,
@@ -50,14 +49,14 @@ def get_segmentation(
 
     Parameters
     ----------
-    subjects_dir : PathLike | str
+    subjects_dir: path-like
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_dir : PathLike | str | None, optional
+    cmb_dir: path-like | None, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
-    segmentation_fname : PathLike | str | None, optional
+    segmentation_fname : path-like | None, optional
         The path to load/save the segmentation. If None (default), uses the default path
         ``<subjects_dir>/<subject>/mri/cerebellum_segmentation.nii.gz``.
     save_segmentation : bool, optional
