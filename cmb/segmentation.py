@@ -43,7 +43,7 @@ def get_segmentation(
     segmentation_fname: PathLike | str | None = None,
     save_segmentation: bool = True,
     overwrite: bool = False,
-    debug_mode: bool = False,
+    intermediate_caching: bool = False,
 ) -> Nifti1Image:
     """Get cerebellar segmentation for a subject.
 
@@ -66,9 +66,11 @@ def get_segmentation(
     overwrite : bool, optional
         If True, always computes the segmentation and overwrites any existing file.
         If False (default), returns the existing segmentation if it exists.
-    debug_mode : bool, optional
-        If True, keeps intermediate files for debugging. If False (default), cleans up
-        intermediate files after segmentation.
+    intermediate_caching : bool, optional
+        If True, reuses existing intermediate registration and nnU-Net predictions from
+        ``<cmb_path>/data/segm_folder/tmp`` and keeps newly generated intermediates
+        there. If False (default), uses a unique temporary work directory for this run
+        without touching any existing intermediate cache.
 
     Returns
     -------
@@ -99,7 +101,7 @@ def get_segmentation(
 
     # No previous segmentation found, make segmentation with trained nnUnet model.
     segmentation = _segment_cerebellum(
-        str(subjects_dir), subject, str(cmb_path), debug_mode
+        str(subjects_dir), subject, str(cmb_path), intermediate_caching
     )
     if save_segmentation:
         segmentation_file.parent.mkdir(parents=True, exist_ok=True)
