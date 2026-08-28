@@ -97,7 +97,7 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
     rr, tris = create_cerebellar_surface(
         subject=subject,
         subjects_dir=str(subjects_dir),
-        cmb_path=str(cmb_dir),
+        cmb_dir=str(cmb_dir),
         cerebellum_subsampling="full",
         save_mesh=True,  # save to FreeSurfer default location
         registration_caching=False,
@@ -144,7 +144,7 @@ class TestRegistrationCache:
         create_cerebellar_surface(
             subject=subject,
             subjects_dir=str(subjects_dir),
-            cmb_path=str(cmb_dir),
+            cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
             save_mesh=False,
             registration_caching=False,
@@ -173,7 +173,7 @@ class TestRegistrationCache:
         create_cerebellar_surface(
             subject=subject,
             subjects_dir=str(subjects_dir),
-            cmb_path=str(cmb_dir),
+            cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
             save_mesh=False,
             registration_caching=True,
@@ -190,7 +190,7 @@ class TestRegistrationCache:
         create_cerebellar_surface(
             subject=subject,
             subjects_dir=str(subjects_dir),
-            cmb_path=str(cmb_dir),
+            cmb_dir=str(cmb_dir),
             cerebellum_subsampling="full",
             save_mesh=False,
             registration_caching=True,

@@ -43,7 +43,7 @@ cerebellum_subsampling = "sparse"
 rr, tris = create_cerebellar_surface(
     subject,
     subjects_dir,
-    cmb_path=None,
+    cmb_dir=None,
     cerebellum_subsampling=cerebellum_subsampling,
     save_mesh=True,  # save to subjects_dir/subject/surf/cerebellum.white
 )

@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 def create_cerebellar_surface(
     subject: str,
     subjects_dir: str | None = None,
-    cmb_path: str | None = None,
+    cmb_dir: str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     save_mesh: bool | str = True,
     registration_caching: bool = False,
@@ -93,10 +93,10 @@ def create_cerebellar_surface(
     # Cast Path object to string for compatibility.
     subjects_dir = str(subjects_dir)
 
-    if cmb_path is None:
+    if cmb_dir is None:
         from . import CMB_DATA_DIR
 
-        cmb_path = CMB_DATA_DIR
+        cmb_dir = CMB_DATA_DIR
 
     if isinstance(save_mesh, str):
         mesh_fname = save_mesh
@@ -107,7 +107,7 @@ def create_cerebellar_surface(
     else:
         mesh_fname = None
 
-    data_dir = op.join(cmb_path, "data")
+    data_dir = op.join(cmb_dir, "data")
 
     if registration_caching:
         # Save registration transforms to a cache directory.
@@ -173,7 +173,7 @@ def create_cerebellar_surface(
     )
     # Get subject segmentation (registered to brain.mgz).
     subject_labels = np.asanyarray(
-        get_segmentation(subjects_dir, subject, cmb_path).dataobj
+        get_segmentation(subjects_dir, subject, cmb_dir).dataobj
     )
     # Get subject MRI.
     # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz are aligned.
