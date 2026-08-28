@@ -4,6 +4,7 @@ import os as _os
 
 from ._version import __version__
 from .functions import get_cerebellum_data
+from .segmentation import get_segmentation
 from .source_space import create_cerebellar_surface, setup_full_source_space
 
 # Deprecated, will just instruct users to use the new plotting functions instead.
