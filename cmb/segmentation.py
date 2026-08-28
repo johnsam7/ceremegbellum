@@ -101,7 +101,7 @@ def get_segmentation(
 
     # No previous segmentation found, make segmentation with trained nnUnet model.
     segmentation = _segment_cerebellum(
-        str(subjects_dir), subject, str(cmb_path), intermediate_caching
+        subjects_dir, subject, cmb_path, intermediate_caching
     )
     if save_segmentation:
         segmentation_file.parent.mkdir(parents=True, exist_ok=True)
@@ -111,20 +111,20 @@ def get_segmentation(
 
 
 def _segment_cerebellum(
-    subjects_dir: str,
+    subjects_dir: Path,
     subject: str,
-    cmb_path: str,
+    cmb_path: Path,
     debug_mode: bool,
 ) -> Nifti1Image:
     """Run the cerebellar segmentation pipeline for a subject.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : str
+    cmb_path : Path
         Path to the CMB data directory.
     debug_mode : bool
         If True, keeps intermediate files for debugging. If False, cleans up
@@ -463,7 +463,7 @@ def _extract_lob_I_IV(
 
 
 def _load_and_register_aseg(
-    subjects_dir: str,
+    subjects_dir: Path,
     subject: str,
     template_ants: "ANTsImage",
     registration: dict,
@@ -472,7 +472,7 @@ def _load_and_register_aseg(
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
