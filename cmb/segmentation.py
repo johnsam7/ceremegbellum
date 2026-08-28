@@ -46,7 +46,7 @@ def get_segmentation(
     overwrite: bool = False,
     intermediate_caching: bool = False,
 ) -> Nifti1Image:
-    """Get cerebellar segmentation for a subject.
+    """Compute or load the cerebellar segmentation for a subject.
 
     Parameters
     ----------
