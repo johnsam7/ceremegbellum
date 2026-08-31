@@ -86,7 +86,7 @@ def get_segmentation(
     )
     subjects_dir = Path(subjects_dir)  # ensure the type is Path
     if cmb_dir is None:
-        from cmb import CMB_DATA_DIR
+        from . import CMB_DATA_DIR
 
         cmb_dir = Path(CMB_DATA_DIR)
     else:
