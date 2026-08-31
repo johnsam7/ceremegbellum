@@ -110,8 +110,10 @@ def create_cerebellar_surface(
 
     if isinstance(save_mesh, (str, os.PathLike)):
         mesh_file = Path(save_mesh)
+        mesh_file.parent.mkdir(parents=True, exist_ok=True)
     elif save_mesh is True:
         mesh_file = subjects_dir / subject / "surf" / "cerebellum.white"
+        mesh_file.parent.mkdir(parents=True, exist_ok=True)
     else:
         mesh_file = None
 
