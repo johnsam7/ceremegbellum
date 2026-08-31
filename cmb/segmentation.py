@@ -15,6 +15,7 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import mne
 import nibabel as nib
 import numpy as np
 from nibabel import Nifti1Image
@@ -37,8 +38,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_segmentation(
-    subjects_dir: os.PathLike[str] | str,
     subject: str,
+    subjects_dir: os.PathLike[str] | str | None = None,
     cmb_dir: os.PathLike[str] | str | None = None,
     segmentation_fname: os.PathLike[str] | str | None = None,
     save_segmentation: bool = True,
@@ -49,10 +50,11 @@ def get_segmentation(
 
     Parameters
     ----------
-    subjects_dir: path-like
-        Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
+    subjects_dir: path-like | None, optional
+        The path to the directory containing the FreeSurfer subjects reconstructions.
+        If None, defaults to the SUBJECTS_DIR environment variable.
     cmb_dir: path-like | None, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
@@ -78,7 +80,11 @@ def get_segmentation(
         The cerebellar segmentation as a NIfTI image object.
     """
     # Handle path inputs and defaults.
-    subjects_dir = Path(subjects_dir)
+    subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)
+    assert subjects_dir is not None, (
+        "subjects_dir returned by mne.utils.get_subjects_dir should not be None."
+    )
+    subjects_dir = Path(subjects_dir)  # ensure the type is Path
     if cmb_dir is None:
         from cmb import CMB_DATA_DIR
 
