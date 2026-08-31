@@ -73,8 +73,9 @@ def create_cerebellar_surface(
         The spacing to use for the cerebellum.
     save_mesh : bool | path-like, optional
         If True (default), saves the cerebellar mesh to
-        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a path is provided,
-        saves the mesh to the specified path. If False, does not save the mesh to disk.
+        ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``.
+        If a path is provided, saves the mesh to the specified path.
+        If False, does not save the mesh to disk.
     registration_caching : Boolean
         If True, it will attemp to read cached registration transforms from disk, and if
         not found, will save the transforms to disk for future use. Defaults to False,
@@ -111,7 +112,12 @@ def create_cerebellar_surface(
     if isinstance(save_mesh, (str, os.PathLike)):
         mesh_file = Path(save_mesh)
     elif save_mesh is True:
-        mesh_file = subjects_dir / subject / "surf" / "cerebellum.white"
+        mesh_file = (
+            subjects_dir
+            / subject
+            / "surf"
+            / f"cerebellum_{cerebellum_subsampling}.white"
+        )
     else:
         mesh_file = None
 
