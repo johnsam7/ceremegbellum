@@ -118,7 +118,7 @@ def test_create_cerebellar_surface_with_mock_data(tmp_path: Path) -> None:
     assert tris.shape == faces.shape
 
     # Verify the saved mesh.
-    mesh_fname = subjects_dir / subject / "surf" / "cerebellum.white"
+    mesh_fname = subjects_dir / subject / "surf" / "cerebellum_full.white"
     assert mesh_fname.exists(), "Mesh file was not saved to the expected location."
     saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
     assert isinstance(saved_rr, np.ndarray)
