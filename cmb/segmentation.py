@@ -121,6 +121,7 @@ def get_segmentation(
             )
     if save_segmentation:
         segmentation_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("Saving segmentation to %s", segmentation_file)
         nib.save(segmentation, segmentation_file)
 
     return segmentation
