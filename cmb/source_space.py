@@ -201,6 +201,11 @@ def create_cerebellar_surface(
                 "Subject MRI and segmentation are not aligned based on affine matrices."
             )
     subject_labels = np.asanyarray(segmentation.dataobj)
+    if subject_labels.shape != subj_mri.shape:
+        raise ValueError(
+            "Subject MRI and segmentation volumes must have the same shape "
+            f"(got MRI {subj_mri.shape} vs segmentation {subject_labels.shape})."
+        )
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
