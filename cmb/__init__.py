@@ -17,6 +17,7 @@ CMB_DATA_DIR = _os.path.join(_os.path.dirname(__file__), "")
 __all__ = [
     "CMB_DATA_DIR",
     "get_cerebellum_data",
+    "get_segmentation",
     "create_cerebellar_surface",
     "setup_full_source_space",
     "plot_cerebellum_data",
