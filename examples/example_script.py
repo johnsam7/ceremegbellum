@@ -39,9 +39,11 @@ get_cerebellum_data(cmb_path=None)
 cerebral_spacing = 2
 cerebellum_subsampling = "sparse"
 
-# %% Segment cerebellum and fit the atlas, yielding a cerebellar mesh in the
-# native subject space.
+# %% Segment the cerebellum.
 segmentation = get_segmentation(subjects_dir, subject)
+
+# %% Fit the atlas to the cerebellum of the subject,
+# yielding a cerebellar mesh in the subject space.
 rr, tris = create_cerebellar_surface(
     subject,
     segmentation,
