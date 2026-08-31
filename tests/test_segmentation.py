@@ -39,8 +39,8 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
     set_up_cmb_data(test_cmb_data, cmb_path)
 
     segmentation_nifti = get_segmentation(
-        subjects_dir,
         subject,
+        subjects_dir,
         cmb_path,
         save_segmentation=False,
         intermediate_caching=True,
