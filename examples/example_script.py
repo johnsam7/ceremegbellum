@@ -1,6 +1,6 @@
 # %%
-import os.path as op
 import pickle
+from pathlib import Path
 
 import mne
 import numpy as np
@@ -18,16 +18,16 @@ from cmb import (
 )
 
 # Set paths to subject data.
-data_path = sample.data_path()
+data_path = Path(sample.data_path())
 
 subject = "sample"
-subjects_dir = op.join(data_path, "subjects")
+subjects_dir = data_path / "subjects"
 
-sample_dir = op.join(data_path, "MEG", "sample")
-raw_fname = op.join(sample_dir, "sample_audvis_raw.fif")
-trans = op.join(sample_dir, "sample_audvis_raw-trans.fif")
-fname_cov = op.join(sample_dir, "sample_audvis-cov.fif")
-evo_fname = op.join(sample_dir, "sample_audvis-ave.fif")
+sample_dir = data_path / "MEG" / "sample"
+raw_fname = sample_dir / "sample_audvis_raw.fif"
+trans = sample_dir / "sample_audvis_raw-trans.fif"
+fname_cov = sample_dir / "sample_audvis-cov.fif"
+evo_fname = sample_dir / "sample_audvis-ave.fif"
 
 # %% Check if the required data are available and download if not.
 # Use the default location (CMB_DATA_DIR) for the data.
@@ -56,10 +56,11 @@ print(f"Cerebellar mesh created with {rr.shape[0]} vertices and {tris.shape[0]} 
 
 # %% Visualize the cerebellar mesh in the subject's MRI volume.
 _ = cmb_viz.plot_sagittal(
-    vol_fname=op.join(subjects_dir, subject, "mri", "orig.mgz"),
-    mesh_fname=op.join(
-        subjects_dir, subject, "surf", f"cerebellum_{cerebellum_subsampling}.white"
-    ),
+    vol_fname=subjects_dir / subject / "mri" / "orig.mgz",
+    mesh_fname=subjects_dir
+    / subject
+    / "surf"
+    / f"cerebellum_{cerebellum_subsampling}.white",
 )
 
 # %% # Setup source space with cerebellum and cortex using the created mesh.
@@ -98,7 +99,7 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 )
 
 # %% Load the cerebellum geometry for simulations and visualization.
-with open(op.join(CMB_DATA_DIR, "data", "cerebellum_geo"), "rb") as f:
+with open(Path(CMB_DATA_DIR) / "data" / "cerebellum_geo", "rb") as f:
     cb_data = pickle.load(f)
 
 # %% Example forward simulation from patch in right lobule VIIIa
