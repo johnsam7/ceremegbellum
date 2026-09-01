@@ -76,34 +76,13 @@ def test_segmentation_with_mock_data_and_mock_predictions(
     mock_nnunet = MagicMock(side_effect=_fake_nnunet_prediction)
     monkeypatch.setattr("cmb.segmentation._run_nnunet_prediction", mock_nnunet)
 
-    # Setup temporary directory structure.
-    subjects_dir = tmp_path / "subjects"
     subject = "dummy_sub"
-    mri_dir = subjects_dir / subject / "mri"
-    mri_dir.mkdir(parents=True)
-
-    cmb_path = tmp_path / "cmb"
-    template_dir = cmb_path / "data"
-    template_dir.mkdir(parents=True)
-
-    # Create dummy MRI.
-    affine = np.eye(4)
-    tiny_brain = rng.random((20, 20, 20), dtype=np.float32)
-    nib.save(nib.Nifti1Image(tiny_brain, affine), mri_dir / "brain.mgz")
-
-    # Create dummy FreeSurfer segmentation (aseg.mgz) with two labels.
-    tiny_aseg = np.zeros((20, 20, 20), dtype=np.uint8)
-    tiny_aseg[5:15, 5:10, 5:15] = 7  # Fake Left Hemisphere seed
-    tiny_aseg[5:15, 10:15, 5:15] = 46  # Fake Right Hemisphere seed
-    nib.save(nib.Nifti1Image(tiny_aseg, affine), mri_dir / "aseg.mgz")
-
-    # Use the same tiny_brain as the template brain.
-    nib.save(nib.Nifti1Image(tiny_brain, affine), template_dir / "brain.nii")
+    subjects_dir, cmb_dir = _create_mock_data(tmp_path, rng, subject)
 
     segmentation_nifti = get_segmentation(
         subjects_dir=subjects_dir,
         subject=subject,
-        cmb_dir=cmb_path,
+        cmb_dir=cmb_dir,
         save_segmentation=True,
         segmentation_fname=None,  # Use default location
         recompute=True,
@@ -132,6 +111,36 @@ def test_segmentation_with_mock_data_and_mock_predictions(
         np.asanyarray(saved_segmentation_nifti.dataobj),
         err_msg="Saved segmentation does not match returned segmentation.",
     )
+
+
+def _create_mock_data(
+    tmp_path: Path, rng: np.random.Generator, subject: str
+) -> tuple[Path, Path]:
+    """Create directory structure and mock data expected by segmentation function."""
+    # Setup temporary directory structure.
+    subjects_dir = tmp_path / "subjects"
+    mri_dir = subjects_dir / subject / "mri"
+    mri_dir.mkdir(parents=True)
+
+    cmb_dir = tmp_path / "cmb"
+    template_dir = cmb_dir / "data"
+    template_dir.mkdir(parents=True)
+
+    # Create dummy MRI.
+    affine = np.eye(4)
+    tiny_brain = rng.random((20, 20, 20), dtype=np.float32)
+    nib.save(nib.Nifti1Image(tiny_brain, affine), mri_dir / "brain.mgz")
+
+    # Create dummy FreeSurfer segmentation (aseg.mgz) with two labels.
+    tiny_aseg = np.zeros((20, 20, 20), dtype=np.uint8)
+    tiny_aseg[5:15, 5:10, 5:15] = 7  # Fake Left Hemisphere seed
+    tiny_aseg[5:15, 10:15, 5:15] = 46  # Fake Right Hemisphere seed
+    nib.save(nib.Nifti1Image(tiny_aseg, affine), mri_dir / "aseg.mgz")
+
+    # Use the same tiny_brain as the template brain.
+    nib.save(nib.Nifti1Image(tiny_brain, affine), template_dir / "brain.nii")
+
+    return subjects_dir, cmb_dir
 
 
 def _fake_nnunet_prediction(
