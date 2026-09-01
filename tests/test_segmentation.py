@@ -44,7 +44,7 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
         cmb_path,
         save_segmentation=False,
         intermediate_caching=True,  # use cached predictions and registration
-        overwrite=True,  # make sure that segmentation is always recomputed
+        recompute=True,
     )
     true_segmentation_nifti = nib.Nifti1Image.from_filename(model_segmentation_path)
 
@@ -106,7 +106,7 @@ def test_segmentation_with_mock_data_and_mock_predictions(
         cmb_dir=cmb_path,
         save_segmentation=True,
         segmentation_fname=None,  # Use default location
-        overwrite=True,  # Ensure that segmentation is recomputed
+        recompute=True,
     )
     assert segmentation_nifti is not None
     assert segmentation_nifti.shape == (20, 20, 20)
