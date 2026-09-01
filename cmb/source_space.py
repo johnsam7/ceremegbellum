@@ -48,6 +48,7 @@ def create_cerebellar_surface(
     cmb_dir: os.PathLike[str] | str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
     save_mesh: bool | os.PathLike[str] | str = True,
+    overwrite: bool = False,
     registration_caching: bool = False,
 ) -> tuple[NDArray, NDArray]:
     """Create a cerebellar mesh in the native subject space.
@@ -76,6 +77,9 @@ def create_cerebellar_surface(
         ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``.
         If a path is provided, saves the mesh to the specified path.
         If False, does not save the mesh to disk.
+    overwrite : bool, optional
+        If True, will overwrite any existing mesh file at the save location. If False
+        (default), raises a `FileExistsError` if the mesh file already exists.
     registration_caching : bool, optional
         If True, it will attemp to read cached registration transforms from disk, and if
         not found, will save the transforms to disk for future use. Defaults to False,
@@ -113,6 +117,11 @@ def create_cerebellar_surface(
         )
     else:
         mesh_file = None
+    if mesh_file is not None and mesh_file.exists() and not overwrite:
+        raise FileExistsError(
+            f"Mesh file {mesh_file} already exists. Set overwrite=True to overwrite "
+            "or provide a different file path for 'save_mesh'."
+        )
 
     data_dir = cmb_dir / "data"
     if registration_caching:
@@ -135,6 +144,7 @@ def create_cerebellar_surface(
     )
     if mesh_file is not None:
         mesh_file.parent.mkdir(parents=True, exist_ok=True)
+        # Overwrites existing files.
         write_geometry(os.fspath(mesh_file), rr_ras, tris)
 
     return rr_ras, tris
