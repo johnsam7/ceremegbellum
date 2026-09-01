@@ -26,7 +26,6 @@ else:
     _OFFSCREEN = False
 
 import math
-from pathlib import Path
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
