@@ -48,6 +48,9 @@ def get_segmentation(
 ) -> Nifti1Image:
     """Compute or load the cerebellar segmentation for a subject.
 
+    Existing saved segmentations are reused by default; ``save_segmentation`` only
+    controls whether newly computed results are written to disk.
+
     Parameters
     ----------
     subject : str
@@ -59,15 +62,18 @@ def get_segmentation(
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
     segmentation_fname : path-like | None, optional
-        The path to load/save the segmentation. If None (default), uses the default path
+        The path to load/save the segmentation. If None (default), uses the path
         ``<subjects_dir>/<subject>/mri/cerebellum_segmentation.nii.gz``.
     save_segmentation : bool, optional
         If True (default), saves a newly computed segmentation to disk.
         If False, newly computed segmentations are returned without saving.
+        This flag does not prevent loading an existing segmentation from
+        ``segmentation_fname`` when ``recompute=False``.
     recompute : bool, optional
-        If True,  always recomputes the segmentation and overwrites any existing
-        segmentation file. If False (default), returns the already computed
-        segmentation if it exists on disk.
+        If True, always computes a new segmentation. If ``save_segmentation=True``,
+        the result is written to ``segmentation_fname`` and overwrites any existing
+        file there. If False (default), an existing segmentation at
+        ``segmentation_fname`` is loaded and returned if present.
     intermediate_caching : bool, optional
         If True, reuses existing intermediate registration and nnU-Net predictions from
         ``<cmb_dir>/data/segm_folder/tmp`` and keeps newly generated intermediates
