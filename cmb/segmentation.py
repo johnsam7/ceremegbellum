@@ -10,9 +10,12 @@
 import logging
 import os
 import os.path as op
+import tempfile
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import mne
 import nibabel as nib
 import numpy as np
 from nibabel import Nifti1Image
@@ -34,80 +37,121 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_segmentation(
-    subjects_dir: str,
+def segment_cerebellum(
     subject: str,
-    cmb_path: str | None = None,
-    debug_mode: bool = False,
+    subjects_dir: os.PathLike[str] | str | None = None,
+    cmb_dir: os.PathLike[str] | str | None = None,
+    segmentation_fname: os.PathLike[str] | str | None = None,
+    save_segmentation: bool = True,
+    recompute: bool = False,
+    intermediate_caching: bool = False,
 ) -> Nifti1Image:
-    """Get cerebellar segmentation for a subject.
+    """Compute or load the cerebellar segmentation for a subject.
+
+    Existing saved segmentations are reused by default; ``save_segmentation`` only
+    controls whether newly computed results are written to disk.
 
     Parameters
     ----------
-    subjects_dir : str
-        Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : str, optional
+    subjects_dir: path-like | None, optional
+        The path to the directory containing the FreeSurfer subjects reconstructions.
+        If None, defaults to the SUBJECTS_DIR environment variable.
+    cmb_dir: path-like | None, optional
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
-    debug_mode : bool, optional
-        If True, keeps intermediate files for debugging. If False (default), cleans up
-        intermediate files after segmentation.
+    segmentation_fname : path-like | None, optional
+        The path to load/save the segmentation. If None (default), uses the path
+        ``<subjects_dir>/<subject>/mri/cerebellum_segmentation.nii.gz``.
+    save_segmentation : bool, optional
+        If True (default), saves a newly computed segmentation to disk.
+        If False, newly computed segmentations are returned without saving.
+        This flag does not prevent loading an existing segmentation from
+        ``segmentation_fname`` when ``recompute=False``.
+    recompute : bool, optional
+        If True, always computes a new segmentation. If ``save_segmentation=True``,
+        the result is written to ``segmentation_fname`` and overwrites any existing
+        file there. If False (default), an existing segmentation at
+        ``segmentation_fname`` is loaded and returned if present.
+    intermediate_caching : bool, optional
+        If True, reuses existing intermediate registration and nnU-Net predictions from
+        ``<cmb_dir>/data/segm_folder/tmp`` and keeps newly generated intermediates
+        there. If False (default), uses a temporary work directory for this run
+        without touching any existing intermediate cache.
 
     Returns
     -------
     nibabel.Nifti1Image
         The cerebellar segmentation as a NIfTI image object.
     """
-    if cmb_path is None:
+    # Handle path inputs and defaults.
+    subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)
+    assert subjects_dir is not None, (
+        "subjects_dir returned by mne.utils.get_subjects_dir should not be None."
+    )
+    subjects_dir = Path(subjects_dir)  # ensure the type is Path
+    if cmb_dir is None:
         from . import CMB_DATA_DIR
 
-        cmb_path = CMB_DATA_DIR
+        cmb_dir = Path(CMB_DATA_DIR)
+    else:
+        cmb_dir = Path(cmb_dir)
+    if segmentation_fname is None:
+        segmentation_file = (
+            subjects_dir / subject / "mri" / "cerebellum_segmentation.nii.gz"
+        )
+    else:
+        segmentation_file = Path(segmentation_fname)
 
-    set_nnunet_paths(results_folder=op.join(cmb_path, "nnUNet", "RESULTS_FOLDER"))
-
-    # Make directory for segmentation results if it doesn't exist.
-    segm_data_dir = op.join(cmb_path, "data", "segm_folder")
-    os.makedirs(segm_data_dir, exist_ok=True)
-
-    if op.exists(op.join(segm_data_dir, subject + ".nii.gz")):
+    if not recompute and segmentation_file.exists():
         logger.info(
             "Previous segmentation found on subject %s. Returning old segmentation.",
             subject,
         )
-        return nib.Nifti1Image.from_filename(
-            op.join(segm_data_dir, subject + ".nii.gz")
+        return nib.Nifti1Image.from_filename(segmentation_file)
+
+    # Make segmentation with trained nnUnet model.
+
+    if intermediate_caching:
+        intermediate_files_dir = cmb_dir / "data" / "segm_folder" / "tmp"
+        intermediate_files_dir.mkdir(parents=True, exist_ok=True)
+        segmentation = _segment_cerebellum(
+            subjects_dir, subject, cmb_dir, intermediate_files_dir
         )
     else:
-        # No previous segmentaion found, make segmentation with trained nnUnet model.
-        return _segment_cerebellum(
-            subjects_dir, subject, cmb_path, debug_mode, segm_data_dir
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            intermediate_files_dir = Path(tmp_dir)
+            segmentation = _segment_cerebellum(
+                subjects_dir, subject, cmb_dir, intermediate_files_dir
+            )
+    if save_segmentation:
+        segmentation_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("Saving segmentation to %s", segmentation_file)
+        nib.save(segmentation, segmentation_file)
+
+    return segmentation
 
 
 def _segment_cerebellum(
-    subjects_dir: str,
+    subjects_dir: Path,
     subject: str,
-    cmb_path: str,
-    debug_mode: bool,
-    segm_data_dir: str,
+    cmb_dir: Path,
+    intermediate_files_dir: Path,
 ) -> Nifti1Image:
     """Run the cerebellar segmentation pipeline for a subject.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.
-    cmb_path : str
+    cmb_dir : Path
         Path to the CMB data directory.
-    debug_mode : bool
-        If True, keeps intermediate files for debugging. If False, cleans up
-        intermediate files after segmentation.
-    segm_data_dir : str
-        Path to the directory where segmentation results will be stored.
+    intermediate_files_dir : Path
+        Path to the directory where intermediate files (registration and nnU-Net
+        predictions) will be stored.
 
     Returns
     -------
@@ -117,26 +161,27 @@ def _segment_cerebellum(
     import ants
     from ants.registration import apply_transforms
 
+    set_nnunet_paths(results_folder=op.join(cmb_dir, "nnUNet", "RESULTS_FOLDER"))
+
     # Create temporary directories for intermediate files.
     rel_paths = [
-        "tmp",
-        "tmp/registered",
-        "tmp/registered/whole",
-        "tmp/registered/lh",
-        "tmp/registered/rh",
-        "tmp/registered/mask",
-        "tmp/registered/lh_segmented",
-        "tmp/registered/rh_segmented",
-        "tmp/registered/lob_I_IV",
-        "tmp/registered/lob_I_IV_segmented",
-        "tmp/registered/mask_divide",
+        "registered",
+        "registered/whole",
+        "registered/lh",
+        "registered/rh",
+        "registered/mask",
+        "registered/lh_segmented",
+        "registered/rh_segmented",
+        "registered/lob_I_IV",
+        "registered/lob_I_IV_segmented",
+        "registered/mask_divide",
     ]
-    for dirs in [op.join(segm_data_dir, rel_path) for rel_path in rel_paths]:
+    for dirs in [op.join(intermediate_files_dir, rel_path) for rel_path in rel_paths]:
         os.makedirs(dirs, exist_ok=True)
 
     # Load brain template to get a common space.
     brain_template, brain_template_affine = load_image_volume(
-        op.join(cmb_path, "data", "brain.nii")
+        op.join(cmb_dir, "data", "brain.nii")
     )
     # Help type checkers understand that the affine is not None.
     assert brain_template_affine is not None, (
@@ -154,8 +199,7 @@ def _segment_cerebellum(
         )
     subject_brain_ants = convert_to_ants_image(subject_mri, normalize=True)
 
-    output_folder = op.join(segm_data_dir, "tmp")
-    reg_output_folder = op.join(output_folder, "registered")
+    reg_output_folder = op.join(intermediate_files_dir, "registered")
     reg_forward_fname = op.join(reg_output_folder, subject + "_reg_Composite.h5")
     reg_inverse_fname = op.join(reg_output_folder, subject + "_reg_InverseComposite.h5")
     reg_whole_img_fname = op.join(reg_output_folder, "whole", subject + "_0000.nii.gz")
@@ -192,7 +236,7 @@ def _segment_cerebellum(
     # PREDICTION OF CEREBELLAR MASK
 
     mask_output_fname = op.join(
-        output_folder, "registered", "mask", subject + ".nii.gz"
+        intermediate_files_dir, "registered", "mask", subject + ".nii.gz"
     )
     if op.exists(mask_output_fname):
         logger.info(
@@ -202,7 +246,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running mask prediction for subject %s.", subject)
         model_folder = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -212,15 +256,19 @@ def _segment_cerebellum(
         )
         _run_nnunet_prediction(
             model_folder=model_folder,
-            input_folder=op.join(output_folder, "registered", "whole"),
-            output_folder=op.join(output_folder, "registered", "mask"),
+            input_folder=op.join(intermediate_files_dir, "registered", "whole"),
+            output_folder=op.join(intermediate_files_dir, "registered", "mask"),
         )
 
     # SPLITTING THE MASK INTO LEFT AND RIGHT HEMISPHERES
 
     # Split into LH and RH using ASEG (the label map from FreeSurfer).
-    lh_input = op.join(output_folder, "registered", "lh", subject + "_0000.nii.gz")
-    rh_input = op.join(output_folder, "registered", "rh", subject + "_0000.nii.gz")
+    lh_input = op.join(
+        intermediate_files_dir, "registered", "lh", subject + "_0000.nii.gz"
+    )
+    rh_input = op.join(
+        intermediate_files_dir, "registered", "rh", subject + "_0000.nii.gz"
+    )
     if op.exists(lh_input) and op.exists(rh_input):
         logger.info(
             "Previous hemisphere split found for subject %s. Skipping split step.",
@@ -245,17 +293,17 @@ def _segment_cerebellum(
             subj_registered,
             cerebellum_mask,
             subject,
-            op.join(output_folder, "registered"),
+            op.join(intermediate_files_dir, "registered"),
             brain_template_affine,
         )
 
     # PREDICTION OF LEFT AND RIGHT HEMISPHERES
 
     lh_seg_output = op.join(
-        output_folder, "registered", "lh_segmented", subject + ".nii.gz"
+        intermediate_files_dir, "registered", "lh_segmented", subject + ".nii.gz"
     )
     rh_seg_output = op.join(
-        output_folder, "registered", "rh_segmented", subject + ".nii.gz"
+        intermediate_files_dir, "registered", "rh_segmented", subject + ".nii.gz"
     )
     if op.exists(lh_seg_output):
         logger.info(
@@ -265,7 +313,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running LH prediction for subject %s.", subject)
         model_folder_lh = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -275,8 +323,8 @@ def _segment_cerebellum(
         )
         _run_nnunet_prediction(
             model_folder_lh,
-            op.join(output_folder, "registered", "lh"),
-            op.join(output_folder, "registered", "lh_segmented"),
+            op.join(intermediate_files_dir, "registered", "lh"),
+            op.join(intermediate_files_dir, "registered", "lh_segmented"),
         )
     if op.exists(rh_seg_output):
         logger.info(
@@ -286,7 +334,7 @@ def _segment_cerebellum(
     else:
         logger.info("Running RH prediction for subject %s.", subject)
         model_folder_rh = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -296,15 +344,15 @@ def _segment_cerebellum(
         )
         _run_nnunet_prediction(
             model_folder_rh,
-            op.join(output_folder, "registered", "rh"),
-            op.join(output_folder, "registered", "rh_segmented"),
+            op.join(intermediate_files_dir, "registered", "rh"),
+            op.join(intermediate_files_dir, "registered", "rh_segmented"),
         )
 
     # ANTERIOR LOBE PREDICTION
 
     # Refine lob I-IV into lobs I-III and IV
     lob_seg_output = op.join(
-        output_folder, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
+        intermediate_files_dir, "registered", "lob_I_IV_segmented", subject + ".nii.gz"
     )
     if op.exists(lob_seg_output):
         logger.info(
@@ -319,13 +367,18 @@ def _segment_cerebellum(
         )
         save_nifti_from_3darray(
             lob_I_IV,
-            op.join(output_folder, "registered", "lob_I_IV", subject + "_0000.nii.gz"),
+            op.join(
+                intermediate_files_dir,
+                "registered",
+                "lob_I_IV",
+                subject + "_0000.nii.gz",
+            ),
             affine=lob_I_IV_affine,
         )
         # Run the refinement model.
         logger.info("Running anterior lobe refinement for subject %s.", subject)
         model_folder_refine = op.join(
-            cmb_path,
+            cmb_dir,
             "nnUNet",
             "RESULTS_FOLDER",
             "nnUNet",
@@ -335,8 +388,8 @@ def _segment_cerebellum(
         )
         _run_nnunet_prediction(
             model_folder_refine,
-            op.join(output_folder, "registered", "lob_I_IV"),
-            op.join(output_folder, "registered", "lob_I_IV_segmented"),
+            op.join(intermediate_files_dir, "registered", "lob_I_IV"),
+            op.join(intermediate_files_dir, "registered", "lob_I_IV_segmented"),
         )
     # COMBINING THE SEGMENTATIONS
 
@@ -363,19 +416,7 @@ def _segment_cerebellum(
     # numpy() returns a float32 array, convert it back to uint8.
     seg_reg = seg_reg_ants.numpy().round().astype(np.uint8)
 
-    final_seg_output_fname = op.join(segm_data_dir, subject + ".nii.gz")
-    save_nifti_from_3darray(seg_reg, final_seg_output_fname, affine=subject_affine)
-
-    if not debug_mode:
-        for rel_path in rel_paths:
-            cleanup_dir = op.join(segm_data_dir, rel_path)
-            if op.exists(cleanup_dir):
-                for f in os.listdir(cleanup_dir):
-                    if f.endswith((".nii.gz", ".pkl", ".json")):
-                        os.remove(op.join(cleanup_dir, f))
-
-    final_seg_nifti = nib.Nifti1Image.from_filename(final_seg_output_fname)
-    return final_seg_nifti
+    return nib.Nifti1Image(seg_reg, subject_affine)
 
 
 def _extract_lob_I_IV(
@@ -440,7 +481,7 @@ def _extract_lob_I_IV(
 
 
 def _load_and_register_aseg(
-    subjects_dir: str,
+    subjects_dir: Path,
     subject: str,
     template_ants: "ANTsImage",
     registration: dict,
@@ -449,7 +490,7 @@ def _load_and_register_aseg(
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the FreeSurfer subjects directory.
     subject : str
         The FreeSurfer subject name.

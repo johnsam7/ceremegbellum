@@ -17,10 +17,13 @@ import logging
 import os
 import os.path as op
 import pickle
+import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 import mne
 import numpy as np
+from nibabel import Nifti1Image
 from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
 
@@ -30,7 +33,6 @@ from .helpers import (
     convert_to_ants_image,
     load_image_volume,
 )
-from .segmentation import get_segmentation
 
 if TYPE_CHECKING:
     from ants.core.ants_image import ANTsImage
@@ -41,10 +43,11 @@ logger = logging.getLogger(__name__)
 
 def create_cerebellar_surface(
     subject: str,
-    subjects_dir: str | None = None,
-    cmb_path: str | None = None,
+    segmentation: Nifti1Image,
+    subjects_dir: os.PathLike[str] | str | None = None,
+    cmb_dir: os.PathLike[str] | str | None = None,
     cerebellum_subsampling: Literal["full", "sparse", "dense"] = "sparse",
-    save_mesh: bool | str = True,
+    save_mesh: bool | os.PathLike[str] | str = True,
     registration_caching: bool = False,
 ) -> tuple[NDArray, NDArray]:
     """Create a cerebellar mesh in the native subject space.
@@ -57,17 +60,20 @@ def create_cerebellar_surface(
     ----------
     subject : str
         The FreeSurfer subject name.
-    subjects_dir : str | None
+    segmentation : Nifti1Image
+        The subject's cerebellar segmentation as a Nifti1Image. This can be obtained
+        using the `segment_cerebellum` function.
+    subjects_dir : path-like | None, optional
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
-    cmb_path : str, optional
+    cmb_dir: path-like | None, optional
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
     cerebellum_subsampling : 'full' | 'sparse' | 'dense'
         The spacing to use for the cerebellum.
-    save_mesh : bool | str
+    save_mesh : bool | path-like, optional
         If True (default), saves the cerebellar mesh to
-        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a string is provided,
+        ``<subjects_dir>/<subject>/surf/cerebellum.white``. If a path is provided,
         saves the mesh to the specified path. If False, does not save the mesh to disk.
     registration_caching : Boolean
         If True, it will attemp to read cached registration transforms from disk, and if
@@ -90,24 +96,26 @@ def create_cerebellar_surface(
 
     # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
-    # Cast Path object to string for compatibility.
-    subjects_dir = str(subjects_dir)
+    assert subjects_dir is not None, (
+        "subjects_dir returned by mne.utils.get_subjects_dir should not be None."
+    )
+    subjects_dir = Path(subjects_dir)  # ensure the type is Path
 
-    if cmb_path is None:
+    if cmb_dir is None:
         from . import CMB_DATA_DIR
 
-        cmb_path = CMB_DATA_DIR
-
-    if isinstance(save_mesh, str):
-        mesh_fname = save_mesh
-        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
-    elif save_mesh is True:
-        mesh_fname = op.join(subjects_dir, subject, "surf", "cerebellum.white")
-        os.makedirs(op.dirname(mesh_fname), exist_ok=True)
+        cmb_dir = Path(CMB_DATA_DIR)
     else:
-        mesh_fname = None
+        cmb_dir = Path(cmb_dir)
 
-    data_dir = op.join(cmb_path, "data")
+    if isinstance(save_mesh, (str, os.PathLike)):
+        mesh_file = Path(save_mesh)
+    elif save_mesh is True:
+        mesh_file = subjects_dir / subject / "surf" / "cerebellum.white"
+    else:
+        mesh_file = None
+
+    data_dir = op.join(cmb_dir, "data")
 
     if registration_caching:
         # Save registration transforms to a cache directory.
@@ -171,18 +179,31 @@ def create_cerebellar_surface(
     hr_segm = change_labels(
         hr_segm, old_labels=old_labels, new_labels=list(range(1, 29))
     )
-    # Get subject segmentation (registered to brain.mgz).
-    subject_labels = np.asanyarray(
-        get_segmentation(
-            subjects_dir,
-            subject,
-            cmb_path,
-            debug_mode=registration_caching,
-        ).dataobj
-    )
     # Get subject MRI.
-    # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz are aligned.
-    subj_mri, _ = load_image_volume(op.join(subjects_dir, subject, "mri", "orig.mgz"))
+    # orig.mgz is in same space as brain.mgz, so segmentation and orig.mgz
+    # should be aligned.
+    subj_mri, subj_affine = load_image_volume(
+        op.join(subjects_dir, subject, "mri", "orig.mgz")
+    )
+    seg_affine = segmentation.affine
+    if seg_affine is None or subj_affine is None:
+        warnings.warn(
+            "Segmentation affine and/or subject affine is None. Cannot verify "
+            "alignment with subject MRI. Proceeding without affine check.",
+            UserWarning,
+            stacklevel=2,
+        )
+    else:
+        if not np.allclose(subj_affine, seg_affine):
+            raise ValueError(
+                "Subject MRI and segmentation are not aligned based on affine matrices."
+            )
+    subject_labels = np.asanyarray(segmentation.dataobj)
+    if subject_labels.shape != subj_mri.shape:
+        raise ValueError(
+            "Subject MRI and segmentation volumes must have the same shape "
+            f"(got MRI {subj_mri.shape} vs segmentation {subject_labels.shape})."
+        )
 
     # Crop the segmentation and the MRI to the bounding box of the cerebellum.
     pad = 3
@@ -281,8 +302,9 @@ def create_cerebellar_surface(
     # Convert to FreeSurfer surface RAS coordinates.
     rr_ras = _convert_to_surface_ras(rr_final)
 
-    if save_mesh:
-        write_geometry(mesh_fname, rr_ras, tris)
+    if mesh_file is not None:
+        mesh_file.parent.mkdir(parents=True, exist_ok=True)
+        write_geometry(os.fspath(mesh_file), rr_ras, tris)
 
     return rr_ras, tris
 
