@@ -76,7 +76,7 @@ def create_cerebellar_surface(
         ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``.
         If a path is provided, saves the mesh to the specified path.
         If False, does not save the mesh to disk.
-    registration_caching : Boolean
+    registration_caching : bool, optional
         If True, it will attemp to read cached registration transforms from disk, and if
         not found, will save the transforms to disk for future use. Defaults to False,
         which means that registration will be computed without caching.
@@ -88,13 +88,6 @@ def create_cerebellar_surface(
     tris : NDArray
         n_faces x 3 array of triangle vertex indices defining the mesh faces.
     """
-    import ants
-    from ants.registration import (
-        apply_transforms,
-        apply_transforms_to_points,
-    )
-    from scipy import signal
-
     # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
     assert subjects_dir is not None, (
@@ -121,19 +114,85 @@ def create_cerebellar_surface(
     else:
         mesh_file = None
 
-    data_dir = op.join(cmb_dir, "data")
-
+    data_dir = cmb_dir / "data"
     if registration_caching:
         # Save registration transforms to a cache directory.
-        registration_cache_dir = op.join(data_dir, "atlas_fitting_cache")
-        os.makedirs(registration_cache_dir, exist_ok=True)
+        registration_cache_dir = data_dir / "atlas_fitting_cache"
+        registration_cache_dir.mkdir(parents=True, exist_ok=True)
     else:
         # No caching.
         registration_cache_dir = None
 
     logger.info("Starting to create cerebellar surface for subject %s...", subject)
 
-    with open(op.join(data_dir, "cerebellum_geo"), "rb") as cb_geo_file:
+    rr_ras, tris = _create_cerebellar_surface(
+        subject=subject,
+        segmentation=segmentation,
+        subjects_dir=subjects_dir,
+        cerebellum_subsampling=cerebellum_subsampling,
+        cerebellum_geo_fname=data_dir / "cerebellum_geo",
+        registration_cache_dir=registration_cache_dir,
+    )
+    if mesh_file is not None:
+        mesh_file.parent.mkdir(parents=True, exist_ok=True)
+        write_geometry(os.fspath(mesh_file), rr_ras, tris)
+
+    return rr_ras, tris
+
+
+def _create_cerebellar_surface(
+    subject: str,
+    segmentation: Nifti1Image,
+    subjects_dir: Path,
+    cerebellum_subsampling: Literal["full", "sparse", "dense"],
+    cerebellum_geo_fname: Path,
+    registration_cache_dir: Path | None,
+) -> tuple[NDArray, NDArray]:
+    """Create a cerebellar mesh in the native subject space.
+
+    Runs the reconstruction step of ARCUS, fitting a high-resolution cerebellar atlas to
+    the segmentation of the subject's cerebellum. Outputs a cerebellar mesh in
+    FreeSurfer surface RAS coordinates.
+
+    Parameters
+    ----------
+    subject : str
+        The FreeSurfer subject name.
+    segmentation : Nifti1Image
+        The subject's cerebellar segmentation as a Nifti1Image.
+    subjects_dir : Path
+        The path to the directory containing the FreeSurfer subjects reconstructions.
+    cerebellum_subsampling : 'full' | 'sparse' | 'dense'
+        The spacing to use for the cerebellum.
+    cerebellum_geo_fname : Path
+        Path to the cerebellum geometry file (pickle) containing the high-resolution
+        atlas and mesh data.
+    registration_cache_dir : Path | None
+        Directory to cache registration results. If None, registration will be computed
+        without caching.
+
+    Returns
+    -------
+    rr_ras : NDArray
+        n_vertices x 3 array of vertex positions in FreeSurfer surface RAS coordinates.
+    tris : NDArray
+        n_faces x 3 array of triangle vertex indices defining the mesh faces.
+    """
+    import ants
+    from ants.registration import (
+        apply_transforms,
+        apply_transforms_to_points,
+    )
+    from scipy import signal
+
+    # Cast to str for compatability.
+    registration_cache_dir_str = (
+        os.fspath(registration_cache_dir)
+        if registration_cache_dir is not None
+        else None
+    )
+
+    with open(cerebellum_geo_fname, "rb") as cb_geo_file:
         cb_data = pickle.load(cb_geo_file)
 
     # Load the template cerebellar mesh. The mesh is in the voxel space of the
@@ -268,7 +327,7 @@ def create_cerebellar_surface(
         fixed=subj_label_ants,
         moving=hr_label_ants,
         type_of_transform="SyNCC",
-        reg_cache_dir=registration_cache_dir,
+        reg_cache_dir=registration_cache_dir_str,
         reg_fname_prefix=f"{subject}_labels_",
     )
 
@@ -293,7 +352,7 @@ def create_cerebellar_surface(
         fixed=subj_ants,
         moving=hr_rs_ants,
         type_of_transform="SyNCC",
-        reg_cache_dir=registration_cache_dir,
+        reg_cache_dir=registration_cache_dir_str,
         reg_fname_prefix=f"{subject}_contrast_",
     )
 
@@ -307,10 +366,6 @@ def create_cerebellar_surface(
     rr_final = rr_double_warped + cb_range[0]
     # Convert to FreeSurfer surface RAS coordinates.
     rr_ras = _convert_to_surface_ras(rr_final)
-
-    if mesh_file is not None:
-        mesh_file.parent.mkdir(parents=True, exist_ok=True)
-        write_geometry(os.fspath(mesh_file), rr_ras, tris)
 
     return rr_ras, tris
 
