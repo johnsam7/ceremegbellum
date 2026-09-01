@@ -723,6 +723,7 @@ def calculate_normals(
 
 def setup_full_source_space(
     subject: str,
+    cerebellum_subsampling: Literal["full", "sparse", "dense"],
     subjects_dir: str | None = None,
     cerebellum_surf_fname: str | None = None,
     spacing: str | int = "oct6",
@@ -736,12 +737,14 @@ def setup_full_source_space(
     ----------
     subject : str
         The FreeSurfer subject name.
+    cerebellum_subsampling : 'full' | 'sparse' | 'dense'
+        The spacing used to create the cerebellar mesh.
     subjects_dir : str | None
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
     cerebellum_surf_fname : str | None
         Path to the cerebellum surface mesh file. If None, defaults to
-        ``<subjects_dir>/<subject>/surf/cerebellum.white``
+        ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``
     spacing : str | int
         The spacing parameter for ``mne.setup_source_space``.
 
@@ -770,7 +773,7 @@ def setup_full_source_space(
     # Read the geometry of the cerebellar surface mesh.
     if cerebellum_surf_fname is None:
         cerebellum_surf_fname = op.join(
-            subjects_dir, subject, "surf", "cerebellum.white"
+            subjects_dir, subject, "surf", f"cerebellum_{cerebellum_subsampling}.white"
         )
     surface_data = mne.read_surface(cerebellum_surf_fname)
 
