@@ -43,7 +43,7 @@ def get_segmentation(
     cmb_dir: os.PathLike[str] | str | None = None,
     segmentation_fname: os.PathLike[str] | str | None = None,
     save_segmentation: bool = True,
-    overwrite: bool = False,
+    recompute: bool = False,
     intermediate_caching: bool = False,
 ) -> Nifti1Image:
     """Compute or load the cerebellar segmentation for a subject.
@@ -64,10 +64,10 @@ def get_segmentation(
     save_segmentation : bool, optional
         If True (default), saves a newly computed segmentation to disk.
         If False, newly computed segmentations are returned without saving.
-        Existing saved segmentations are still loaded unless ``overwrite=True``.
-    overwrite : bool, optional
-        If True, always computes the segmentation and overwrites any existing file.
-        If False (default), returns the existing segmentation if it exists.
+    recompute : bool, optional
+        If True,  always recomputes the segmentation and overwrites any existing
+        segmentation file. If False (default), returns the already computed
+        segmentation if it exists on disk.
     intermediate_caching : bool, optional
         If True, reuses existing intermediate registration and nnU-Net predictions from
         ``<cmb_dir>/data/segm_folder/tmp`` and keeps newly generated intermediates
@@ -98,7 +98,7 @@ def get_segmentation(
     else:
         segmentation_file = Path(segmentation_fname)
 
-    if not overwrite and segmentation_file.exists():
+    if not recompute and segmentation_file.exists():
         logger.info(
             "Previous segmentation found on subject %s. Returning old segmentation.",
             subject,
