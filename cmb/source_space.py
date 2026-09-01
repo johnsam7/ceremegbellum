@@ -110,10 +110,8 @@ def create_cerebellar_surface(
 
     if isinstance(save_mesh, (str, os.PathLike)):
         mesh_file = Path(save_mesh)
-        mesh_file.parent.mkdir(parents=True, exist_ok=True)
     elif save_mesh is True:
         mesh_file = subjects_dir / subject / "surf" / "cerebellum.white"
-        mesh_file.parent.mkdir(parents=True, exist_ok=True)
     else:
         mesh_file = None
 
@@ -305,6 +303,7 @@ def create_cerebellar_surface(
     rr_ras = _convert_to_surface_ras(rr_final)
 
     if mesh_file is not None:
+        mesh_file.parent.mkdir(parents=True, exist_ok=True)
         write_geometry(os.fspath(mesh_file), rr_ras, tris)
 
     return rr_ras, tris
