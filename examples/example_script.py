@@ -49,19 +49,23 @@ rr, tris = create_cerebellar_surface(
     segmentation,
     subjects_dir,
     cerebellum_subsampling=cerebellum_subsampling,
-    save_mesh=True,  # save to subjects_dir/subject/surf/cerebellum.white
+    # save to <subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white
+    save_mesh=True,
 )
 print(f"Cerebellar mesh created with {rr.shape[0]} vertices and {tris.shape[0]} faces.")
 
 # %% Visualize the cerebellar mesh in the subject's MRI volume.
 _ = cmb_viz.plot_sagittal(
     vol_fname=op.join(subjects_dir, subject, "mri", "orig.mgz"),
-    mesh_fname=op.join(subjects_dir, subject, "surf", "cerebellum.white"),
+    mesh_fname=op.join(
+        subjects_dir, subject, "surf", f"cerebellum_{cerebellum_subsampling}.white"
+    ),
 )
 
 # %% # Setup source space with cerebellum and cortex using the created mesh.
 src_whole = setup_full_source_space(
     subject,
+    cerebellum_subsampling,
     subjects_dir,
     cerebellum_surf_fname=None,  # find from the default location
     spacing=cerebral_spacing,
