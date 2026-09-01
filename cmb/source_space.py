@@ -62,7 +62,7 @@ def create_cerebellar_surface(
         The FreeSurfer subject name.
     segmentation : Nifti1Image
         The subject's cerebellar segmentation as a Nifti1Image. This can be obtained
-        using the `get_segmentation` function.
+        using the `segment_cerebellum` function.
     subjects_dir : path-like | None, optional
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
