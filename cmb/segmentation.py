@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_segmentation(
+def segment_cerebellum(
     subject: str,
     subjects_dir: os.PathLike[str] | str | None = None,
     cmb_dir: os.PathLike[str] | str | None = None,

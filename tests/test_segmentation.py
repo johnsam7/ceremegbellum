@@ -9,7 +9,7 @@ import pytest
 from mne.datasets import sample
 from pytest import MonkeyPatch
 
-from cmb.segmentation import get_segmentation
+from cmb.segmentation import segment_cerebellum
 
 from .helpers import assert_niftis_equal, set_up_cmb_data
 
@@ -37,7 +37,7 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
     cmb_path = tmp_path / "cmb"
     set_up_cmb_data(test_cmb_data, cmb_path)
 
-    segmentation_nifti = get_segmentation(
+    segmentation_nifti = segment_cerebellum(
         subject,
         subjects_dir,
         cmb_path,
@@ -63,7 +63,7 @@ def test_segmentation_with_mock_data_and_mock_predictions(
     subject = "dummy_sub"
     subjects_dir, cmb_dir = _create_mock_data(tmp_path, rng, subject)
 
-    segmentation_nifti = get_segmentation(
+    segmentation_nifti = segment_cerebellum(
         subjects_dir=subjects_dir,
         subject=subject,
         cmb_dir=cmb_dir,
@@ -110,7 +110,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     subjects_dir, cmb_dir = _create_mock_data(tmp_path, rng, subject)
 
     # Run segmentation and save to the default location.
-    segmentation_nifti = get_segmentation(subject, subjects_dir, cmb_dir)
+    segmentation_nifti = segment_cerebellum(subject, subjects_dir, cmb_dir)
     # Check that the segmentation was saved correctly.
     save_file = subjects_dir / subject / "mri" / "cerebellum_segmentation.nii.gz"
     saved_segmentation_nifti = nib.Nifti1Image.from_filename(save_file)
@@ -124,7 +124,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     mock_nnunet.side_effect = AssertionError(
         "nnU-Net prediction should not be called when loading from cache."
     )
-    loaded_segmentation_nifti = get_segmentation(subject, subjects_dir, cmb_dir)
+    loaded_segmentation_nifti = segment_cerebellum(subject, subjects_dir, cmb_dir)
     assert_niftis_equal(
         saved_segmentation_nifti,
         loaded_segmentation_nifti,
@@ -139,7 +139,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     # Poison the saved segmentation to ensure that the file is actually overwritten.
     poisoned_data = rng.integers(0, 255, size=(20, 20, 20), dtype=np.uint8)
     nib.save(nib.Nifti1Image(poisoned_data, np.eye(4)), save_file)
-    recomputed_segmentation_nifti = get_segmentation(
+    recomputed_segmentation_nifti = segment_cerebellum(
         subject, subjects_dir, cmb_dir, recompute=True
     )
     # Check that the mock was called, indicating that the segmentation was recomputed.
@@ -154,7 +154,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
 
     # Test saving to a custom filename.
     custom_fname = tmp_path / "custom_segmentation.nii.gz"
-    segmentation_nifti_custom = get_segmentation(
+    segmentation_nifti_custom = segment_cerebellum(
         subject, subjects_dir, cmb_dir, segmentation_fname=custom_fname
     )
     # Load the saved file and check that it matches the returned segmentation.
@@ -162,7 +162,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     mock_nnunet.side_effect = AssertionError(
         "nnU-Net prediction should not be called when loading from cache."
     )
-    loaded_custom_segmentation_nifti = get_segmentation(
+    loaded_custom_segmentation_nifti = segment_cerebellum(
         subject, subjects_dir, cmb_dir, segmentation_fname=custom_fname
     )
     assert_niftis_equal(
@@ -176,7 +176,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     mock_nnunet.reset_mock()  # Reset the mock to allow it to be called again
     mock_nnunet.side_effect = _fake_nnunet_prediction
     custom_fname_no_save = tmp_path / "no_save_segmentation.nii.gz"
-    _ = get_segmentation(
+    _ = segment_cerebellum(
         subject,
         subjects_dir,
         cmb_dir,
@@ -191,7 +191,7 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     # Poison the custom_fname file from the previous test block
     poisoned_data_2 = rng.integers(0, 255, size=(20, 20, 20), dtype=np.uint8)
     nib.save(nib.Nifti1Image(poisoned_data_2, np.eye(4)), custom_fname)
-    recomputed_no_save_segmentation = get_segmentation(
+    recomputed_no_save_segmentation = segment_cerebellum(
         subject,
         subjects_dir,
         cmb_dir,

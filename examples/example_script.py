@@ -10,7 +10,7 @@ from cmb import (
     CMB_DATA_DIR,
     create_cerebellar_surface,
     get_cerebellum_data,
-    get_segmentation,
+    segment_cerebellum,
     setup_full_source_space,
 )
 from cmb import (
@@ -40,7 +40,7 @@ cerebral_spacing = 2
 cerebellum_subsampling = "sparse"
 
 # %% Segment the cerebellum.
-segmentation = get_segmentation(subject, subjects_dir)
+segmentation = segment_cerebellum(subject, subjects_dir)
 
 # %% Fit the atlas to the cerebellum of the subject,
 # yielding a cerebellar mesh in the subject space.
