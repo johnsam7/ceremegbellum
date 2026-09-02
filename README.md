@@ -73,15 +73,6 @@ For more information about the method, please see:
    If you are installing the package for development, add `-e` flag to the installation command to make
    the changes to the source code immediately reflect to the installed package. For example: `uv pip install -e ".[viz]"`.
 
-**Note:** On headless systems (no display), plots are automatically saved as PNG files. On **remote desktops** (e.g., NoMachine, VNC),
-if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rendering:
-
-```python
-import os
-
-os.environ.pop("DISPLAY", None)
-```
-
 ## Quick Start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
