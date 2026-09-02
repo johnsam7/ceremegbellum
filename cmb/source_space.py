@@ -81,7 +81,7 @@ def create_cerebellar_surface(
         If True, will overwrite any existing mesh file at the save location. If False
         (default), raises a `FileExistsError` if the mesh file already exists.
     registration_caching : bool, optional
-        If True, it will attemp to read cached registration transforms from disk, and if
+        If True, it will attempt to read cached registration transforms from disk, and if
         not found, will save the transforms to disk for future use. Defaults to False,
         which means that registration will be computed without caching.
 
@@ -195,7 +195,7 @@ def _create_cerebellar_surface(
     )
     from scipy import signal
 
-    # Cast to str for compatability.
+    # Cast to str for compatibility.
     registration_cache_dir_str = (
         os.fspath(registration_cache_dir)
         if registration_cache_dir is not None
