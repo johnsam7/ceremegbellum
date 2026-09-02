@@ -14,7 +14,11 @@ from nibabel import Nifti1Image
 from numpy.testing import assert_allclose, assert_array_equal
 from pytest_mock import MockerFixture
 
-from cmb.source_space import _join_source_spaces, create_cerebellar_surface
+from cmb.source_space import (
+    _join_source_spaces,
+    create_cerebellar_surface,
+    setup_full_source_space,
+)
 
 from .helpers import set_up_cmb_data
 
@@ -220,6 +224,224 @@ class TestRegistrationCache:
         assert second_call_count == first_call_count, (
             "ANTS registration should not be called again when using cached transforms."
         )
+
+
+class TestOverwriteProtection:
+    """Test overwrite protection for the saved cerebellar mesh file.
+
+    Covers the ``overwrite`` argument of ``create_cerebellar_surface`` and the
+    subsampling-dependent default mesh file name.
+    """
+
+    @staticmethod
+    def _spy_ants_registration(mocker: MockerFixture):
+        # Get ANTS registration function this way because of namespace
+        # collision of ants.registration module and the ants.registration function.
+        ants_reg_module = sys.modules["ants.registration"]
+        return mocker.spy(ants_reg_module, "registration")
+
+    @pytest.mark.parametrize("subsampling", ["full", "sparse", "dense"])
+    def test_raises_if_default_mesh_file_exists(
+        self, tmp_path: Path, mocker: MockerFixture, subsampling: str
+    ) -> None:
+        """An existing mesh at the default location aborts before any registration.
+
+        Also checks that the default file name encodes the subsampling.
+        """
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
+        surf_dir = subjects_dir / subject / "surf"
+        surf_dir.mkdir(parents=True, exist_ok=True)
+        existing_mesh = surf_dir / f"cerebellum_{subsampling}.white"
+        existing_mesh.write_bytes(b"pre-existing mesh")
+
+        ants_registration = self._spy_ants_registration(mocker)
+
+        with pytest.raises(FileExistsError, match="already exists") as excinfo:
+            create_cerebellar_surface(
+                subject=subject,
+                segmentation=segmentation,
+                subjects_dir=subjects_dir,
+                cmb_dir=cmb_dir,
+                cerebellum_subsampling=subsampling,  # pyright: ignore[reportArgumentType]
+                save_mesh=True,
+                registration_caching=False,
+            )
+
+        assert f"cerebellum_{subsampling}.white" in str(excinfo.value)
+        assert ants_registration.call_count == 0, (
+            "Registration should not run when the mesh file already exists."
+        )
+        # The pre-existing file must be left untouched.
+        assert existing_mesh.read_bytes() == b"pre-existing mesh"
+
+    def test_raises_if_custom_mesh_file_exists(
+        self, tmp_path: Path, mocker: MockerFixture
+    ) -> None:
+        """An existing mesh at an explicit ``save_mesh`` path aborts the call."""
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
+        custom_mesh = tmp_path / "custom" / "my_mesh.white"
+        custom_mesh.parent.mkdir(parents=True)
+        custom_mesh.write_bytes(b"pre-existing mesh")
+
+        ants_registration = self._spy_ants_registration(mocker)
+
+        with pytest.raises(FileExistsError, match="already exists") as excinfo:
+            create_cerebellar_surface(
+                subject=subject,
+                segmentation=segmentation,
+                subjects_dir=subjects_dir,
+                cmb_dir=cmb_dir,
+                cerebellum_subsampling="full",
+                save_mesh=custom_mesh,
+                registration_caching=False,
+            )
+
+        assert str(custom_mesh) in str(excinfo.value)
+        assert ants_registration.call_count == 0
+        assert custom_mesh.read_bytes() == b"pre-existing mesh"
+
+    def test_overwrite_true_replaces_existing_file(self, tmp_path: Path) -> None:
+        """``overwrite=True`` replaces an existing mesh file with the new mesh."""
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
+        surf_dir = subjects_dir / subject / "surf"
+        surf_dir.mkdir(parents=True, exist_ok=True)
+        mesh_fname = surf_dir / "cerebellum_full.white"
+        mesh_fname.write_bytes(b"pre-existing mesh")
+
+        rr, tris = create_cerebellar_surface(
+            subject=subject,
+            segmentation=segmentation,
+            subjects_dir=subjects_dir,
+            cmb_dir=cmb_dir,
+            cerebellum_subsampling="full",
+            save_mesh=True,
+            overwrite=True,
+            registration_caching=False,
+        )
+        # File was overwritten with a valid mesh matching the returned arrays.
+        assert mesh_fname.read_bytes() != b"pre-existing mesh"
+        saved_rr, saved_tris = mne.read_surface(mesh_fname)  # pyright: ignore[reportAssignmentType]
+        assert isinstance(saved_rr, np.ndarray)
+        assert isinstance(saved_tris, np.ndarray)
+        assert_allclose(saved_rr, rr, rtol=1e-5, atol=1e-4)
+        assert_array_equal(saved_tris, tris)
+
+    def test_no_overwrite_check_when_save_mesh_false(self, tmp_path: Path) -> None:
+        """``save_mesh=False`` never triggers the overwrite check and writes nothing."""
+        rng = np.random.default_rng(seed=42)
+        subject = "mock_subject"
+        subjects_dir, cmb_dir, _, _ = _create_mock_data(tmp_path, rng, subject)
+        segmentation = Nifti1Image.from_filename(
+            cmb_dir / "data" / "segm_folder" / f"{subject}.nii.gz"
+        )
+        surf_dir = subjects_dir / subject / "surf"
+        surf_dir.mkdir(parents=True, exist_ok=True)
+        mesh_fname = surf_dir / "cerebellum_full.white"
+        mesh_fname.write_bytes(b"pre-existing mesh")
+
+        rr, tris = create_cerebellar_surface(
+            subject=subject,
+            segmentation=segmentation,
+            subjects_dir=subjects_dir,
+            cmb_dir=cmb_dir,
+            cerebellum_subsampling="full",
+            save_mesh=False,
+            registration_caching=False,
+        )
+        assert rr.shape[1] == 3
+        assert tris.shape[1] == 3
+        # The unrelated pre-existing file is left as-is.
+        assert mesh_fname.read_bytes() == b"pre-existing mesh"
+
+
+class TestSetupFullSourceSpaceSurfName:
+    """Test how ``setup_full_source_space`` resolves the cerebellar surface file."""
+
+    @pytest.mark.parametrize("subsampling", ["full", "sparse", "dense"])
+    def test_default_surf_fname_encodes_subsampling(
+        self, tmp_path: Path, mocker: MockerFixture, subsampling: str
+    ) -> None:
+        """With ``cerebellum_surf_fname=None`` the name is derived from the subsampling.
+
+        The expected default is
+        ``<subjects_dir>/<subject>/surf/cerebellum_<subsampling>.white``.
+        """
+        subject = "mock_subject"
+        subjects_dir = tmp_path / "subjects"
+        (subjects_dir / subject / "surf").mkdir(parents=True)
+
+        # Mock MNE setup source space
+        mocker.patch(
+            "cmb.source_space.mne.setup_source_space",
+            return_value=mocker.MagicMock(),
+        )
+        # Patch mne.read_surface to capture the file name it is called with.
+        captured: dict[str, object] = {}
+
+        def _fake_read_surface(fname: object, *args: object, **kwargs: object):
+            captured["fname"] = fname
+            raise RuntimeError("stop after resolving the surface file name")
+
+        mocker.patch(
+            "cmb.source_space.mne.read_surface", side_effect=_fake_read_surface
+        )
+        # Test the file name resolution.
+        with pytest.raises(RuntimeError, match="stop after resolving"):
+            setup_full_source_space(
+                subject=subject,
+                cerebellum_subsampling=subsampling,  # pyright: ignore[reportArgumentType]
+                subjects_dir=subjects_dir,
+            )
+        assert Path(captured["fname"]) == (  # pyright: ignore[reportArgumentType]
+            subjects_dir / subject / "surf" / f"cerebellum_{subsampling}.white"
+        )
+
+    def test_explicit_surf_fname_is_used_as_is(
+        self, tmp_path: Path, mocker: MockerFixture
+    ) -> None:
+        """An explicit ``cerebellum_surf_fname`` overrides the subsampling default."""
+        subject = "mock_subject"
+        subjects_dir = tmp_path / "subjects"
+        (subjects_dir / subject / "surf").mkdir(parents=True)
+        explicit_fname = tmp_path / "elsewhere" / "my_cerebellum.white"
+
+        mocker.patch(
+            "cmb.source_space.mne.setup_source_space",
+            return_value=mocker.MagicMock(),
+        )
+        captured: dict[str, object] = {}
+
+        def _fake_read_surface(fname: object, *args: object, **kwargs: object):
+            captured["fname"] = fname
+            raise RuntimeError("stop after resolving the surface file name")
+
+        mocker.patch(
+            "cmb.source_space.mne.read_surface", side_effect=_fake_read_surface
+        )
+
+        with pytest.raises(RuntimeError, match="stop after resolving"):
+            setup_full_source_space(
+                subject=subject,
+                cerebellum_subsampling="sparse",
+                subjects_dir=subjects_dir,
+                cerebellum_surf_fname=explicit_fname,
+            )
+        assert Path(captured["fname"]) == explicit_fname  # pyright: ignore[reportArgumentType]
 
 
 @pytest.mark.requires_data
