@@ -47,7 +47,7 @@ For more information about the method, please see:
    ```
 
 3. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
-   [PyTorch website](https://pytorch.org/get-started/locally/).Here is an **example** command for
+   [PyTorch website](https://pytorch.org/get-started/locally/). Here is an **example** command for
    NVIDIA GPUs with CUDA 12.6 support.
 
    ```bash
