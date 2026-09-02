@@ -70,7 +70,7 @@ For more information about the method, please see:
 
    This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
 
-## Quick Start
+## Quick start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
 
