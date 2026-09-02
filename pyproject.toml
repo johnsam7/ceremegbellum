@@ -79,7 +79,7 @@ ignore-decorators = [
 typeCheckingMode = "standard"
 exclude = [
   "dev_tools",
-  "**/node_modules", "**/__pycache__", "**/.*", "cmb-env",
+  "**/node_modules", "**/__pycache__", "**/.*", "cmb-env", ".venv", "venv"
 ]
 
 [tool.pytest]
