@@ -49,7 +49,7 @@ For more information about the method, please see:
    ```
 
 3. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
-   [PyTorch website](https://pytorch.org/get-started/locally/).Here is an **example** command for
+   [PyTorch website](https://pytorch.org/get-started/locally/). Here is an **example** command for
    NVIDIA GPUs with CUDA 12.6 support.
 
    ```bash
@@ -72,21 +72,52 @@ For more information about the method, please see:
 
    This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
 
-   If you are installing the package for development, add `-e` flag to the installation command to make
-   the changes to the source code immediately reflect to the installed package. For example: `uv pip install -e ".[viz]"`.
-
-**Note:** On headless systems (no display), plots are automatically saved as PNG files. On **remote desktops** (e.g., NoMachine, VNC),
-if 3D views segfault, unset DISPLAY before importing CMB to force offscreen rendering:
-
-```python
-import os
-
-os.environ.pop("DISPLAY", None)
-```
-
-## Quick Start
+## Quick start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
+
+## For developers
+
+### Installation for development
+
+Follow the installation instructions above, but when installing Cere-MEG-Bellum, run:
+
+```bash
+pip install -e ".[all]"
+
+# or
+uv pip install -e ".[all]"
+```
+
+This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies, including `pytest`
+for running tests, `pyright` for type checking, and `ruff` for linting and formatting.
+
+### Running tests
+
+```bash
+# Runs all the tests, including those that need data.
+pytest tests/
+
+# Runs only the tests that don't need data (and are faster).
+pytest tests/ -m "not requires_data"
+```
+
+### Type checking, linting, and formatting
+
+```bash
+# Type checking
+pyright
+
+# Linting
+ruff check .
+# Fixing linting errors
+ruff check --fix .
+
+# Checking formatting
+ruff format --check .
+# Fixing formatting
+ruff format .
+```
 
 ## License
 
