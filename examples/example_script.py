@@ -1,4 +1,5 @@
 # %%
+import logging
 import pickle
 from pathlib import Path
 
@@ -17,6 +18,9 @@ from cmb import (
 from cmb import (
     visualization as cmb_viz,
 )
+
+# Control the verbosity of CMB functions.
+logging.basicConfig(level=logging.INFO)
 
 # Where the cerebellum data is stored.
 # Data will be downloaded to this location if not already present.
