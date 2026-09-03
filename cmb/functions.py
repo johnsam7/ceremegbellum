@@ -2,24 +2,24 @@ import os
 import shutil
 
 
-def get_cerebellum_data(cmb_path: str | None = None):
+def get_cerebellum_data(cmb_dir: os.PathLike[str] | str | None = None) -> None:
     """Check if the required cerebellum data are available and download if not.
 
     Parameters
     ----------
-    cmb_path : str, optional
+    cmb_path : path-like | None, optional
         Path to the ceremegbellum data folder. If None, defaults to the
         package installation directory.
     """
-    if cmb_path is None:
+    if cmb_dir is None:
         from . import CMB_DATA_DIR
 
-        cmb_path = CMB_DATA_DIR
+        cmb_dir = CMB_DATA_DIR
     if (
-        os.path.exists(os.path.join(cmb_path, "data", "cerebellum_geo"))
+        os.path.exists(os.path.join(cmb_dir, "data", "cerebellum_geo"))
         and os.path.isdir(
             os.path.join(
-                cmb_path,
+                cmb_dir,
                 "nnUNet",
                 "RESULTS_FOLDER",
                 "nnUNet",
@@ -29,7 +29,7 @@ def get_cerebellum_data(cmb_path: str | None = None):
         )
         and os.path.isdir(
             os.path.join(
-                cmb_path,
+                cmb_dir,
                 "nnUNet",
                 "RESULTS_FOLDER",
                 "nnUNet",
@@ -39,7 +39,7 @@ def get_cerebellum_data(cmb_path: str | None = None):
         )
         and os.path.isdir(
             os.path.join(
-                cmb_path,
+                cmb_dir,
                 "nnUNet",
                 "RESULTS_FOLDER",
                 "nnUNet",
@@ -49,7 +49,7 @@ def get_cerebellum_data(cmb_path: str | None = None):
         )
         and os.path.isdir(
             os.path.join(
-                cmb_path,
+                cmb_dir,
                 "nnUNet",
                 "RESULTS_FOLDER",
                 "nnUNet",
@@ -57,26 +57,26 @@ def get_cerebellum_data(cmb_path: str | None = None):
                 "Task004_refine_lobsI_IV",
             )
         )
-        and os.path.exists(os.path.join(cmb_path, "data", "brain.nii"))
+        and os.path.exists(os.path.join(cmb_dir, "data", "brain.nii"))
     ):
         print("The required atlas data and segmentation models seem to be downloaded.")
     else:
         import zipfile
 
         _download_url = "https://osf.io/sdn9h/download"
-        zip_path = os.path.join(cmb_path, "tmp", "ceremegbellum.zip")
+        zip_path = os.path.join(cmb_dir, "tmp", "ceremegbellum.zip")
         print("Seems like some data are missing. No problem, fetching...")
-        os.makedirs(os.path.join(cmb_path, "tmp"), exist_ok=True)
-        os.makedirs(os.path.join(cmb_path, "data"), exist_ok=True)
+        os.makedirs(os.path.join(cmb_dir, "tmp"), exist_ok=True)
+        os.makedirs(os.path.join(cmb_dir, "data"), exist_ok=True)
         os.makedirs(
-            os.path.join(cmb_path, "nnUNet", "RESULTS_FOLDER", "nnUNet", "3d_fullres"),
+            os.path.join(cmb_dir, "nnUNet", "RESULTS_FOLDER", "nnUNet", "3d_fullres"),
             exist_ok=True,
         )
         os.makedirs(
-            os.path.join(cmb_path, "nnUNet", "nnUNet_preprocessed"), exist_ok=True
+            os.path.join(cmb_dir, "nnUNet", "nnUNet_preprocessed"), exist_ok=True
         )
         os.makedirs(
-            os.path.join(cmb_path, "nnUNet", "nnUNet_raw_data_base"), exist_ok=True
+            os.path.join(cmb_dir, "nnUNet", "nnUNet_raw_data_base"), exist_ok=True
         )
 
         if not os.path.exists(zip_path):
@@ -87,7 +87,7 @@ def get_cerebellum_data(cmb_path: str | None = None):
                     url=_download_url,
                     known_hash="sha256:1d07115e5d9d04c5b6b4e681f881a7c87a4b06fca07837226dcaf6746e286d54",
                     fname="ceremegbellum.zip",
-                    path=os.path.join(cmb_path, "tmp"),
+                    path=os.path.join(cmb_dir, "tmp"),
                 )
             except Exception as e:
                 print(
@@ -103,23 +103,21 @@ def get_cerebellum_data(cmb_path: str | None = None):
             print("Found previously downloaded zip file. Skipping download.")
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(os.path.join(cmb_path, "tmp"))
+            zip_ref.extractall(os.path.join(cmb_dir, "tmp"))
         shutil.move(
-            os.path.join(cmb_path, "tmp", "osf_data", "cerebellum_geo"),
-            os.path.join(cmb_path, "data", "cerebellum_geo"),
+            os.path.join(cmb_dir, "tmp", "osf_data", "cerebellum_geo"),
+            os.path.join(cmb_dir, "data", "cerebellum_geo"),
         )
         shutil.move(
-            os.path.join(cmb_path, "tmp", "osf_data", "brain.nii"),
-            os.path.join(cmb_path, "data", "brain.nii"),
+            os.path.join(cmb_dir, "tmp", "osf_data", "brain.nii"),
+            os.path.join(cmb_dir, "data", "brain.nii"),
         )
         # Move all Task* directories
-        tmp_osf = os.path.join(cmb_path, "tmp", "osf_data")
-        dest = os.path.join(
-            cmb_path, "nnUNet", "RESULTS_FOLDER", "nnUNet", "3d_fullres"
-        )
+        tmp_osf = os.path.join(cmb_dir, "tmp", "osf_data")
+        dest = os.path.join(cmb_dir, "nnUNet", "RESULTS_FOLDER", "nnUNet", "3d_fullres")
         for item in os.listdir(tmp_osf):
             if item.startswith("Task"):
                 shutil.move(os.path.join(tmp_osf, item), os.path.join(dest, item))
-        shutil.rmtree(os.path.join(cmb_path, "tmp"), ignore_errors=True)  # clean up
+        shutil.rmtree(os.path.join(cmb_dir, "tmp"), ignore_errors=True)  # clean up
         print("Done.")
     return
