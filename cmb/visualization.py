@@ -26,7 +26,6 @@ else:
     _OFFSCREEN = False
 
 import math
-from pathlib import Path
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -830,9 +829,9 @@ def morph_cerebellum_data(
 
 
 def plot_sagittal(
-    vol_fname: str | Path,
+    vol_fname: os.PathLike[str] | str,
     sag_ind: list[int] | None = None,
-    mesh_fname: str | Path | None = None,
+    mesh_fname: os.PathLike[str] | str | None = None,
     show_only_midline: bool = False,
     cmap: str = "gray_r",
     linewidth: float = 1.0,
@@ -842,13 +841,13 @@ def plot_sagittal(
 
     Parameters
     ----------
-    vol_fname : str | Path
+    vol_fname : path-like
         Path to the MRI volume file (e.g. orig.mgz).
     sag_ind : list[int] | None, optional
         List of sagittal slice indices to plot. If None, will plot 6 evenly spaced
         slices across the volume. If `show_only_midline` is True, this parameter is
         ignored.
-    mesh_fname : str | Path | None, optional
+    mesh_fname : path-like | None, optional
         Path to the surface mesh file. If None (default), no surface mesh will be
         overlaid on the MRI slices.
     show_only_midline : bool, optional
