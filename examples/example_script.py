@@ -179,7 +179,6 @@ channels = mne.pick_types(evoked.info, meg=True, eeg=True, exclude=[])  # pyrigh
 n_cortex_vertices = fwd["src"][0]["nuse"]
 leadfield = fwd["sol"]["data"]
 
-# Project the simulated cerebellar activation to the sensor space.
 simulated_measurement = np.zeros(evoked.info["nchan"])
 simulated_measurement[channels] = np.sum(
     leadfield[:, n_cortex_vertices + cerebellum_active_verts] * 10**-7, axis=1
@@ -190,10 +189,8 @@ evoked._data[channels] = np.repeat(
     repeats=evoked._data.shape[1],
     axis=1,
 )
-# %%
-evoked.plot()
 
-# %% Estimate activation from simulated data
+# %% Estimate source activation from the simulated data.
 estimate = mne.minimum_norm.apply_inverse(
     evoked, inverse_operator, 1 / 9, "sLORETA", verbose="WARNING"
 )
@@ -218,15 +215,13 @@ _ = cmb_viz.plot_normal(
     cerebellum_data=estimate_cerebellum,
     src_cortex=fwd["src"][0],
     cortex_data=estimate_cortex,
-    cmap="Reds",
-    clim=(0, 10000),
+    cmap="coolwarm",
 )
 _ = cmb_viz.plot_flatmap(
     cb_data,
     estimate_cerebellum,
     cerebellum_subsampling,
-    cmap="Reds",
-    clim=(0, 10000),
+    cmap="coolwarm",
 )
 
 # %% Sensitivity maps - cerebellum only
