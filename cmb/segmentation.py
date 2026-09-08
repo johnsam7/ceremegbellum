@@ -402,12 +402,12 @@ def _segment_cerebellum(
     )
     seg_complete_ants = ants.from_numpy(seg_complete)
 
-    # Go back to subject space
+    # Go back to subject space.
     # Use cast to help type checkers understand that the result is an ANTsImage.
     seg_reg_ants = cast(
         "ANTsImage",
         apply_transforms(
-            fixed=template_ants,
+            fixed=subject_brain_ants,
             moving=seg_complete_ants,
             transformlist=registration["invtransforms"],
             interpolator="genericLabel",
