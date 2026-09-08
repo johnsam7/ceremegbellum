@@ -415,7 +415,7 @@ def _segment_cerebellum(
         rh_seg_fname=rh_seg_output,
         anterior_seg_fname=lob_seg_output,
     )
-    seg_complete_ants = ants.from_numpy(seg_complete)
+    seg_complete_ants = convert_to_ants_image(seg_complete, normalize=False)
 
     # Go back to subject space.
     # Use cast to help type checkers understand that the result is an ANTsImage.
@@ -583,7 +583,6 @@ def _load_and_register_aseg(
         The registered FreeSurfer automatic segmentation in template space.
         Data type is preserved from the original aseg.mgz file.
     """
-    import ants
     from ants.registration import apply_transforms
 
     aseg, aseg_affine = load_label_map(
@@ -599,7 +598,7 @@ def _load_and_register_aseg(
         a_name="subject segmentation (aseg.mgz)",
         b_name="subject MRI (brain.mgz)",
     )
-    aseg_ants = ants.from_numpy(aseg)
+    aseg_ants = convert_to_ants_image(aseg, normalize=False)
 
     # Register segmentation map to the template space.
     aseg_registered_float: NDArray[np.float32] = cast(
