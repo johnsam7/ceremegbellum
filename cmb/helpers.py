@@ -37,6 +37,9 @@ def convert_to_ants_image(vol: np.ndarray, normalize: bool):
     """
     Convert a 3D numpy array to an ANTs image.
 
+    Note that the created ANTs image will not have any spatial information
+    (origin, spacing, direction) associated with it.
+
     Parameters
     ----------
     vol : np.ndarray

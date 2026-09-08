@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, cast
 import mne
 import nibabel as nib
 import numpy as np
-from nibabel import Nifti1Image
+from nibabel import Nifti1Image, affines
 from numpy.typing import NDArray
 
 from .helpers import (
@@ -199,6 +199,19 @@ def _segment_cerebellum(
         )
     subject_brain_ants = convert_to_ants_image(subject_mri, normalize=True)
 
+    # ANTs images in this module are built with identity geometry (see
+    # convert_to_ants_image), so the registration below aligns raw voxel indices
+    # and ignores the NIfTI affines. Bail out early if the subject MRI and the
+    # template are not on a compatible grid (FreeSurfer-conformed inputs are).
+    _assert_index_space_compatible(
+        subject_affine,
+        subject_mri.shape,
+        brain_template_affine,
+        brain_template.shape,
+        a_name="subject MRI (brain.mgz)",
+        b_name="brain template (brain.nii)",
+    )
+
     reg_output_folder = op.join(intermediate_files_dir, "registered")
     reg_forward_fname = op.join(reg_output_folder, subject + "_reg_Composite.h5")
     reg_inverse_fname = op.join(reg_output_folder, subject + "_reg_InverseComposite.h5")
@@ -280,6 +293,8 @@ def _segment_cerebellum(
             subject,
             template_ants,
             registration,
+            subject_affine=subject_affine,
+            subject_shape=subject_mri.shape,
         )
         # Get the predicted cerebellar mask.
         cerebellum_mask, _ = load_label_map(
@@ -419,6 +434,62 @@ def _segment_cerebellum(
     return nib.Nifti1Image(seg_reg, subject_affine)
 
 
+def _assert_index_space_compatible(
+    a_affine: NDArray | None,
+    a_shape: tuple[int, ...],
+    b_affine: NDArray | None,
+    b_shape: tuple[int, ...],
+    a_name: str,
+    b_name: str,
+) -> None:
+    """Check that two volumes can be registered in voxel-index space.
+
+    The check is symmetric; ``a`` and ``b`` are interchangeable.
+
+    Parameters
+    ----------
+    a_affine, b_affine : numpy.ndarray | None
+        Affine matrices of the two volumes. The orientation and voxel-size checks
+        are skipped when either affine is None (the shape check still runs).
+    a_shape, b_shape : tuple of int
+        Array shapes of the two volumes.
+    a_name, b_name : str
+        Human-readable names used in the error messages.
+
+    Raises
+    ------
+    ValueError
+        If the shapes, orientations or voxel sizes differ.
+    """
+    if a_shape != b_shape:
+        raise ValueError(
+            f"{a_name} has shape {tuple(a_shape)} but {b_name} has "
+            f"shape {tuple(b_shape)}. The segmentation pipeline registers in "
+            "voxel-index space and needs both volumes on the same grid "
+            "(FreeSurfer-conformed, e.g. 256x256x256 at 1 mm)."
+        )
+    if a_affine is None or b_affine is None:
+        return
+
+    a_axcodes = nib.aff2axcodes(a_affine)
+    b_axcodes = nib.aff2axcodes(b_affine)
+    if a_axcodes != b_axcodes:
+        raise ValueError(
+            f"{a_name} has voxel orientation {a_axcodes} but {b_name} "
+            f"has {b_axcodes}. Registration in voxel-index space needs a "
+            "matching orientation; reorient the inputs to a common convention "
+            "(FreeSurfer-conformed volumes are LIA)."
+        )
+    a_zooms = affines.voxel_sizes(a_affine)
+    b_zooms = affines.voxel_sizes(b_affine)
+    if not np.allclose(a_zooms, b_zooms, atol=1e-3):
+        raise ValueError(
+            f"{a_name} has voxel sizes {tuple(np.round(a_zooms, 4))} mm "
+            f"but {b_name} has {tuple(np.round(b_zooms, 4))} mm. "
+            "Registration in voxel-index space needs matching voxel sizes."
+        )
+
+
 def _extract_lob_I_IV(
     lh_fname: str, rh_fname: str, lh_seg_fname: str, rh_seg_fname: str
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
@@ -485,6 +556,8 @@ def _load_and_register_aseg(
     subject: str,
     template_ants: "ANTsImage",
     registration: dict,
+    subject_affine: NDArray | None,
+    subject_shape: tuple[int, ...],
 ) -> np.ndarray:
     """Load the FreeSurfer automatic segmentation and register it to template space.
 
@@ -498,6 +571,11 @@ def _load_and_register_aseg(
         The template image in ANTs format.
     registration : dict
         The registration from which to apply the forward transforms to the segmentation.
+    subject_affine : numpy.ndarray | None
+        Affine of the subject MRI (brain.mgz) that the registration was computed
+        from. Used to check that aseg.mgz is on the same voxel grid.
+    subject_shape : tuple of int
+        Array shape of the subject MRI (brain.mgz).
 
     Returns
     -------
@@ -508,7 +586,19 @@ def _load_and_register_aseg(
     import ants
     from ants.registration import apply_transforms
 
-    aseg, _ = load_label_map(op.join(subjects_dir, subject, "mri", "aseg.mgz"))
+    aseg, aseg_affine = load_label_map(
+        op.join(subjects_dir, subject, "mri", "aseg.mgz")
+    )
+    # The aseg is warped with the subject->template transforms, so it must sit on
+    # the same voxel grid as the subject MRI those transforms were built from.
+    _assert_index_space_compatible(
+        aseg_affine,
+        aseg.shape,
+        subject_affine,
+        subject_shape,
+        a_name="subject segmentation (aseg.mgz)",
+        b_name="subject MRI (brain.mgz)",
+    )
     aseg_ants = ants.from_numpy(aseg)
 
     # Register segmentation map to the template space.
