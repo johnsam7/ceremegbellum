@@ -158,7 +158,6 @@ def _segment_cerebellum(
     nibabel.Nifti1Image
         The cerebellar segmentation as a NIfTI image object.
     """
-    import ants
     from ants.registration import apply_transforms
 
     set_nnunet_paths(results_folder=op.join(cmb_dir, "nnUNet", "RESULTS_FOLDER"))
