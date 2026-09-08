@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 from mne.datasets import sample
 from pytest import MonkeyPatch
+from scipy.ndimage import zoom
 
+from cmb.helpers import load_image_volume
 from cmb.segmentation import segment_cerebellum
 
 from .helpers import assert_niftis_equal, set_up_cmb_data
@@ -48,6 +50,17 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
     true_segmentation_nifti = nib.Nifti1Image.from_filename(model_segmentation_path)
     assert_niftis_equal(
         segmentation_nifti, true_segmentation_nifti, check_header=False, tolerance=1e-5
+    )
+
+    # Make sure that the segmentation must be defined on the subject's anatomical grid.
+    ref_data, ref_affine = load_image_volume(
+        op.join(subjects_dir, subject, "mri", "brain.mgz")
+    )
+    seg_affine = segmentation_nifti.affine
+    assert seg_affine is not None and ref_affine is not None
+    assert segmentation_nifti.shape == ref_data.shape
+    assert np.allclose(seg_affine, ref_affine, atol=1e-4), (
+        "segmentation is not aligned with the subject's anatomical grid"
     )
 
 
@@ -208,10 +221,102 @@ def test_segmentation_save_and_load(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     )
 
 
+def test_segmentation_rejects_template_shape_mismatch(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """A template whose array shape differs from the subject MRI is rejected.
+
+    ``_segment_cerebellum`` registers in voxel-index space (every ANTs image has
+    identity geometry), which is only valid when the subject MRI and the brain
+    template are on the same grid. A shape mismatch must raise a clear error
+    before any nnU-Net prediction runs, rather than silently producing a
+    mis-gridded segmentation.
+    """
+    rng = np.random.default_rng(seed=1234)
+    mock_nnunet = MagicMock(side_effect=_fake_nnunet_prediction)
+    monkeypatch.setattr("cmb.segmentation._run_nnunet_prediction", mock_nnunet)
+
+    subject = "dummy_sub"
+    subjects_dir, cmb_dir = _create_mock_data(
+        tmp_path,
+        rng,
+        subject,
+        subject_shape=(20, 20, 20),
+        template_shape=(24, 24, 24),
+    )
+
+    with pytest.raises(ValueError, match="shape"):
+        segment_cerebellum(
+            subject, subjects_dir, cmb_dir, recompute=True, save_segmentation=False
+        )
+    mock_nnunet.assert_not_called()
+
+
+def test_segmentation_rejects_template_orientation_mismatch(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """A template with a different voxel orientation than the subject is rejected.
+
+    Index-space registration aligns voxel axes directly, so it is only valid when
+    both volumes share the same orientation (FreeSurfer-conformed volumes are
+    LIA).
+    """
+    rng = np.random.default_rng(seed=1234)
+    mock_nnunet = MagicMock(side_effect=_fake_nnunet_prediction)
+    monkeypatch.setattr("cmb.segmentation._run_nnunet_prediction", mock_nnunet)
+
+    subject = "dummy_sub"
+    subjects_dir, cmb_dir = _create_mock_data(
+        tmp_path,
+        rng,
+        subject,
+        subject_shape=(20, 20, 20),
+        template_shape=(20, 20, 20),
+        # Subject brain.mgz has an identity (RAS) affine; flip two axes so the
+        # template is LPS instead.
+        template_affine=np.diag([-1.0, -1.0, 1.0, 1.0]),
+    )
+
+    with pytest.raises(ValueError, match="orientation"):
+        segment_cerebellum(
+            subject, subjects_dir, cmb_dir, recompute=True, save_segmentation=False
+        )
+    mock_nnunet.assert_not_called()
+
+
+def _force_shape(vol: np.ndarray, shape: tuple[int, int, int]) -> np.ndarray:
+    """Center-crop and/or zero-pad ``vol`` to exactly ``shape``."""
+    out = np.zeros(shape, dtype=vol.dtype)
+    src_slices, dst_slices = [], []
+    for n_src, n_dst in zip(vol.shape, shape):
+        n = min(n_src, n_dst)
+        src_start = (n_src - n) // 2
+        dst_start = (n_dst - n) // 2
+        src_slices.append(slice(src_start, src_start + n))
+        dst_slices.append(slice(dst_start, dst_start + n))
+    out[tuple(dst_slices)] = vol[tuple(src_slices)]
+    return out
+
+
 def _create_mock_data(
-    tmp_path: Path, rng: np.random.Generator, subject: str
+    tmp_path: Path,
+    rng: np.random.Generator,
+    subject: str,
+    subject_shape: tuple[int, int, int] = (20, 20, 20),
+    template_shape: tuple[int, int, int] | None = None,
+    template_affine: np.ndarray | None = None,
 ) -> tuple[Path, Path]:
-    """Create directory structure and mock data expected by segmentation function."""
+    """Create directory structure and mock data expected by segmentation function.
+
+    By default the mock subject MRI and the mock brain template share the same
+    shape and an identity affine. ``template_shape`` and ``template_affine`` let a
+    test make the template grid differ from the subject grid.
+    """
+    if template_shape is None:
+        template_shape = subject_shape
+    if template_affine is None:
+        template_affine = np.eye(4)
+
     # Setup temporary directory structure.
     subjects_dir = tmp_path / "subjects"
     mri_dir = subjects_dir / subject / "mri"
@@ -222,18 +327,31 @@ def _create_mock_data(
     template_dir.mkdir(parents=True)
 
     # Create dummy MRI.
-    affine = np.eye(4)
-    tiny_brain = rng.random((20, 20, 20), dtype=np.float32)
-    nib.save(nib.Nifti1Image(tiny_brain, affine), mri_dir / "brain.mgz")
+    subject_affine = np.eye(4)
+    tiny_brain = rng.random(subject_shape, dtype=np.float32)
+    nib.save(nib.Nifti1Image(tiny_brain, subject_affine), mri_dir / "brain.mgz")
 
-    # Create dummy FreeSurfer segmentation (aseg.mgz) with two labels.
-    tiny_aseg = np.zeros((20, 20, 20), dtype=np.uint8)
-    tiny_aseg[5:15, 5:10, 5:15] = 7  # Fake Left Hemisphere seed
-    tiny_aseg[5:15, 10:15, 5:15] = 46  # Fake Right Hemisphere seed
-    nib.save(nib.Nifti1Image(tiny_aseg, affine), mri_dir / "aseg.mgz")
+    # Create dummy FreeSurfer segmentation (aseg.mgz) with two labels. Seeds are
+    # placed at the same relative location for any subject_shape.
+    lo = tuple(s // 4 for s in subject_shape)
+    hi = tuple((3 * s) // 4 for s in subject_shape)
+    mid_y = subject_shape[1] // 2
+    tiny_aseg = np.zeros(subject_shape, dtype=np.uint8)
+    tiny_aseg[lo[0] : hi[0], lo[1] : mid_y, lo[2] : hi[2]] = 7  # Left Hemisphere seed
+    tiny_aseg[lo[0] : hi[0], mid_y : hi[1], lo[2] : hi[2]] = 46  # Right Hemisphere seed
+    nib.save(nib.Nifti1Image(tiny_aseg, subject_affine), mri_dir / "aseg.mgz")
 
-    # Use the same tiny_brain as the template brain.
-    nib.save(nib.Nifti1Image(tiny_brain, affine), template_dir / "brain.nii")
+    # Dummy brain template. Identical to the subject brain when the shapes match,
+    # otherwise resampled.
+    if template_shape == subject_shape:
+        template_brain = tiny_brain
+    else:
+        factors = np.asarray(template_shape) / np.asarray(subject_shape)
+        resampled = np.asarray(zoom(tiny_brain, factors, order=1), dtype=np.float32)
+        template_brain = _force_shape(resampled, template_shape)
+    nib.save(
+        nib.Nifti1Image(template_brain, template_affine), template_dir / "brain.nii"
+    )
 
     return subjects_dir, cmb_dir
 
