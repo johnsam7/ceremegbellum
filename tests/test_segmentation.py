@@ -52,7 +52,7 @@ def test_segmentation_with_cache(tmp_path: Path) -> None:
         segmentation_nifti, true_segmentation_nifti, check_header=False, tolerance=1e-5
     )
 
-    # Make sure that the segmentation must be defined on the subject's anatomical grid.
+    # Make sure that the segmentation is defined on the subject's anatomical grid.
     ref_data, ref_affine = load_image_volume(
         op.join(subjects_dir, subject, "mri", "brain.mgz")
     )
