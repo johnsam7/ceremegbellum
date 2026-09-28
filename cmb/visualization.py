@@ -194,11 +194,11 @@ def morph_cortex_data(
     npt.NDArray[np.floating]
         1D array of morphed cortical data on the full cortical mesh.
     """
-    if cort_data.ndim != 1 or cort_data.shape[0] != len(fwd_cortex_src["vertno"]):
+    if cort_data.shape != (len(fwd_cortex_src["vertno"]),):
         raise ValueError(
             "cort_data must be a 1D array with length equal to the number of used "
-            "vertices in the cortical source space (i.e., "
-            "len(cortex_src['vertno']))."
+            f"vertices in the cortical source space ({len(fwd_cortex_src['vertno'])}), "
+            f"but got shape {cort_data.shape}."
         )
     logger.info(
         f"Morphing cortical data from {cort_data.shape[0]} vertices to full "
