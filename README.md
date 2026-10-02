@@ -72,6 +72,8 @@ For more information about the method, please see:
 
    This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
 
+   To use the non-blocking Qt window (`backend="pyvistaqt"` in `plot_normal` / `plot_inflated`), install `pip install ".[viz-qt]"` plus a Qt binding of your choice, e.g. `pip install pyqt6` or `pip install pyside6`.
+
 ## Quick start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.

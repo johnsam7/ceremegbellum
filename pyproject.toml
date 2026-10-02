@@ -42,8 +42,10 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["pyvista>=0.43"]
+# Qt binding (PyQt5/6, PySide2/6) is not pinned, user should install one by themselves.
+viz-qt = ["cmb[viz]", "pyvistaqt>=0.11"]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "pytest-mock", "ruff", "pyright"]
-all = ["cmb[viz]", "cmb[dev]"]
+all = ["cmb[viz-qt]", "cmb[dev]"]
 
 [project.urls]
 Homepage = "https://github.com/johnsam7/ceremegbellum"
