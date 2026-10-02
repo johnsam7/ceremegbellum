@@ -269,12 +269,13 @@ def plot_normal(
         Plotting backend, by default "pyvista". "pyvista" uses a plain
         ``pyvista.Plotter`` whose ``show()`` blocks until the window is closed.
         "pyvistaqt" uses a non-blocking ``pyvistaqt.BackgroundPlotter`` that opens a
-        Qt window and keeps it interactive (requires ``pyvistaqt`` and a Qt binding
-        such as PyQt6 or PySide6, and a display). With "pyvistaqt", the window closes
-        when a plain Python script exits; use it from IPython (``%gui qt``) or call
-        ``plotter.app.exec_()`` to keep it open. On Linux, ``QT_QPA_PLATFORM``
-        defaults to ``"xcb"`` (if not already set) so that it works on Wayland
-        sessions; this has no effect if a Qt application was already created.
+        Qt window and keeps it interactive (requires ``pyvistaqt`` and a Qt binding,
+        installed by the ``viz-qt`` extra, and a display). With "pyvistaqt", the
+        window closes when a plain Python script exits; use it from IPython
+        (``%gui qt``) or call ``plotter.app.exec_()`` to keep it open. On Linux,
+        ``QT_QPA_PLATFORM`` defaults to ``"xcb"`` (if not already set) so that it
+        works on Wayland sessions; this has no effect if a Qt application was
+        already created.
 
     Returns
     -------
@@ -411,7 +412,8 @@ def _make_plotter(
         except ImportError as err:
             raise ImportError(
                 "backend='pyvistaqt' requires pyvistaqt and a Qt binding. Please "
-                "install them via e.g. 'pip install pyvistaqt pyqt6' (or pyside6). "
+                "install them via 'pip install \"cmb[viz-qt]\"' (or e.g. "
+                "'pip install pyvistaqt pyqt6' to use another binding). "
                 f"Original error: {err}"
             ) from None
         offscreen = False
