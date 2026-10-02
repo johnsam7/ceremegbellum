@@ -13,6 +13,7 @@ view using Matplotlib.
 
 import logging
 import os
+import sys
 import warnings
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -271,7 +272,9 @@ def plot_normal(
         Qt window and keeps it interactive (requires ``pyvistaqt`` and a Qt binding
         such as PyQt6 or PySide6, and a display). With "pyvistaqt", the window closes
         when a plain Python script exits; use it from IPython (``%gui qt``) or call
-        ``plotter.app.exec_()`` to keep it open.
+        ``plotter.app.exec_()`` to keep it open. On Linux, ``QT_QPA_PLATFORM``
+        defaults to ``"xcb"`` (if not already set) so that it works on Wayland
+        sessions; this has no effect if a Qt application was already created.
 
     Returns
     -------
@@ -398,6 +401,11 @@ def _make_plotter(
                 "(DISPLAY is not set). Use backend='pyvista' instead."
             )
         _import_pyvista()
+        if sys.platform.startswith("linux"):
+            # VTK renders through X11, so on Wayland sessions Qt must use the xcb
+            # (XWayland) platform too, otherwise the render window fails with
+            # "BadWindow". Respect an explicit user setting.
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
         try:
             import pyvistaqt as pvqt
         except ImportError as err:

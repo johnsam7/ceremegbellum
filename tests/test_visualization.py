@@ -15,6 +15,8 @@ def fake_pyvista(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, MagicMock]
     monkeypatch.setitem(sys.modules, "pyvista", pv)
     monkeypatch.setitem(sys.modules, "pyvistaqt", pvqt)
     monkeypatch.setattr(cmb_viz, "_OFFSCREEN", False)
+    # Restore QT_QPA_PLATFORM after the test, the pyvistaqt backend may set it.
+    monkeypatch.delenv("QT_QPA_PLATFORM", raising=False)
     return pv, pvqt
 
 
