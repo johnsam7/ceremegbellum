@@ -72,6 +72,8 @@ For more information about the method, please see:
 
    This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
 
+   To use the non-blocking Qt window (`backend="pyvistaqt"` in `plot_normal` / `plot_inflated`), install `pip install ".[viz-qt]"`, which adds [pyvistaqt](https://qtdocs.pyvista.org/) and the PySide6 Qt binding. If you prefer another Qt binding (e.g. PyQt6), install `pip install ".[viz]" pyvistaqt pyqt6` instead.
+
 ## Quick start
 
 See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
@@ -83,14 +85,14 @@ See [`examples/example_script.py`](examples/example_script.py) for a complete en
 Follow the installation instructions above, but when installing Cere-MEG-Bellum, run:
 
 ```bash
-pip install -e ".[all]"
+pip install -e ".[dev,viz-qt]"
 
 # or
-uv pip install -e ".[all]"
+uv pip install -e ".[dev,viz-qt]"
 ```
 
-This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies, including `pytest`
-for running tests, `pyright` for type checking, and `ruff` for linting and formatting.
+This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies: the 3D visualization stack (PyVista, pyvistaqt and PySide6)
+and the developer tools `pytest` for running tests, `pyright` for type checking, and `ruff` for linting and formatting.
 
 ### Running tests
 

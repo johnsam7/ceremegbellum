@@ -13,8 +13,9 @@ view using Matplotlib.
 
 import logging
 import os
+import sys
 import warnings
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 # Use non-interactive backend when no display is available
 import matplotlib
@@ -194,11 +195,11 @@ def morph_cortex_data(
     npt.NDArray[np.floating]
         1D array of morphed cortical data on the full cortical mesh.
     """
-    if cort_data.ndim != 1 or cort_data.shape[0] != len(fwd_cortex_src["vertno"]):
+    if cort_data.shape != (len(fwd_cortex_src["vertno"]),):
         raise ValueError(
             "cort_data must be a 1D array with length equal to the number of used "
-            "vertices in the cortical source space (i.e., "
-            "len(cortex_src['vertno']))."
+            f"vertices in the cortical source space ({len(fwd_cortex_src['vertno'])}), "
+            f"but got shape {cort_data.shape}."
         )
     logger.info(
         f"Morphing cortical data from {cort_data.shape[0]} vertices to full "
@@ -229,7 +230,8 @@ def plot_normal(
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
-) -> "pv.Plotter":
+    backend: Literal["pyvista", "pyvistaqt"] = "pyvista",
+) -> "pv.BasePlotter":
     """Plot cerebellum and cortex in normal 3D view using PyVista.
 
     Parameters
@@ -263,22 +265,26 @@ def plot_normal(
     screenshot_fname : str | None, optional
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
+    backend : {"pyvista", "pyvistaqt"}, optional
+        Plotting backend, by default "pyvista". "pyvista" uses a plain
+        ``pyvista.Plotter`` whose ``show()`` blocks until the window is closed.
+        "pyvistaqt" uses a non-blocking ``pyvistaqt.BackgroundPlotter`` that opens a
+        Qt window and keeps it interactive (requires ``pyvistaqt`` and a Qt binding,
+        installed by the ``viz-qt`` extra, and a display). With "pyvistaqt", the
+        window closes when a plain Python script exits; use it from IPython
+        (``%gui qt``) or call ``plotter.app.exec_()`` to keep it open. On Linux,
+        ``QT_QPA_PLATFORM`` defaults to ``"xcb"`` (if not already set) so that it
+        works on Wayland sessions; this has no effect if a Qt application was
+        already created.
 
     Returns
     -------
-    pv.Plotter
-        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
-        via ``plotter.actors['cerebellum_mesh']`` and the cortex mesh (if provided) via
+    pv.BasePlotter
+        The plotter object (``pyvista.Plotter`` or ``pyvistaqt.BackgroundPlotter``).
+        The cerebellum mesh can be accessed and manipulated via
+        ``plotter.actors['cerebellum_mesh']`` and the cortex mesh (if provided) via
         ``plotter.actors['cortex_mesh']``.
     """
-    try:
-        import pyvista as pv
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            "PyVista is required for 3D plotting. Please install it via "
-            "'pip install pyvista'."
-        ) from None
-
     if len(cerebellum_data) != len(src_cerebellum["rr"]):
         raise ValueError(
             "cerebellum_data must have the same number of elements as the number of "
@@ -294,17 +300,10 @@ def plot_normal(
                 "vertices in the dense triangulation of the cortical source space. "
                 f"Expected {len(src_cortex['rr'])}, got {len(cortex_data)}."
             )
-    if offscreen is None:
-        # Determine based on environment variable and OS type.
-        offscreen = _OFFSCREEN
     if clim is None:
         clim = _determine_global_clim(cerebellum_data, cortex_data)
 
-    plotter = pv.Plotter(
-        window_size=[1200, 1200], off_screen=offscreen, notebook=notebook_inline
-    )
-    # Ignoring warning because my pyright is confused.
-    plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
+    plotter, offscreen = _make_plotter(backend, offscreen, notebook_inline, show)
 
     cerebellum_mesh = _make_pyvista_mesh(src_cerebellum, cerebellum_data)
     plotter.add_mesh(
@@ -326,25 +325,144 @@ def plot_normal(
             cortex_mesh, scalars="scalars", cmap=cmap, clim=clim, name="cortex_mesh"
         )
 
+    _finalize_plotter(
+        plotter,
+        focal_point=cerebellum_mesh.center,
+        backend=backend,
+        show=show,
+        offscreen=offscreen,
+        screenshot_fname=screenshot_fname,
+        view_name="normal",
+    )
+
+    return plotter
+
+
+def _import_pyvista():
+    """Import PyVista lazily with a helpful error message."""
+    try:
+        import pyvista as pv
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError(
+            "PyVista is required for 3D plotting. Please install it via "
+            "'pip install pyvista'."
+        ) from None
+    return pv
+
+
+def _make_plotter(
+    backend: Literal["pyvista", "pyvistaqt"],
+    offscreen: bool | None,
+    notebook_inline: bool,
+    show: bool,
+) -> tuple["pv.BasePlotter", bool]:
+    """Create a plotter for the requested backend.
+
+    Parameters
+    ----------
+    backend : {"pyvista", "pyvistaqt"}
+        Plotting backend.
+    offscreen : bool | None
+        Whether to render offscreen. If None, determined from the environment for the
+        "pyvista" backend.
+    notebook_inline : bool
+        Whether to render inline in a Jupyter notebook ("pyvista" backend only).
+    show : bool
+        Whether the "pyvistaqt" window is shown on creation.
+
+    Returns
+    -------
+    plotter : pv.BasePlotter
+        The created plotter with a white background.
+    offscreen : bool
+        The resolved offscreen setting.
+    """
+    if backend == "pyvista":
+        pv = _import_pyvista()
+        if offscreen is None:
+            # Determine based on environment variable and OS type.
+            offscreen = _OFFSCREEN
+        plotter = pv.Plotter(
+            window_size=[1200, 1200], off_screen=offscreen, notebook=notebook_inline
+        )
+    elif backend == "pyvistaqt":
+        if notebook_inline:
+            raise ValueError(
+                "notebook_inline=True is not supported with backend='pyvistaqt'. "
+                "Use backend='pyvista' instead."
+            )
+        if offscreen:
+            raise ValueError(
+                "offscreen rendering is not supported with backend='pyvistaqt'. "
+                "Use backend='pyvista' instead."
+            )
+        if _OFFSCREEN:
+            raise RuntimeError(
+                "backend='pyvistaqt' requires a display, but none was detected "
+                "(DISPLAY is not set). Use backend='pyvista' instead."
+            )
+        _import_pyvista()
+        if sys.platform.startswith("linux"):
+            # VTK renders through X11, so on Wayland sessions Qt must use the xcb
+            # (XWayland) platform too, otherwise the render window fails with
+            # "BadWindow". Respect an explicit user setting.
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+        try:
+            import pyvistaqt as pvqt
+        except ImportError as err:
+            raise ImportError(
+                "backend='pyvistaqt' requires pyvistaqt and a Qt binding. Please "
+                "install them via 'pip install \"cmb[viz-qt]\"' (or e.g. "
+                "'pip install pyvistaqt pyqt6' to use another binding). "
+                f"Original error: {err}"
+            ) from None
+        offscreen = False
+        # BackgroundPlotter subclasses BasePlotter at runtime, but type checkers
+        # cannot see it through qtpy's dynamically resolved Qt base classes.
+        plotter = cast(
+            "pv.BasePlotter",
+            pvqt.BackgroundPlotter(window_size=(1200, 1200), show=show),
+        )
+    else:
+        raise ValueError(
+            f"Unknown backend {backend!r}. Expected 'pyvista' or 'pyvistaqt'."
+        )
+
+    plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
+    return plotter, offscreen
+
+
+def _finalize_plotter(
+    plotter: "pv.BasePlotter",
+    focal_point: tuple[float, float, float],
+    backend: Literal["pyvista", "pyvistaqt"],
+    show: bool,
+    offscreen: bool,
+    screenshot_fname: str | None,
+    view_name: str,
+) -> None:
+    """Set the camera, save an optional screenshot and show the plot."""
     plotter.camera.position = (0, -1, 0)
     plotter.camera.up = (0, 0, 1)
-    plotter.camera.focal_point = cerebellum_mesh.center
+    plotter.camera.focal_point = focal_point
     plotter.reset_camera()  # pyright: ignore[reportCallIssue]
 
     if screenshot_fname is not None:
+        if backend == "pyvistaqt":
+            # Make sure the Qt render window is up to date before grabbing it.
+            plotter.render()
         plotter.screenshot(screenshot_fname)
-        logger.info(f"Saved normal view to {screenshot_fname}")
+        logger.info(f"Saved {view_name} view to {screenshot_fname}")
 
     if show and offscreen:
         warnings.warn(
             "Showing the plot is not supported in offscreen mode.",
             UserWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
-    elif show:
+    elif show and backend == "pyvista":
+        # BackgroundPlotter is shown on creation and does not block.
         plotter.show()
-
-    return plotter
 
 
 def _determine_global_clim(
@@ -387,13 +505,7 @@ def _make_pyvista_mesh(
         (n_vertices,), where n_vertices is the number of vertices in the source space,
         i.e. `len(src_space['rr'])`.
     """
-    try:
-        import pyvista as pv
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            "PyVista is required for 3D plotting. Please install it via "
-            "'pip install pyvista'."
-        ) from None
+    pv = _import_pyvista()
     verts = src_space["rr"]
     faces = src_space["tris"]
 
@@ -415,7 +527,8 @@ def plot_inflated(
     notebook_inline: bool = False,
     offscreen: bool | None = None,
     screenshot_fname: str | None = None,
-) -> "pv.Plotter":
+    backend: Literal["pyvista", "pyvistaqt"] = "pyvista",
+) -> "pv.BasePlotter":
     """Plot cerebellum in inflated 3D view using PyVista.
 
     Parameters
@@ -443,24 +556,17 @@ def plot_inflated(
     screenshot_fname : str | None, optional
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
+    backend : {"pyvista", "pyvistaqt"}, optional
+        Plotting backend, by default "pyvista". See :func:`plot_normal` for details.
 
     Returns
     -------
-    pv.Plotter
-        The PyVista plotter object. The cerebellum mesh can be accessed and manipulated
-        via ``plotter.actors['cerebellum_mesh']``.
+    pv.BasePlotter
+        The plotter object (``pyvista.Plotter`` or ``pyvistaqt.BackgroundPlotter``).
+        The cerebellum mesh can be accessed and manipulated via
+        ``plotter.actors['cerebellum_mesh']``.
     """
-    try:
-        import pyvista as pv
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError(
-            "PyVista is required for 3D plotting. Please install it via "
-            "'pip install pyvista'."
-        ) from None
-
-    if offscreen is None:
-        # Determine based on environment variable and OS type.
-        offscreen = _OFFSCREEN
+    pv = _import_pyvista()
 
     if clim is None:
         clim = (float(np.nanmin(cerebellum_data)), float(np.nanmax(cerebellum_data)))
@@ -482,10 +588,7 @@ def plot_inflated(
     cerebellum_mesh = pv.PolyData(inflated_verts_subsampled, pv_faces)
     cerebellum_mesh.point_data["scalars"] = cerebellum_data
 
-    plotter = pv.Plotter(
-        window_size=[1200, 1200], off_screen=offscreen, notebook=notebook_inline
-    )
-    plotter.set_background(color="white")  # pyright: ignore[reportCallIssue]
+    plotter, offscreen = _make_plotter(backend, offscreen, notebook_inline, show)
     plotter.add_mesh(
         cerebellum_mesh,
         scalars="scalars",
@@ -494,23 +597,16 @@ def plot_inflated(
         scalar_bar_args={"color": "black"},
         name="cerebellum_mesh",
     )
-    plotter.camera.position = (0, -1, 0)
-    plotter.camera.up = (0, 0, 1)
-    plotter.camera.focal_point = cerebellum_mesh.center
-    plotter.reset_camera()  # pyright: ignore[reportCallIssue]
 
-    if screenshot_fname is not None:
-        plotter.screenshot(screenshot_fname)
-        logger.info(f"Saved inflated view to {screenshot_fname}")
-
-    if show and offscreen:
-        warnings.warn(
-            "Showing the plot is not supported in offscreen mode.",
-            UserWarning,
-            stacklevel=2,
-        )
-    elif show:
-        plotter.show()
+    _finalize_plotter(
+        plotter,
+        focal_point=cerebellum_mesh.center,
+        backend=backend,
+        show=show,
+        offscreen=offscreen,
+        screenshot_fname=screenshot_fname,
+        view_name="inflated",
+    )
 
     return plotter
 
