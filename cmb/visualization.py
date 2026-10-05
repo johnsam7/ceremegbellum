@@ -39,7 +39,7 @@ from matplotlib.figure import Figure
 from mne.morph import _hemi_morph
 from numpy.typing import NDArray
 
-from .source_space import _join_source_spaces
+from .source_space import join_cortical_source_spaces
 
 # This block is ONLY read by linters and type checkers (like mypy, Pylance)
 # At runtime, it evaluates to False, keeping PyVista optional.
@@ -183,7 +183,8 @@ def morph_cortex_data(
         (i.e., `fwd_cortex_src['nuse']`).
     fwd_cortex_src : dict
         Cortical source space dictionary used in the forward solution,
-        typically `fwd['src'][0]`.
+        typically `fwd['src'][0]`, or the output of
+        `cmb.join_cortical_source_spaces(fwd['src'][:2])` for a mixed source space.
     smooth : int | "nearest" | None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
@@ -239,13 +240,15 @@ def plot_normal(
     Parameters
     ----------
     src_cerebellum : dict
-        Cerebellar source space dictionary, typically `fwd['src'][1]`.
+        Cerebellar source space dictionary, typically `fwd['src'][1]` (`fwd['src'][2]`
+        for a mixed source space).
     cerebellum_data : ndarray of float, shape (n_vertices,)
         Data to be visualized on the cerebellum, where n_vertices is the number of
         vertices in the dense triangulation of the cerebellar source space, i.e.
         `len(src_cerebellum['rr'])`.
     src_cortex : dict | None
-        Cortical source space dictionary, typically `fwd['src'][0]`.
+        Cortical source space dictionary, typically `fwd['src'][0]` (or the output of
+        `cmb.join_cortical_source_spaces(fwd['src'][:2])` for a mixed source space).
         If None (default), only the cerebellum will be plotted.
     cortex_data : ndarray of float, shape (n_vertices,) | None
         Data to be visualized on the cortex, where n_vertices is the number of
@@ -500,7 +503,7 @@ def _make_pyvista_mesh(src_space: dict, data: NDArray[np.floating]) -> "pv.PolyD
     ----------
     src_space : dict
         The source space dictionary, typically `fwd['src'][0]` for cortex or
-        `fwd['src'][1]` for cerebellum.
+        `fwd['src'][1]` (`fwd['src'][2]` for a mixed source space) for cerebellum.
     data : ndarray of float, shape (n_vertices,)
         Data to be visualized on the source space surface, where n_vertices is the
         number of vertices in the source space, i.e. `len(src_space['rr'])`.
@@ -866,7 +869,7 @@ def morph_cerebellum_data(
         i.e. `len(fwd_cerebellum_src['vertno'])`.
     fwd_cerebellum_src : dict
         The cerebellar source space used in the computation of the forward solution,
-        typically `fwd['src'][1]`.
+        typically `fwd['src'][1]` (`fwd['src'][2]` for a mixed source space).
     cerebellum_geo : dict
         Cerebellum geometry object.
     subsampling : "dense" | "sparse"
@@ -992,7 +995,7 @@ def get_plot_data_from_stc(
         n_cortex_verts = fwd_src[0]["nuse"] + fwd_src[1]["nuse"]
         # Concatenate the two cortical source spaces to be compatible
         # with the visualization functions.
-        fwd_cortex_src = _join_source_spaces(fwd_src[:2])
+        fwd_cortex_src = join_cortical_source_spaces(fwd_src[:2])
         fwd_cerebellum_src = fwd_src[2]
     assert isinstance(fwd_cortex_src, dict)
     assert isinstance(fwd_cerebellum_src, dict)

@@ -5,7 +5,11 @@ import os as _os
 from ._version import __version__
 from .functions import get_cerebellum_data, get_subsampled_cerebellum_labels
 from .segmentation import segment_cerebellum
-from .source_space import create_cerebellar_surface, setup_full_source_space
+from .source_space import (
+    create_cerebellar_surface,
+    join_cortical_source_spaces,
+    setup_full_source_space,
+)
 
 # Deprecated, will just instruct users to use the new plotting functions instead.
 from .visualization import plot_cerebellum_data
@@ -21,6 +25,7 @@ __all__ = [
     "segment_cerebellum",
     "create_cerebellar_surface",
     "setup_full_source_space",
+    "join_cortical_source_spaces",
     "plot_cerebellum_data",
     "__version__",
 ]

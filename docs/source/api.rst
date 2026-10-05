@@ -72,6 +72,7 @@ Utilities
    :toctree: generated/
    :nosignatures:
 
+   join_cortical_source_spaces
    get_subsampled_cerebellum_labels
 
 
