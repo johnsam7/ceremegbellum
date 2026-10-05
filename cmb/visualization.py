@@ -182,7 +182,7 @@ def morph_cortex_data(
     fwd_cortex_src : dict
         Cortical source space dictionary used in the forward solution,
         typically `fwd['src'][0]`.
-    smooth : int | None | Literal["nearest"]
+    smooth : int, "nearest" or None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
         that many iterative averaging steps (0 leaves data at sparse vertices only).

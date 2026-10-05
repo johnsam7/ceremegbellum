@@ -167,7 +167,7 @@ def get_plot_data_from_stc(
         The index of the cerebellum source space in the `SourceSpaces` list.
         Allowed values are 1 (legacy CMB source space) or 2 (mixed source space).
         Defaults to 1.
-    cortex_smooth : int | None | Literal["nearest"]
+    cortex_smooth : int, "nearest" or None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
         that many iterative averaging steps (0 leaves data at sparse vertices only).
