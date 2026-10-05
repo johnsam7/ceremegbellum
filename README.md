@@ -104,8 +104,8 @@ pip install -e ".[dev,viz-qt]"
 uv pip install -e ".[dev,viz-qt]"
 ```
 
-This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies: the 3D visualization stack (PyVista, pyvistaqt and PySide6)
-and the developer tools `pytest` for running tests, `pyright` for type checking, and `ruff` for linting and formatting.
+This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies:
+the 3D visualization stack (PyVista, pyvistaqt and PySide6) and the developer tools.
 
 ### Running tests
 
