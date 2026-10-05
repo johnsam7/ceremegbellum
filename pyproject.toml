@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 authors = [
     {name = "John Gustaf Wilhelm Samuelsson", email = "johnsam@mit.edu"},
     {name = "Christoph Dinh", email = "christoph.dinh@brain-link.de"},
+    {name = "Teemu Taivainen", email = "ttaiv@outlook.com"}
 ]
 keywords = ["neuroscience", "neuroimaging", "MEG", "cerebellum", "brain"]
 classifiers = [
