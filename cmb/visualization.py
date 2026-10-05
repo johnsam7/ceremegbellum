@@ -67,7 +67,7 @@ def plot_cerebellum_data(*args, **kwargs) -> None:
     )
 
 
-def interpolate_cerebellum_data(
+def _interpolate_cerebellum_data(
     data: NDArray[np.floating],
     data_indices: NDArray[np.intp],
     subsampling: Literal["dense", "sparse"],
@@ -155,7 +155,7 @@ def interpolate_cerebellum_data(
                 "Leaving unresolved vertices as NaN."
             )
             logger.warning(msg)
-            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+            warnings.warn(msg, RuntimeWarning, stacklevel=3)
             break
 
         data_interpolated[nan_verts[resolved]] = neighbor_means[resolved]
@@ -856,8 +856,7 @@ def morph_cerebellum_data(
 ) -> NDArray[np.floating]:
     """Interpolate cerebellar data to specified subsampling and optionally smooth it.
 
-    Calls `interpolate_cerebellum_data` to handle the interpolation via iterative
-    nearest-neighbor averaging.
+    Vertices without data are filled in via iterative nearest-neighbor averaging.
 
     Parameters
     ----------
@@ -898,7 +897,7 @@ def morph_cerebellum_data(
             "used in the forward solution for the cerebellar source space, i.e. "
             "len(fwd_cerebellum_src['vertno'])."
         )
-    data_interpolated = interpolate_cerebellum_data(
+    data_interpolated = _interpolate_cerebellum_data(
         data,
         data_indices=data_indices,
         subsampling=subsampling,
