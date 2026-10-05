@@ -16,7 +16,7 @@ def get_cerebellum_data(cmb_dir: os.PathLike[str] | str | None = None) -> None:
 
     Parameters
     ----------
-    cmb_dir : path-like | None, optional
+    cmb_dir : path-like | None
         Path to the ceremegbellum data folder. If None, defaults to the
         package installation directory.
     """
@@ -163,30 +163,29 @@ def get_plot_data_from_stc(
         The cerebellum geometry data loaded from the cerebellum_geo file.
     cerebellum_subsampling : {"sparse", "dense"}
         The subsampling used for the cerebellum source space.
-    cerebellum_idx : int, optional
+    cerebellum_idx : int
         The index of the cerebellum source space in the `SourceSpaces` list.
         Allowed values are 1 (legacy CMB source space) or 2 (mixed source space).
         Defaults to 1.
-    cortex_smooth : int, "nearest" or None
+    cortex_smooth : int | "nearest" | None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
         that many iterative averaging steps (0 leaves data at sparse vertices only).
-        If ``None``, automatically iterates until all unmapped vertices are filled
-        (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
+        If ``None`` (default), automatically iterates until all unmapped vertices are
+        filled (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
         closest source vertex without blending.
-    cerebellum_smooth : int, optional
+    cerebellum_smooth : int
         Number of smoothing iterations to apply to the interpolated data. Each
         iteration averages the value at each vertex with its neighbors. By default 0,
         which means no smoothing is applied.
 
     Returns
     -------
-    cortex_data : NDArray[np.floating]
-        1D array of data for each vertex in the full cortical mesh at the specified
-        time point.
-    cerebellum_data : NDArray[np.floating]
-        1D array of data for each vertex in the subsampled cerebellar mesh at the
-        specified time point.
+    cortex_data : ndarray of float, shape (n_vertices,)
+        Data for each vertex in the full cortical mesh at the specified time point.
+    cerebellum_data : ndarray of float, shape (n_vertices,)
+        Data for each vertex in the subsampled cerebellar mesh at the specified time
+        point.
     """
     if cerebellum_idx not in [1, 2]:
         raise ValueError(f"Invalid cerebellum index: {cerebellum_idx}. Must be 1 or 2.")
@@ -238,14 +237,14 @@ def get_subsampled_cerebellum_labels(
     ----------
     cb_data : dict
         The cerebellum geometry data loaded from the cerebellum_geo file.
-    subsampling : {"sparse", "dense"}, optional
+    subsampling : {"sparse", "dense"}
         The subsampling used for the cerebellum source space. Defaults to "sparse".
-    set_hemi_cerebellum : bool, optional
+    set_hemi_cerebellum : bool
         If True (default), sets the `hemi` attribute of each label to "cerebellum".
 
     Returns
     -------
-    list[mne.Label]
+    list of mne.Label
         The patch labels, one for each patch of the subsampled cerebellum.
     """
     labels = cb_data["dw_data"][f"labels {subsampling}"]

@@ -41,7 +41,7 @@ def convert_to_ants_image(vol: NDArray, normalize: bool):
 
     Parameters
     ----------
-    vol : NDArray
+    vol : ndarray, shape (n_x, n_y, n_z)
         3D array to be converted.
     normalize : bool
         If True, normalize the input volume to the range [0, 1]
@@ -77,10 +77,10 @@ def load_image_volume(
 
     Returns
     -------
-    img_numpy : NDArray[np.float64]
+    img_numpy : ndarray of float, shape (n_x, n_y, n_z)
         3D array containing the image data.
-    affine : NDArray[np.float64] | None
-        The affine transformation matrix associated with the image data, shape (4, 4).
+    affine : ndarray of float, shape (4, 4) | None
+        The affine transformation matrix associated with the image data.
         Will be None if the saved file does not contain an affine matrix.
     """
     img = nib.load(fname)
@@ -113,17 +113,16 @@ def load_label_map(
     fname : str
         Path to the label map file to be loaded. Format should be NIfTI, MGH
         (from FreeSurfer) or other format supported by `nibabel`.
-    dtype : DTypeLike | None, optional
+    dtype : DTypeLike | None
         The data type of the returned array. If None (default), the data type
         will be inferred from the image data.
 
     Returns
     -------
-    label_map : NDArray[Any]
+    label_map : ndarray, shape (n_x, n_y, n_z)
         3D array containing the label map data.
-    affine : NDArray[np.float64] | None
-        The affine transformation matrix associated with the label map data,
-        shape (4, 4).
+    affine : ndarray of float, shape (4, 4) | None
+        The affine transformation matrix associated with the label map data.
         Will be None if the saved file does not contain an affine matrix.
     """
     img = nib.load(fname)
@@ -166,12 +165,12 @@ def save_nifti_from_3darray(
 
     Parameters
     ----------
-    vol : NDArray
+    vol : ndarray, shape (n_x, n_y, n_z)
         3D array to be saved as a NIfTI file.
     fname : str
         Path to the output NIfTI file.
-    affine : NDArray[np.float64] | None
-        The affine transformation matrix for the NIfTI file, shape (4, 4).
+    affine : ndarray of float, shape (4, 4) | None
+        The affine transformation matrix for the NIfTI file.
 
     Returns
     -------
@@ -191,13 +190,13 @@ def set_nnunet_paths(
 
     Parameters
     ----------
-    raw_data_base_dir : str | None, optional
+    raw_data_base_dir : str | None
         Path to nnUNet raw data base directory. If None (default), skips setting this
         environment variable.
-    preprocessed_dir : str | None, optional
+    preprocessed_dir : str | None
         Path to nnUNet preprocessed directory. If None (default), skips setting this
         environment variable.
-    results_folder : str | None, optional
+    results_folder : str | None
         Path to nnUNet results folder. If None (default), skips setting this
         environment variable.
     """
@@ -219,17 +218,17 @@ def change_labels(
 
     Parameters
     ----------
-    vol : NDArray
+    vol : ndarray, shape (n_x, n_y, n_z)
         3D array mapping each voxel to a label.
-    old_labels : list[int]
+    old_labels : list of int
         List of labels to be replaced.
-    new_labels : list[int]
+    new_labels : list of int
         List of new labels to replace the old labels. The order of these new labels
         corresponds to the order of the old labels.
 
     Returns
     -------
-    NDArray
+    ndarray, shape (n_x, n_y, n_z)
         3D array with the specified labels replaced.
     """
     if len(old_labels) != len(new_labels):

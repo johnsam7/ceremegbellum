@@ -53,6 +53,7 @@ dev = [
     "sphinx",
     "pydata-sphinx-theme",
     "myst-parser",
+    "numpydoc",
 ]
 
 [project.urls]

@@ -77,9 +77,9 @@ def interpolate_cerebellum_data(
 
     Parameters
     ----------
-    data : NDArray[np.floating]
-        1D array of values at known vertices in the cerebellar source space.
-    data_indices : NDArray[np.intp]
+    data : ndarray of float, shape (n_known,)
+        Values at known vertices in the cerebellar source space.
+    data_indices : ndarray of int, shape (n_known,)
         Indices of the known vertices in the specified subsampling of the cerebellar
         surface mesh.
     subsampling : {"dense", "sparse"}
@@ -89,8 +89,8 @@ def interpolate_cerebellum_data(
 
     Returns
     -------
-    NDArray[np.float64]
-        1D array of data values across the full cerebellar surface mesh corresponding
+    ndarray of float, shape (n_vertices,)
+        Data values across the full cerebellar surface mesh corresponding
         to the specified subsampling.
     """
     if (
@@ -174,25 +174,25 @@ def morph_cortex_data(
 
     Parameters
     ----------
-    cort_data : NDArray[np.floating]
-        Data to be morphed to the full cortical mesh. Should be an 1D array with length
-        equal to the number of **used** vertices in the cortical source space
+    cort_data : ndarray of float, shape (n_used,)
+        Data to be morphed to the full cortical mesh. The length must
+        equal the number of **used** vertices in the cortical source space
         (i.e., `fwd_cortex_src['nuse']`).
     fwd_cortex_src : dict
         Cortical source space dictionary used in the forward solution,
         typically `fwd['src'][0]`.
-    smooth : int, "nearest" or None
+    smooth : int | "nearest" | None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
         that many iterative averaging steps (0 leaves data at sparse vertices only).
-        If ``None``, automatically iterates until all unmapped vertices are filled
-        (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
+        If ``None`` (default), automatically iterates until all unmapped vertices are
+        filled (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
         closest source vertex without blending.
 
     Returns
     -------
-    NDArray[np.floating]
-        1D array of morphed cortical data on the full cortical mesh.
+    ndarray of float, shape (n_vertices,)
+        Morphed cortical data on the full cortical mesh.
     """
     if cort_data.shape != (len(fwd_cortex_src["vertno"]),):
         raise ValueError(
@@ -237,34 +237,35 @@ def plot_normal(
     ----------
     src_cerebellum : dict
         Cerebellar source space dictionary, typically `fwd['src'][1]`.
-    cerebellum_data : NDArray[np.floating]
-        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the dense triangulation of
-        the cerebellar source space, i.e. `len(src_cerebellum['rr'])`.
-    src_cortex : dict | None, optional
+    cerebellum_data : ndarray of float, shape (n_vertices,)
+        Data to be visualized on the cerebellum, where n_vertices is the number of
+        vertices in the dense triangulation of the cerebellar source space, i.e.
+        `len(src_cerebellum['rr'])`.
+    src_cortex : dict | None
         Cortical source space dictionary, typically `fwd['src'][0]`.
         If None (default), only the cerebellum will be plotted.
-    cortex_data : NDArray[np.floating] | None, optional
-        Data to be visualized on the cortex. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the dense triangulation of the
-        cortical source space, i.e. `len(src_cortex['rr'])`. If None (default), will
-        plot zeros for the cortex when `src_cortex` is provided.
-    cmap : str | None, optional
-        Color map to pass for PyVista plotter.
-    clim : tuple[float, float] | None, optional
+    cortex_data : ndarray of float, shape (n_vertices,) | None
+        Data to be visualized on the cortex, where n_vertices is the number of
+        vertices in the dense triangulation of the cortical source space, i.e.
+        `len(src_cortex['rr'])`. If None (default), will plot zeros for the cortex when
+        `src_cortex` is provided.
+    cmap : str | None
+        Color map to pass for PyVista plotter. If None (default), the PyVista default
+        color map is used.
+    clim : tuple of float | None
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the data across both cerebellum and cortex.
-    show : bool, optional
+    show : bool
         Whether to show the plot immediately, by default True.
-    notebook_inline : bool, optional
+    notebook_inline : bool
         Whether to render the plot inline in a Jupyter notebook, by default False.
-    offscreen : bool | None, optional
+    offscreen : bool | None
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
-    screenshot_fname : str | None, optional
+    screenshot_fname : str | None
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
-    backend : {"pyvista", "pyvistaqt"}, optional
+    backend : {"pyvista", "pyvistaqt"}
         Plotting backend, by default "pyvista". "pyvista" uses a plain
         ``pyvista.Plotter`` whose ``show()`` blocks until the window is closed.
         "pyvistaqt" uses a non-blocking ``pyvistaqt.BackgroundPlotter`` that opens a
@@ -497,10 +498,9 @@ def _make_pyvista_mesh(src_space: dict, data: NDArray[np.floating]) -> "pv.PolyD
     src_space : dict
         The source space dictionary, typically `fwd['src'][0]` for cortex or
         `fwd['src'][1]` for cerebellum.
-    data : NDArray[np.floating]
-        Data to be visualized on the source space surface. Should have shape
-        (n_vertices,), where n_vertices is the number of vertices in the source space,
-        i.e. `len(src_space['rr'])`.
+    data : ndarray of float, shape (n_vertices,)
+        Data to be visualized on the source space surface, where n_vertices is the
+        number of vertices in the source space, i.e. `len(src_space['rr'])`.
     """
     pv = _import_pyvista()
     verts = src_space["rr"]
@@ -532,28 +532,28 @@ def plot_inflated(
     ----------
     cerebellum_geo : dict
         Cerebellum geometry object.
-    cerebellum_data : NDArray[np.floating]
-        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the specified subsampling of
-        the cerebellar surface mesh.
+    cerebellum_data : ndarray of float, shape (n_vertices,)
+        Data to be visualized on the cerebellum, where n_vertices is the number of
+        vertices in the specified subsampling of the cerebellar surface mesh.
     subsampling : {"dense", "sparse"}
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
-    cmap : str | None, optional
-        Color map to pass for PyVista plotter.
-    clim : tuple[float, float] | None, optional
+    cmap : str | None
+        Color map to pass for PyVista plotter. If None (default), the PyVista default
+        color map is used.
+    clim : tuple of float | None
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
-    show : bool, optional
+    show : bool
         Whether to show the plot immediately, by default True.
-    notebook_inline : bool, optional
+    notebook_inline : bool
         Whether to render the plot inline in a Jupyter notebook, by default False.
-    offscreen : bool | None, optional
+    offscreen : bool | None
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
-    screenshot_fname : str | None, optional
+    screenshot_fname : str | None
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
-    backend : {"pyvista", "pyvistaqt"}, optional
+    backend : {"pyvista", "pyvistaqt"}
         Plotting backend, by default "pyvista". See :func:`plot_normal` for details.
 
     Returns
@@ -624,24 +624,23 @@ def plot_flatmap(
     ----------
     cerebellum_geo : dict
         Cerebellum geometry object.
-    cerebellum_data : NDArray[np.floating]
-        Data to be visualized on the cerebellum. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices in the specified subsampling of
-        the cerebellar surface mesh.
+    cerebellum_data : ndarray of float, shape (n_vertices,)
+        Data to be visualized on the cerebellum, where n_vertices is the number of
+        vertices in the specified subsampling of the cerebellar surface mesh.
     subsampling : {"dense", "sparse"}
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
-    cmap : str | None, optional
+    cmap : str | None
         Color map to pass for Matplotlib. If None (default), will use "bwr" if the data
         crosses zero, and "Reds" otherwise.
-    clim : tuple[float, float] | None, optional
+    clim : tuple of float | None
         Color bar limits, by default None, which means that the clim will be
         set to the min and max of the `cerebellum_data`.
-    show : bool, optional
+    show : bool
         Whether to show the plot immediately, by default True.
-    offscreen : bool | None, optional
+    offscreen : bool | None
         Whether to render the plot offscreen, by default None, which means the behavior
         will be determined by DISPLAY environment variable and OS type.
-    screenshot_fname : str | None, optional
+    screenshot_fname : str | None
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
 
@@ -801,7 +800,7 @@ def _build_flatmap_region_triangulation(
 
     Returns
     -------
-    tuple[mtri.Triangulation, NDArray[np.intp]]
+    tuple of mtri.Triangulation and ndarray of int
         A tuple containing the triangulation for the specified region and the
         indices of the vertices belonging to that region within the subsampled mesh.
     """
@@ -859,10 +858,9 @@ def morph_cerebellum_data(
 
     Parameters
     ----------
-    data : NDArray[np.floating]
-        Data to be plotted on the cerebellum. Should have shape (n_vertices,),
-        where n_vertices is the number of vertices that are used in the
-        forward solution for the cerebellar source space,
+    data : ndarray of float, shape (n_used,)
+        Data to be plotted on the cerebellum, where n_used is the number of vertices
+        that are used in the forward solution for the cerebellar source space,
         i.e. `len(fwd_cerebellum_src['vertno'])`.
     fwd_cerebellum_src : dict
         The cerebellar source space used in the computation of the forward solution,
@@ -873,15 +871,15 @@ def morph_cerebellum_data(
         Subsampling of the cerebellar surface mesh to which the data should be
         interpolated. Must match the subsampling used for calculating
         the forward solution.
-    smoothing_steps : int, optional
+    smoothing_steps : int
         Number of smoothing iterations to apply to the interpolated data. Each
         iteration averages the value at each vertex with its neighbors. By default 0,
         which means no smoothing is applied.
 
     Returns
     -------
-    NDArray[np.floating]
-        1D array of data values across the full cerebellar surface mesh corresponding
+    ndarray of float, shape (n_vertices,)
+        Data values across the full cerebellar surface mesh corresponding
         to the specified subsampling.
     """
     # Indices of the vertices in the cerebellar source space that are used in the
@@ -942,21 +940,21 @@ def plot_sagittal(
     ----------
     vol_fname : path-like
         Path to the MRI volume file (e.g. orig.mgz).
-    sag_ind : list[int] | None, optional
+    sag_ind : list of int | None
         List of sagittal slice indices to plot. If None, will plot 6 evenly spaced
-        slices across the volume. If `show_only_midline` is True, this parameter is
-        ignored.
-    mesh_fname : path-like | None, optional
+        slices across the volume (default). If `show_only_midline` is True, this
+        parameter is ignored.
+    mesh_fname : path-like | None
         Path to the surface mesh file. If None (default), no surface mesh will be
         overlaid on the MRI slices.
-    show_only_midline : bool, optional
+    show_only_midline : bool
         If True, will only plot the midline sagittal slice of the volume.
         Default is False.
-    cmap : str, optional
+    cmap : str
         Colormap to use for displaying the MRI slices. Default is "gray_r".
-    linewidth : float, optional
+    linewidth : float
         Line width for the surface mesh overlay. Default is 1.0.
-    title : str, optional
+    title : str
         Title for the figure. Default is "Subject MRI sagittal slices".
 
     Returns

@@ -19,7 +19,7 @@ version = release
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
+    "numpydoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
@@ -41,27 +41,45 @@ autodoc_default_options = {
     "show-inheritance": True,
     "inherited-members": True,
 }
-autodoc_typehints = "description"
+# Types are documented (in numpydoc form) in the docstrings themselves, so do not also
+# render the annotations into the signatures. This matches MNE-Python.
+autodoc_typehints = "none"
 
-# -- Napoleon (NumPy docstrings only) ----------------------------------------
+# -- numpydoc (NumPy-style docstrings) ----------------------------------------
 
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = True
-napoleon_preprocess_types = True
-napoleon_type_aliases = {
+numpydoc_show_class_members = False
+numpydoc_xref_param_type = True  # link the types in "name : type" lines
+numpydoc_xref_aliases = {
+    "ndarray": "numpy.ndarray",
     "NDArray": "numpy.typing.NDArray",
-    "npt.NDArray": "numpy.typing.NDArray",
-    "np.ndarray": "numpy.ndarray",
-    "np.float64": "numpy.float64",
-    "np.floating": "numpy.floating",
-    "np.intp": "numpy.intp",
-    "np.uint8": "numpy.uint8",
+    "DTypeLike": "numpy.typing.DTypeLike",
     "Nifti1Image": "nibabel.nifti1.Nifti1Image",
     "SourceSpaces": "mne.SourceSpaces",
-    "mne.SourceSpaces": "mne.SourceSpaces",
+    "SourceEstimate": "mne.SourceEstimate",
+    "MixedSourceEstimate": "mne.MixedSourceEstimate",
+    "Label": "mne.Label",
     "Figure": "matplotlib.figure.Figure",
-    "Axes": "matplotlib.axes.Axes",
+    "Triangulation": "matplotlib.tri.Triangulation",
+}
+# Words in the type lines that are prose, not types.
+numpydoc_xref_ignore = {
+    "optional",
+    "or",
+    "of",
+    "shape",
+    "path-like",
+    "n_x",
+    "n_y",
+    "n_z",
+    "m_x",
+    "m_y",
+    "m_z",
+    "n_vertices",
+    "n_faces",
+    "n_points",
+    "n_known",
+    "n_used",
+    "...",
 }
 
 # -- Intersphinx -------------------------------------------------------------
