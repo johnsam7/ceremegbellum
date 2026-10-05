@@ -31,12 +31,15 @@ import math
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
+import mne
 import nibabel as nib
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from mne.morph import _hemi_morph
 from numpy.typing import NDArray
+
+from .source_space import _join_source_spaces
 
 # This block is ONLY read by linters and type checkers (like mypy, Pylance)
 # At runtime, it evaluates to False, keeping PyVista optional.
@@ -925,6 +928,97 @@ def morph_cerebellum_data(
     return data_interpolated
 
 
+def get_plot_data_from_stc(
+    stc: mne.SourceEstimate | mne.MixedSourceEstimate,
+    fwd_src: mne.SourceSpaces,
+    time_point: float,
+    cerebellum_geo: dict,
+    cerebellum_subsampling: Literal["sparse", "dense"],
+    cerebellum_idx: int = 1,
+    cortex_smooth: int | None | Literal["nearest"] = None,
+    cerebellum_smooth: int = 0,
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Get the data of one time point for plotting from a SourceEstimate object.
+
+    This works as a bridge between the `SourceEstimate`object and the visualization
+    functions in this package. Supports both legacy CMB source spaces where cerebellum
+    source space is the second element in the `SourceSpaces` list, and mixed source
+    spaces where cerebellum source space is the third element in the `SourceSpaces`
+    list. This function will be hopefully removed in the future when MNE-Python
+    handles the plotting natively.
+
+    Parameters
+    ----------
+    stc : mne.SourceEstimate | mne.MixedSourceEstimate
+        The source estimate object containing the data to plot.
+    fwd_src : mne.SourceSpaces
+        The source spaces used in the forward model.
+    time_point : float
+        The time point to extract data for plotting.
+    cerebellum_geo : dict
+        The cerebellum geometry data loaded from the cerebellum_geo file.
+    cerebellum_subsampling : "sparse" | "dense"
+        The subsampling used for the cerebellum source space.
+    cerebellum_idx : int
+        The index of the cerebellum source space in the `SourceSpaces` list.
+        Allowed values are 1 (legacy CMB source space) or 2 (mixed source space).
+        Defaults to 1.
+    cortex_smooth : int | "nearest" | None
+        Passed for `mne.morph._hemi_morph`.
+        Controls spatial interpolation smoothing. If an integer, applies exactly
+        that many iterative averaging steps (0 leaves data at sparse vertices only).
+        If ``None`` (default), automatically iterates until all unmapped vertices are
+        filled (capped at 100 steps). If ``"nearest"``, maps every vertex to the single
+        closest source vertex without blending.
+    cerebellum_smooth : int
+        Number of smoothing iterations to apply to the interpolated data. Each
+        iteration averages the value at each vertex with its neighbors. By default 0,
+        which means no smoothing is applied.
+
+    Returns
+    -------
+    cortex_data : ndarray of float, shape (n_vertices,)
+        Data for each vertex in the full cortical mesh at the specified time point.
+    cerebellum_data : ndarray of float, shape (n_vertices,)
+        Data for each vertex in the subsampled cerebellar mesh at the specified time
+        point.
+    """
+    if cerebellum_idx not in [1, 2]:
+        raise ValueError(f"Invalid cerebellum index: {cerebellum_idx}. Must be 1 or 2.")
+    if cerebellum_idx == 1:
+        n_cortex_verts = fwd_src[0]["nuse"]
+        fwd_cortex_src = fwd_src[0]
+        fwd_cerebellum_src = fwd_src[1]
+    else:
+        n_cortex_verts = fwd_src[0]["nuse"] + fwd_src[1]["nuse"]
+        # Concatenate the two cortical source spaces to be compatible
+        # with the visualization functions.
+        fwd_cortex_src = _join_source_spaces(fwd_src[:2])
+        fwd_cerebellum_src = fwd_src[2]
+    assert isinstance(fwd_cortex_src, dict)
+    assert isinstance(fwd_cerebellum_src, dict)
+
+    stc_data = stc.data
+    assert isinstance(stc_data, np.ndarray)
+    time_idx = stc.time_as_index(time_point)[0]
+
+    cortex_data = stc_data[:n_cortex_verts, time_idx]
+    cerebellum_data = stc_data[n_cortex_verts:, time_idx]
+
+    cortex_data = morph_cortex_data(
+        cort_data=cortex_data, fwd_cortex_src=fwd_cortex_src, smooth=cortex_smooth
+    )
+    cerebellum_data = morph_cerebellum_data(
+        data=cerebellum_data,
+        fwd_cerebellum_src=fwd_cerebellum_src,
+        cerebellum_geo=cerebellum_geo,
+        subsampling=cerebellum_subsampling,
+        smoothing_steps=cerebellum_smooth,
+    )
+
+    return cortex_data, cerebellum_data
+
+
 def plot_sagittal(
     vol_fname: os.PathLike[str] | str,
     sag_ind: list[int] | None = None,
@@ -962,7 +1056,6 @@ def plot_sagittal(
     Figure
         The Matplotlib figure object.
     """
-    import mne
     from nibabel.affines import apply_affine
 
     mri_vol = nib.load(vol_fname)
