@@ -27,7 +27,7 @@ from nibabel import Nifti1Image
 from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
 
-from .helpers import (
+from ._helpers import (
     affine_transform,
     change_labels,
     convert_to_ants_image,

@@ -21,7 +21,7 @@ import numpy as np
 from nibabel import Nifti1Image, affines
 from numpy.typing import NDArray
 
-from .helpers import (
+from ._helpers import (
     change_labels,
     convert_to_ants_image,
     load_image_volume,
