@@ -82,7 +82,7 @@ def interpolate_cerebellum_data(
     data_indices : ndarray of int, shape (n_known,)
         Indices of the known vertices in the specified subsampling of the cerebellar
         surface mesh.
-    subsampling : {"dense", "sparse"}
+    subsampling : "dense" | "sparse"
         Subsampling of the cerebellar surface mesh corresponding to `data_indices`.
     cerebellum_geo : dict
         Cerebellum geometry object.
@@ -265,7 +265,7 @@ def plot_normal(
     screenshot_fname : str | None
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
-    backend : {"pyvista", "pyvistaqt"}
+    backend : "pyvista" | "pyvistaqt"
         Plotting backend, by default "pyvista". "pyvista" uses a plain
         ``pyvista.Plotter`` whose ``show()`` blocks until the window is closed.
         "pyvistaqt" uses a non-blocking ``pyvistaqt.BackgroundPlotter`` that opens a
@@ -360,7 +360,7 @@ def _make_plotter(
 
     Parameters
     ----------
-    backend : {"pyvista", "pyvistaqt"}
+    backend : "pyvista" | "pyvistaqt"
         Plotting backend.
     offscreen : bool | None
         Whether to render offscreen. If None, determined from the environment for the
@@ -535,7 +535,7 @@ def plot_inflated(
     cerebellum_data : ndarray of float, shape (n_vertices,)
         Data to be visualized on the cerebellum, where n_vertices is the number of
         vertices in the specified subsampling of the cerebellar surface mesh.
-    subsampling : {"dense", "sparse"}
+    subsampling : "dense" | "sparse"
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
     cmap : str | None
         Color map to pass for PyVista plotter. If None (default), the PyVista default
@@ -553,7 +553,7 @@ def plot_inflated(
     screenshot_fname : str | None
         Filename to save the screenshot, by default None, which means no screenshot is
         saved.
-    backend : {"pyvista", "pyvistaqt"}
+    backend : "pyvista" | "pyvistaqt"
         Plotting backend, by default "pyvista". See :func:`plot_normal` for details.
 
     Returns
@@ -627,7 +627,7 @@ def plot_flatmap(
     cerebellum_data : ndarray of float, shape (n_vertices,)
         Data to be visualized on the cerebellum, where n_vertices is the number of
         vertices in the specified subsampling of the cerebellar surface mesh.
-    subsampling : {"dense", "sparse"}
+    subsampling : "dense" | "sparse"
         Subsampling of the cerebellar surface mesh corresponding to `cerebellum_data`.
     cmap : str | None
         Color map to pass for Matplotlib. If None (default), will use "bwr" if the data
@@ -795,7 +795,7 @@ def _build_flatmap_region_triangulation(
         The cerebellum geometry object.
     region_key : str
         The key for the region of interest.
-    subsampling : {"dense", "sparse"}
+    subsampling : "dense" | "sparse"
         The chosen subsampling of the cerebellar surface mesh.
 
     Returns
@@ -867,7 +867,7 @@ def morph_cerebellum_data(
         typically `fwd['src'][1]`.
     cerebellum_geo : dict
         Cerebellum geometry object.
-    subsampling : {"dense", "sparse"}
+    subsampling : "dense" | "sparse"
         Subsampling of the cerebellar surface mesh to which the data should be
         interpolated. Must match the subsampling used for calculating
         the forward solution.

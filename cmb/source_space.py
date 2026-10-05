@@ -70,7 +70,7 @@ def create_cerebellar_surface(
     cmb_dir : path-like | None
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
-    cerebellum_subsampling : {"full", "sparse", "dense"}
+    cerebellum_subsampling : "full" | "sparse" | "dense"
         The spacing to use for the cerebellum. By default "sparse".
     save_mesh : bool | path-like
         If True (default), saves the cerebellar mesh to
@@ -172,7 +172,7 @@ def _create_cerebellar_surface(
         The subject's cerebellar segmentation as a Nifti1Image.
     subjects_dir : Path
         The path to the directory containing the FreeSurfer subjects reconstructions.
-    cerebellum_subsampling : {"full", "sparse", "dense"}
+    cerebellum_subsampling : "full" | "sparse" | "dense"
         The spacing to use for the cerebellum.
     cerebellum_geo_fname : Path
         Path to the cerebellum geometry file (pickle) containing the high-resolution
@@ -747,7 +747,7 @@ def setup_full_source_space(
     ----------
     subject : str
         The FreeSurfer subject name.
-    cerebellum_subsampling : {"full", "sparse", "dense"}
+    cerebellum_subsampling : "full" | "sparse" | "dense"
         The spacing used to create the cerebellar mesh.
     subjects_dir : path-like | None
         The path to the directory containing the FreeSurfer subjects reconstructions.

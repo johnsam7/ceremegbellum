@@ -161,7 +161,7 @@ def get_plot_data_from_stc(
         The time point to extract data for plotting.
     cerebellum_geo : dict
         The cerebellum geometry data loaded from the cerebellum_geo file.
-    cerebellum_subsampling : {"sparse", "dense"}
+    cerebellum_subsampling : "sparse" | "dense"
         The subsampling used for the cerebellum source space.
     cerebellum_idx : int
         The index of the cerebellum source space in the `SourceSpaces` list.
@@ -237,7 +237,7 @@ def get_subsampled_cerebellum_labels(
     ----------
     cb_data : dict
         The cerebellum geometry data loaded from the cerebellum_geo file.
-    subsampling : {"sparse", "dense"}
+    subsampling : "sparse" | "dense"
         The subsampling used for the cerebellum source space. Defaults to "sparse".
     set_hemi_cerebellum : bool
         If True (default), sets the `hemi` attribute of each label to "cerebellum".
