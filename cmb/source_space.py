@@ -666,10 +666,10 @@ def calculate_normals(
         Indices of the vertices whose normal is still NaN after smoothing.
     """
     A = []
-    area_list = []
+    area_list: list[float] = []
     area = 0.0
     count = 0
-    nan_vertices = []
+    nan_vertices: list[int] = []
     for x in range(len(rr)):
         A.append([])
     solid_angle = 0
@@ -677,7 +677,7 @@ def calculate_normals(
         v1 = rr[row[1], :] - rr[row[0], :]
         v2 = rr[row[2], :] - rr[row[0], :]
         nml = np.cross(v1, v2)
-        area = area + np.linalg.norm(nml) / 2.0
+        area = area + float(np.linalg.norm(nml)) / 2.0
         area_list.append(area)
         nn_fc = nml / np.linalg.norm(nml)
         A[row[0]].append(nn_fc)
