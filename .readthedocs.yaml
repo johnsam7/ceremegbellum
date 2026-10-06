@@ -7,7 +7,9 @@ build:
   jobs:
     pre_install:
       # CPU-only PyTorch: the default CUDA wheels are huge and not needed to build docs.
-      - pip install torch --index-url https://download.pytorch.org/whl/cpu
+      # Use --extra-index-url (not --index-url) so that the other dependencies can still
+      # be resolved from PyPI; the PyTorch CPU index does not carry all of them.
+      - pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
 
 python:
   install:
