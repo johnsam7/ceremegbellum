@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,8 @@ name = "cmb"
 dynamic = ["version"]
 description = "Cere-MEG-Bellum (CMB) - Cerebellum segmentation and forward solution calculation"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [
     {name = "John Gustaf Wilhelm Samuelsson", email = "johnsam@mit.edu"},
@@ -18,7 +19,6 @@ keywords = ["neuroscience", "neuroimaging", "MEG", "cerebellum", "brain"]
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -66,7 +66,8 @@ Tracker = "https://github.com/johnsam7/ceremegbellum/issues/"
 version = {attr = "cmb._version.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["cmb*"]
+# package lives in cmb/ directory, also include any possible submodules
+include = ["cmb", "cmb.*"]
 
 # Ruff config
 [tool.ruff]
