@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cmb"
 dynamic = ["version"]
-description = "Cere-MEG-Bellum (CMB) - Cerebellum segmentation and forward solution calculation"
+description = "Cere-MEG-Bellum (CMB) - Cerebellum segmentation and MNE-Python compatible source spaces for MEG/EEG"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
