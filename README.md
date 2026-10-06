@@ -34,14 +34,7 @@ The full documentation, including the API reference, is available at
 
 ## Installation
 
-1. Clone this repository and navigate to project root.
-
-   ```bash
-   git clone https://github.com/johnsam7/ceremegbellum.git
-   cd ceremegbellum
-   ```
-
-2. Create a new virtual environment for Cere-MEG-Bellum and activate it.
+1. Create a new virtual environment for Cere-MEG-Bellum and activate it.
    You can do this, for example, with [uv](https://docs.astral.sh/uv/) (recommended!),
    [venv](https://docs.python.org/3/library/venv.html) or [conda](https://github.com/conda/conda).
    `uv` and `conda` are good options because they can also manage the Python version without
@@ -59,7 +52,7 @@ The full documentation, including the API reference, is available at
    source cmb-env/bin/activate
    ```
 
-3. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
+2. Install the correct PyTorch version for your hardware. Look up the exact installation command on the
    [PyTorch website](https://pytorch.org/get-started/locally/). Here is an **example** command for
    NVIDIA GPUs with CUDA 12.6 support.
 
@@ -72,18 +65,18 @@ The full documentation, including the API reference, is available at
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
    ```
 
-4. Install Cere-MEG-Bellum with rest of the dependencies.
+3. Install Cere-MEG-Bellum and rest of the dependencies from PyPI.
 
    ```bash
-   pip install ".[viz]"
+   pip install "cmb[viz]"
 
    # Or use uv for faster installation!
-   uv pip install ".[viz]"
+   uv pip install "cmb[viz]"
    ```
 
-   This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install .` instead.
+   This installs the core package plus [PyVista](https://docs.pyvista.org/) for 3D visualization. If you don't need 3D views (normal/inflated) and only want flatmaps, you can use `pip install cmb` instead.
 
-   To use the non-blocking Qt window (`backend="pyvistaqt"` in `plot_normal` / `plot_inflated`), install `pip install ".[viz-qt]"`, which adds [pyvistaqt](https://qtdocs.pyvista.org/) and the PySide6 Qt binding. If you prefer another Qt binding (e.g. PyQt6), install `pip install ".[viz]" pyvistaqt pyqt6` instead.
+   To use the non-blocking Qt window (`backend="pyvistaqt"` in `plot_normal` / `plot_inflated`), install `pip install "cmb[viz-qt]"`, which adds [pyvistaqt](https://qtdocs.pyvista.org/) and the PySide6 Qt binding. If you prefer another Qt binding (e.g. PyQt6), install `pip install "cmb[viz]" pyvistaqt pyqt6` instead.
 
 ## Quick start
 
@@ -95,17 +88,18 @@ See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blo
 
 ### Installation for development
 
-Follow the installation instructions above, but when installing Cere-MEG-Bellum, run:
+Follow steps 1 and 2 from regular installation, then install the package from source with all optional dependencies and developer tools:
 
 ```bash
-pip install -e ".[dev,viz-qt]"
+git clone https://github.com/johnsam7/ceremegbellum.git
+cd ceremegbellum
 
+pip install -e ".[dev,viz-qt]"
 # or
 uv pip install -e ".[dev,viz-qt]"
 ```
 
-This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies:
-the 3D visualization stack (PyVista, pyvistaqt and PySide6) and the developer tools.
+`-e` flag stands for editable mode (changes to source code will be reflected immediately).
 
 ### Running tests
 
