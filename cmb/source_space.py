@@ -632,7 +632,7 @@ def _get_registration(
     return reg
 
 
-def calculate_normals(
+def _calculate_normals(
     rr: NDArray[np.floating],
     tris: NDArray[np.integer],
     solid_angle_calc: bool = False,
@@ -804,7 +804,7 @@ def setup_full_source_space(
 
     # Calculate normals.
     logger.info("Calculating normals on deformed surface...")
-    (nn, _, _, nan_vertices) = calculate_normals(cerb_rr, cerb_tris, print_info=False)
+    (nn, _, _, nan_vertices) = _calculate_normals(cerb_rr, cerb_tris, print_info=False)
     logger.info("Done.")
 
     # Make a dictionary to hold the cerebellar source space data.
