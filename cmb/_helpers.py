@@ -33,17 +33,16 @@ __all__ = [
 ]
 
 
-def convert_to_ants_image(vol: np.ndarray, normalize: bool):
-    """
-    Convert a 3D numpy array to an ANTs image.
+def convert_to_ants_image(vol: NDArray, normalize: bool):
+    """Convert a 3D numpy array to an ANTs image.
 
     Note that the created ANTs image will not have any spatial information
     (origin, spacing, direction) associated with it.
 
     Parameters
     ----------
-    vol : np.ndarray
-        3D numpy array to be converted.
+    vol : ndarray, shape (n_x, n_y, n_z)
+        3D array to be converted.
     normalize : bool
         If True, normalize the input volume to the range [0, 1]
         by dividing by its maximum value before conversion.
@@ -78,9 +77,9 @@ def load_image_volume(
 
     Returns
     -------
-    img_numpy : NDArray[np.float64]
-        3D NumPy array containing the image data.
-    affine : NDArray[np.float64] | None
+    img_numpy : ndarray of float, shape (n_x, n_y, n_z)
+        3D array containing the image data.
+    affine : ndarray of float, shape (4, 4) | None
         The affine transformation matrix associated with the image data.
         Will be None if the saved file does not contain an affine matrix.
     """
@@ -120,9 +119,9 @@ def load_label_map(
 
     Returns
     -------
-    label_map : NDArray[Any]
-        3D NumPy array containing the label map data.
-    affine : NDArray[np.float64] | None
+    label_map : ndarray, shape (n_x, n_y, n_z)
+        3D array containing the label map data.
+    affine : ndarray of float, shape (4, 4) | None
         The affine transformation matrix associated with the label map data.
         Will be None if the saved file does not contain an affine matrix.
     """
@@ -160,18 +159,17 @@ def load_label_map(
 
 
 def save_nifti_from_3darray(
-    vol: np.ndarray, fname: str, affine: np.ndarray | None
+    vol: NDArray, fname: str, affine: NDArray[np.float64] | None
 ) -> Nifti1Image:
-    """
-    Save a 3D numpy array as a NIfTI file.
+    """Save a 3D numpy array as a NIfTI file.
 
     Parameters
     ----------
-    vol : np.ndarray
-        3D numpy array to be saved as a NIfTI file.
+    vol : ndarray, shape (n_x, n_y, n_z)
+        3D array to be saved as a NIfTI file.
     fname : str
         Path to the output NIfTI file.
-    affine : np.ndarray | None
+    affine : ndarray of float, shape (4, 4) | None
         The affine transformation matrix for the NIfTI file.
 
     Returns
@@ -192,13 +190,13 @@ def set_nnunet_paths(
 
     Parameters
     ----------
-    raw_data_base_dir : str, optional
+    raw_data_base_dir : str | None
         Path to nnUNet raw data base directory. If None (default), skips setting this
         environment variable.
-    preprocessed_dir : str, optional
+    preprocessed_dir : str | None
         Path to nnUNet preprocessed directory. If None (default), skips setting this
         environment variable.
-    results_folder : str, optional
+    results_folder : str | None
         Path to nnUNet results folder. If None (default), skips setting this
         environment variable.
     """
@@ -211,8 +209,8 @@ def set_nnunet_paths(
 
 
 def change_labels(
-    vol: np.ndarray, old_labels: list[int], new_labels: list[int]
-) -> np.ndarray:
+    vol: NDArray, old_labels: list[int], new_labels: list[int]
+) -> NDArray:
     """Replace specific labels in segmentation volume with new labels.
 
     Does not modify the original volume; returns a new volume with the specified labels
@@ -220,18 +218,18 @@ def change_labels(
 
     Parameters
     ----------
-    vol : np.ndarray
-        3D numpy array mapping each voxel to a label.
-    old_labels : list[int]
+    vol : ndarray, shape (n_x, n_y, n_z)
+        3D array mapping each voxel to a label.
+    old_labels : list of int
         List of labels to be replaced.
-    new_labels : list[int]
+    new_labels : list of int
         List of new labels to replace the old labels. The order of these new labels
         corresponds to the order of the old labels.
 
     Returns
     -------
-    np.ndarray
-        3D numpy array with the specified labels replaced.
+    ndarray, shape (n_x, n_y, n_z)
+        3D array with the specified labels replaced.
     """
     if len(old_labels) != len(new_labels):
         raise ValueError("old_labels and new_labels must have the same length.")
@@ -337,7 +335,7 @@ def find_connected_regions(vol, print_progress=True):
 
 
 def _assert_safe_label_map_cast(
-    fname: str, dtype: np.dtype, label_map: np.ndarray
+    fname: str, dtype: np.dtype, label_map: NDArray
 ) -> None:
     """Raise an error if casting to the specified integer type would cause overflow."""
     if np.issubdtype(dtype, np.integer):

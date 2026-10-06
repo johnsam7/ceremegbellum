@@ -27,7 +27,7 @@ from nibabel import Nifti1Image
 from nibabel.freesurfer.io import write_geometry
 from numpy.typing import NDArray
 
-from .helpers import (
+from ._helpers import (
     affine_transform,
     change_labels,
     convert_to_ants_image,
@@ -50,7 +50,7 @@ def create_cerebellar_surface(
     save_mesh: bool | os.PathLike[str] | str = True,
     overwrite: bool = False,
     registration_caching: bool = False,
-) -> tuple[NDArray, NDArray]:
+) -> tuple[NDArray[np.floating], NDArray[np.integer]]:
     """Create a cerebellar mesh in the native subject space.
 
     Runs the reconstruction step of ARCUS, fitting a high-resolution cerebellar atlas to
@@ -64,33 +64,33 @@ def create_cerebellar_surface(
     segmentation : Nifti1Image
         The subject's cerebellar segmentation as a Nifti1Image. This can be obtained
         using the `segment_cerebellum` function.
-    subjects_dir : path-like | None, optional
+    subjects_dir : path-like | None
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
-    cmb_dir: path-like | None, optional
+    cmb_dir : path-like | None
         Path to cerebellum data folder. If None, defaults to the package
         installation directory.
-    cerebellum_subsampling : 'full' | 'sparse' | 'dense'
-        The spacing to use for the cerebellum.
-    save_mesh : bool | path-like, optional
+    cerebellum_subsampling : "full" | "sparse" | "dense"
+        The spacing to use for the cerebellum. By default "sparse".
+    save_mesh : bool | path-like
         If True (default), saves the cerebellar mesh to
         ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``.
         If a path is provided, saves the mesh to the specified path.
         If False, does not save the mesh to disk.
-    overwrite : bool, optional
+    overwrite : bool
         If True, will overwrite any existing mesh file at the save location. If False
         (default), raises a `FileExistsError` if the mesh file already exists.
-    registration_caching : bool, optional
+    registration_caching : bool
         If True, it will attempt to read cached registration transforms from disk, and
         if not found, will save the transforms to disk for future use. Defaults to
         False, which means that registration will be computed without caching.
 
     Returns
     -------
-    rr_ras : NDArray
-        n_vertices x 3 array of vertex positions in FreeSurfer surface RAS coordinates.
-    tris : NDArray
-        n_faces x 3 array of triangle vertex indices defining the mesh faces.
+    rr_ras : ndarray of float, shape (n_vertices, 3)
+        Vertex positions in FreeSurfer surface RAS coordinates.
+    tris : ndarray of int, shape (n_faces, 3)
+        Triangle vertex indices defining the mesh faces.
     """
     # Use MNE-Python to fall back to SUBJECTS_DIR environment variable if needed.
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
@@ -157,7 +157,7 @@ def _create_cerebellar_surface(
     cerebellum_subsampling: Literal["full", "sparse", "dense"],
     cerebellum_geo_fname: Path,
     registration_cache_dir: Path | None,
-) -> tuple[NDArray, NDArray]:
+) -> tuple[NDArray[np.floating], NDArray[np.integer]]:
     """Create a cerebellar mesh in the native subject space.
 
     Runs the reconstruction step of ARCUS, fitting a high-resolution cerebellar atlas to
@@ -172,7 +172,7 @@ def _create_cerebellar_surface(
         The subject's cerebellar segmentation as a Nifti1Image.
     subjects_dir : Path
         The path to the directory containing the FreeSurfer subjects reconstructions.
-    cerebellum_subsampling : 'full' | 'sparse' | 'dense'
+    cerebellum_subsampling : "full" | "sparse" | "dense"
         The spacing to use for the cerebellum.
     cerebellum_geo_fname : Path
         Path to the cerebellum geometry file (pickle) containing the high-resolution
@@ -183,10 +183,10 @@ def _create_cerebellar_surface(
 
     Returns
     -------
-    rr_ras : NDArray
-        n_vertices x 3 array of vertex positions in FreeSurfer surface RAS coordinates.
-    tris : NDArray
-        n_faces x 3 array of triangle vertex indices defining the mesh faces.
+    rr_ras : ndarray of float, shape (n_vertices, 3)
+        Vertex positions in FreeSurfer surface RAS coordinates.
+    tris : ndarray of int, shape (n_faces, 3)
+        Triangle vertex indices defining the mesh faces.
     """
     import ants
     from ants.registration import (
@@ -395,18 +395,18 @@ def _align_mesh_to_volume(
 
     Parameters
     ----------
-    rr : NDArray
-        The N x 3 array of mesh vertices in the source voxel space.
-    scaling_factor : NDArray
-        The scaling factors for the X, Y, and Z axes (3 elements).
-    target_coords : NDArray
+    rr : ndarray, shape (n_vertices, 3)
+        Mesh vertices in the source voxel space.
+    scaling_factor : ndarray, shape (3,)
+        The scaling factors for the X, Y, and Z axes.
+    target_coords : ndarray, shape (n_points, 3)
         The coordinates of the target volume (e.g., high-intensity voxels) used
         to calculate the target bounding box.
 
     Returns
     -------
-    NDArray
-        The scaled and spatially shifted N x 3 mesh vertices.
+    ndarray, shape (n_vertices, 3)
+        The scaled and spatially shifted mesh vertices.
     """
     rr_scaled = rr * scaling_factor
 
@@ -438,17 +438,17 @@ def _scale_labels_majority_vote(
 
     Parameters
     ----------
-    hr_segm : NDArray
-        High-resolution segmentation volume as a 3D NumPy array.
-    subj_segm : NDArray
-        Subject's segmentation volume as a 3D NumPy array.
-    scaling_factor : NDArray
-        Scaling factor for each axis as a 1D NumPy array of length 3.
+    hr_segm : ndarray, shape (n_x, n_y, n_z)
+        High-resolution segmentation volume.
+    subj_segm : ndarray, shape (n_x, n_y, n_z)
+        Subject's segmentation volume.
+    scaling_factor : ndarray, shape (3,)
+        Scaling factor for each axis.
 
     Returns
     -------
-    hr_label_scaled : NDArray
-        Scaled labels volume as a 3D NumPy array.
+    hr_label_scaled : ndarray, shape (n_x, n_y, n_z)
+        Scaled labels volume.
     """
     # scale labels matrix (by type value vote)
     hr_label_scaled = np.zeros(
@@ -498,17 +498,17 @@ def _crop_image_volume(
 
     Parameters
     ----------
-    vol : NDArray
+    vol : ndarray, shape (n_x, n_y, n_z)
         The 3D volume to be cropped.
-    coords : tuple[NDArray, ...]
+    coords : tuple of ndarray
         Indices of elements to be included in the cropped volume. Typically obtained
         from `np.nonzero()`.
-    pad : int, optional
+    pad : int
         The number of voxels to pad around the bounding box. Default is 3.
 
     Returns
     -------
-    vol_cropped : NDArray
+    vol_cropped : ndarray, shape (m_x, m_y, m_z)
         The cropped volume.
     coords_range : list
         List of two lists containing the minimum and maximum coordinates of the cropped
@@ -535,13 +535,13 @@ def _convert_to_surface_ras(rr: NDArray) -> NDArray:
 
     Parameters
     ----------
-    rr : NDArray
-        N x 3 Array of vertex positions in the FreeSurfer voxel space.
+    rr : ndarray, shape (n_vertices, 3)
+        Vertex positions in the FreeSurfer voxel space.
 
     Returns
     -------
-    NDArray
-        N x 3 Array of vertex positions in FreeSurfer surface RAS coordinates.
+    ndarray, shape (n_vertices, 3)
+        Vertex positions in FreeSurfer surface RAS coordinates.
     """
     rotation = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
     translation = np.array([128, -128, 128])
@@ -574,7 +574,7 @@ def _get_registration(
         Prefix for the registration output filenames. For example, if reg_fname_prefix
         is 'subject1_', the forward transform file will be saved as
         'subject1_Composite.h5' and the inverse as
-        'subject1_InverseComposite.h5'.
+        'subject1_InverseComposite.h5'. By default, no prefix is used.
 
     Returns
     -------
@@ -632,34 +632,44 @@ def _get_registration(
     return reg
 
 
-def calculate_normals(
-    rr, tris, solid_angle_calc=False, obs_point=np.zeros(3), print_info=True
-):
+def _calculate_normals(
+    rr: NDArray[np.floating],
+    tris: NDArray[np.integer],
+    solid_angle_calc: bool = False,
+    obs_point: NDArray[np.floating] = np.zeros(3),
+    print_info: bool = True,
+) -> tuple[NDArray[np.floating], float, list[float], list[int]]:
     """Calculate vertex normals for a triangular mesh.
 
     Parameters
     ----------
-    rr : ndarray
-        Array of vertex positions.
-    tris : ndarray
-        Triangle indices defining the mesh faces.
-    solid_angle_calc : bool, optional
-        Whether to compute the solid angle from ``obs_point``.
-    obs_point : ndarray, optional
-        Observation point used for solid angle calculation.
-    print_info : bool, optional
-        Whether to print diagnostic information.
+    rr : ndarray of float, shape (n_vertices, 3)
+        Vertex positions.
+    tris : ndarray of int, shape (n_faces, 3)
+        Triangle vertex indices defining the mesh faces.
+    solid_angle_calc : bool
+        Whether to compute the solid angle from ``obs_point``. By default False.
+    obs_point : ndarray of float, shape (3,)
+        Observation point used for solid angle calculation. By default the origin.
+    print_info : bool
+        Whether to log diagnostic information at debug level. By default True.
 
     Returns
     -------
-    ndarray
+    nn : ndarray of float, shape (n_vertices, 3)
         Vertex normals computed as an unweighted average of neighboring face normals.
+    area : float
+        Total surface area of the mesh.
+    area_list : list of float
+        Cumulative surface area after each face.
+    nan_vertices : list of int
+        Indices of the vertices whose normal is still NaN after smoothing.
     """
     A = []
-    area_list = []
+    area_list: list[float] = []
     area = 0.0
     count = 0
-    nan_vertices = []
+    nan_vertices: list[int] = []
     for x in range(len(rr)):
         A.append([])
     solid_angle = 0
@@ -667,7 +677,7 @@ def calculate_normals(
         v1 = rr[row[1], :] - rr[row[0], :]
         v2 = rr[row[2], :] - rr[row[0], :]
         nml = np.cross(v1, v2)
-        area = area + np.linalg.norm(nml) / 2.0
+        area = area + float(np.linalg.norm(nml)) / 2.0
         area_list.append(area)
         nn_fc = nml / np.linalg.norm(nml)
         A[row[0]].append(nn_fc)
@@ -737,7 +747,7 @@ def setup_full_source_space(
     ----------
     subject : str
         The FreeSurfer subject name.
-    cerebellum_subsampling : 'full' | 'sparse' | 'dense'
+    cerebellum_subsampling : "full" | "sparse" | "dense"
         The spacing used to create the cerebellar mesh.
     subjects_dir : path-like | None
         The path to the directory containing the FreeSurfer subjects reconstructions.
@@ -746,11 +756,11 @@ def setup_full_source_space(
         Path to the cerebellum surface mesh file. If None, defaults to
         ``<subjects_dir>/<subject>/surf/cerebellum_<cerebellum_subsampling>.white``
     spacing : str | int
-        The spacing parameter for ``mne.setup_source_space``.
+        The spacing parameter for ``mne.setup_source_space``. By default "oct6".
 
     Returns
     -------
-    src_whole: mne.SourceSpaces
+    src_whole : mne.SourceSpaces
         List containing two source space elements: the cerebral cortex and the
         cerebellar cortex.
     """
@@ -786,14 +796,15 @@ def setup_full_source_space(
     assert isinstance(cerb_rr, np.ndarray), "Surface vertices should be a NumPy array."
     cerb_rr = cerb_rr / 1000.0  # Convert from mm to m!
 
-    cerb_tris = surface_data[1]
-    assert isinstance(cerb_tris, np.ndarray), (
+    assert isinstance(surface_data[1], np.ndarray), (
         "Surface triangles should be a NumPy array."
     )
+    # mne.read_surface returns integer triangle indices, but its type stubs are loose.
+    cerb_tris = cast(NDArray[np.integer], surface_data[1])
 
     # Calculate normals.
     logger.info("Calculating normals on deformed surface...")
-    (nn, _, _, nan_vertices) = calculate_normals(cerb_rr, cerb_tris, print_info=False)
+    (nn, _, _, nan_vertices) = _calculate_normals(cerb_rr, cerb_tris, print_info=False)
     logger.info("Done.")
 
     # Make a dictionary to hold the cerebellar source space data.

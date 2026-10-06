@@ -10,7 +10,7 @@ from mne.datasets import sample
 from pytest import MonkeyPatch
 from scipy.ndimage import zoom
 
-from cmb.helpers import load_image_volume
+from cmb._helpers import load_image_volume
 from cmb.segmentation import segment_cerebellum
 
 from .helpers import assert_niftis_equal, set_up_cmb_data

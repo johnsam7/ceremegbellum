@@ -1,5 +1,7 @@
 # Cere-MEG-Bellum (CMB)
 
+[![Documentation Status](https://readthedocs.org/projects/ceremegbellum/badge/?version=latest)](https://ceremegbellum.readthedocs.io/en/latest/)
+
 CMB is a Python package for fitting a high-resolution cerebellar atlas to standard MRI (ARCUS) and MEG/EEG source space computation including the cerebellum.
 
 Currently under active development: **API may change without notice**. Please report any issues or feature requests on the [GitHub issue tracker](https://github.com/johnsam7/ceremegbellum/issues).
@@ -14,6 +16,15 @@ For more information about the method, please see:
 - Diffeomorphic registration (ANTs SyNCC) of a high-resolution cerebellar template to subject anatomy
 - Construction of cerebellar cortical source spaces compatible with MNE-Python
 - Visualization of cerebellar data in normal, inflated, and flatmap views
+
+<!-- docs-skip-start -->
+
+## Documentation
+
+The full documentation, including the API reference, is available at
+[ceremegbellum.readthedocs.io](https://ceremegbellum.readthedocs.io).
+
+<!-- docs-skip-end -->
 
 ## Requirements
 
@@ -76,7 +87,9 @@ For more information about the method, please see:
 
 ## Quick start
 
-See [`examples/example_script.py`](examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
+See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
+
+<!-- docs-end -->
 
 ## For developers
 
@@ -91,8 +104,8 @@ pip install -e ".[dev,viz-qt]"
 uv pip install -e ".[dev,viz-qt]"
 ```
 
-This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies: the 3D visualization stack (PyVista, pyvistaqt and PySide6)
-and the developer tools `pytest` for running tests, `pyright` for type checking, and `ruff` for linting and formatting.
+This installs the package in editable mode (changes to source code will be reflected immediately) and installs all optional dependencies:
+the 3D visualization stack (PyVista, pyvistaqt and PySide6) and the developer tools.
 
 ### Running tests
 
@@ -103,6 +116,20 @@ pytest tests/
 # Runs only the tests that don't need data (and are faster).
 pytest tests/ -m "not requires_data"
 ```
+
+### Building the documentation
+
+The documentation is built with [Sphinx](https://www.sphinx-doc.org/) and hosted on
+[Read the Docs](https://ceremegbellum.readthedocs.io). The front page is generated from this README,
+and the API reference from the NumPy-style docstrings. The documentation dependencies are included in
+the `dev` extra.
+
+```bash
+cd docs
+make html  # on Windows use 'make.bat html'
+```
+
+Then view the built html documentation by opening file `docs/build/html/index.html` in a web browser.
 
 ### Type checking, linting, and formatting
 
@@ -121,8 +148,10 @@ ruff format --check .
 ruff format .
 ```
 
+<!-- docs-license -->
+
 ## License
 
-CMB is licensed under the [MIT License](LICENSE).
+CMB is licensed under the [MIT License](https://github.com/johnsam7/ceremegbellum/blob/main/LICENSE).
 
 Copyright (c) 2021-2026, authors of CMB. All rights reserved.

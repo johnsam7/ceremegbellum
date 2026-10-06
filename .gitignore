@@ -35,3 +35,7 @@ htmlcov/
 
 # Test data
 tests/data/
+
+# Documentation
+docs/build/
+docs/source/generated/

@@ -21,7 +21,7 @@ import numpy as np
 from nibabel import Nifti1Image, affines
 from numpy.typing import NDArray
 
-from .helpers import (
+from ._helpers import (
     change_labels,
     convert_to_ants_image,
     load_image_volume,
@@ -55,26 +55,26 @@ def segment_cerebellum(
     ----------
     subject : str
         The FreeSurfer subject name.
-    subjects_dir: path-like | None, optional
+    subjects_dir : path-like | None
         The path to the directory containing the FreeSurfer subjects reconstructions.
         If None, defaults to the SUBJECTS_DIR environment variable.
-    cmb_dir: path-like | None, optional
+    cmb_dir : path-like | None
         Path to the CMB data directory. If None (default), uses the default CMB
         data directory.
-    segmentation_fname : path-like | None, optional
+    segmentation_fname : path-like | None
         The path to load/save the segmentation. If None (default), uses the path
         ``<subjects_dir>/<subject>/mri/cerebellum_segmentation.nii.gz``.
-    save_segmentation : bool, optional
+    save_segmentation : bool
         If True (default), saves a newly computed segmentation to disk.
         If False, newly computed segmentations are returned without saving.
         This flag does not prevent loading an existing segmentation from
         ``segmentation_fname`` when ``recompute=False``.
-    recompute : bool, optional
+    recompute : bool
         If True, always computes a new segmentation. If ``save_segmentation=True``,
         the result is written to ``segmentation_fname`` and overwrites any existing
         file there. If False (default), an existing segmentation at
         ``segmentation_fname`` is loaded and returned if present.
-    intermediate_caching : bool, optional
+    intermediate_caching : bool
         If True, reuses existing intermediate registration and nnU-Net predictions from
         ``<cmb_dir>/data/segm_folder/tmp`` and keeps newly generated intermediates
         there. If False (default), uses a temporary work directory for this run
@@ -447,7 +447,7 @@ def _assert_index_space_compatible(
 
     Parameters
     ----------
-    a_affine, b_affine : numpy.ndarray | None
+    a_affine, b_affine : ndarray, shape (4, 4) | None
         Affine matrices of the two volumes. The orientation and voxel-size checks
         are skipped when either affine is None (the shape check still runs).
     a_shape, b_shape : tuple of int
@@ -510,9 +510,9 @@ def _extract_lob_I_IV(
 
     Returns
     -------
-    lobI_IV : NDArray[np.float64]
-        A 3D numpy array containing the pixel intensities for lob I-IV.
-    affine : NDArray[np.float64]
+    lobI_IV : ndarray of float, shape (n_x, n_y, n_z)
+        3D array containing the pixel intensities for lob I-IV.
+    affine : ndarray of float, shape (4, 4)
         The affine transformation matrix associated with the lob I-IV array.
     """
     # Get predicted labels for left hemisphere.
@@ -557,7 +557,7 @@ def _load_and_register_aseg(
     registration: dict,
     subject_affine: NDArray | None,
     subject_shape: tuple[int, ...],
-) -> np.ndarray:
+) -> NDArray:
     """Load the FreeSurfer automatic segmentation and register it to template space.
 
     Parameters
@@ -570,7 +570,7 @@ def _load_and_register_aseg(
         The template image in ANTs format.
     registration : dict
         The registration from which to apply the forward transforms to the segmentation.
-    subject_affine : numpy.ndarray | None
+    subject_affine : ndarray, shape (4, 4) | None
         Affine of the subject MRI (brain.mgz) that the registration was computed
         from. Used to check that aseg.mgz is on the same voxel grid.
     subject_shape : tuple of int
@@ -578,7 +578,7 @@ def _load_and_register_aseg(
 
     Returns
     -------
-    numpy.ndarray
+    ndarray, shape (n_x, n_y, n_z)
         The registered FreeSurfer automatic segmentation in template space.
         Data type is preserved from the original aseg.mgz file.
     """
@@ -640,7 +640,7 @@ def _register_subject_to_template(
     -------
     registration : dict
         The registration results containing the forward and inverse transforms.
-    subj_registered : NDArray[np.float32]
+    subj_registered : ndarray of float, shape (n_x, n_y, n_z)
         The subject's MRI registered to the template space.
     """
     from ants.registration import apply_transforms, registration
@@ -672,12 +672,12 @@ def _register_subject_to_template(
 
 
 def _split_cerebellar_hemis_aseg(
-    aseg: np.ndarray,
-    brain: np.ndarray,
-    mask: np.ndarray,
+    aseg: NDArray,
+    brain: NDArray,
+    mask: NDArray,
     subject: str,
     output_folder: str,
-    affine: np.ndarray,
+    affine: NDArray,
 ) -> None:
     """Split the whole-cerebellum mask into distinct left and right hemispheres.
 
@@ -688,19 +688,19 @@ def _split_cerebellar_hemis_aseg(
 
     Parameters
     ----------
-    aseg : numpy.ndarray
+    aseg : ndarray of int, shape (n_x, n_y, n_z)
         The FreeSurfer anatomical segmentation map, warped to the template space.
         Must contain standard FreeSurfer integer labels.
-    brain : numpy.ndarray
+    brain : ndarray, shape (n_x, n_y, n_z)
         The structural MRI volume of the subject, registered to template space.
-    mask : numpy.ndarray
+    mask : ndarray, shape (n_x, n_y, n_z)
         The whole-cerebellum binary or label mask (typically generated by the
         first nnUNet prediction task).
     subject : str
         The subject identifier, used for naming the output files.
     output_folder : str
         The directory path where the resulting split NIfTI files will be saved.
-    affine : numpy.ndarray
+    affine : ndarray, shape (4, 4)
         The affine transformation matrix to maintain physical spatial
         alignment when saving the NIfTI outputs.
     """
@@ -870,8 +870,8 @@ def _assemble_segmentation(
 
     Returns
     -------
-    NDArray[np.uint8]
-        3D numpy array containing the combined segmentation volume with updated labels.
+    ndarray of int, shape (n_x, n_y, n_z)
+        3D array containing the combined segmentation volume with updated labels.
     """
     # Define label mappings.
     old_labels_ant = [1, 2, 3, 4]

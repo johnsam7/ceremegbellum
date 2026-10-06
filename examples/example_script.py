@@ -7,11 +7,10 @@ import mne
 import numpy as np
 from mne.datasets import sample
 
-import cmb
 from cmb import (
     create_cerebellar_surface,
     get_cerebellum_data,
-    get_plot_data_from_stc,
+    get_subsampled_cerebellum_labels,
     segment_cerebellum,
     setup_full_source_space,
 )
@@ -122,7 +121,7 @@ with open(cmb_dir / "data" / "cerebellum_geo", "rb") as f:
 # Cerebellum source space is the second element in SourceSpaces list.
 cerebellum_src_index = 1
 
-labels = cmb.functions.get_subsampled_cerebellum_labels(
+labels = get_subsampled_cerebellum_labels(
     cb_data, subsampling=cerebellum_subsampling, set_hemi_cerebellum=True
 )
 label = labels[714]
@@ -197,7 +196,7 @@ estimate = mne.minimum_norm.apply_inverse(
 assert isinstance(estimate, mne.SourceEstimate)
 
 # %% Extract the estimated activation for cerebellum and cortex.
-estimate_cortex, estimate_cerebellum = get_plot_data_from_stc(
+estimate_cortex, estimate_cerebellum = cmb_viz.get_plot_data_from_stc(
     stc=estimate,
     fwd_src=fwd["src"],
     time_point=0,
