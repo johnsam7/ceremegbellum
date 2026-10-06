@@ -15,7 +15,7 @@ authors = [
     {name = "Christoph Dinh", email = "christoph.dinh@brain-link.de"},
     {name = "Teemu Taivainen", email = "ttaiv@outlook.com"}
 ]
-keywords = ["neuroscience", "neuroimaging", "MEG", "cerebellum", "brain"]
+keywords = ["neuroscience", "neuroimaging", "MEG", "EEG", "cerebellum", "brain"]
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
