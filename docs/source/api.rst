@@ -6,14 +6,14 @@ The API is unstable and may change without notice.
 Pipeline
 --------
 
+.. currentmodule:: cmb
+
 The main workflow has three stages: segment the subject's cerebellum
 (:func:`segment_cerebellum`), fit the atlas surface to it
 (:func:`create_cerebellar_surface`), and build a combined cerebral and cerebellar
 source space for MNE-Python (:func:`setup_full_source_space`).
 :func:`get_cerebellum_data` is a one-time setup step that downloads the atlas and
 the nnU-Net models used by the first two stages.
-
-.. currentmodule:: cmb
 
 .. autosummary::
    :toctree: generated/
@@ -25,19 +25,19 @@ the nnU-Net models used by the first two stages.
    setup_full_source_space
 
 
-Plotting
---------
+Visualization
+-------------
 
-``plot_normal`` and ``plot_inflated`` require the ``viz`` extra (PyVista); the
+.. currentmodule:: cmb.visualization
+
+:func:`plot_normal` and :func:`plot_inflated` require the ``viz`` extra (PyVista); the
 non-blocking Qt backend (``backend="pyvistaqt"``) also needs the ``viz-qt`` extra
-(see the installation section on the :doc:`front page <index>`). ``plot_flatmap`` and ``plot_sagittal`` only
+(see the installation section on the :doc:`frontpage <index>`). :func:`plot_flatmap` and :func:`plot_sagittal` only
 need matplotlib.
 
 :func:`get_plot_data_from_stc` does not plot anything itself: it converts an MNE
 source estimate into the cortex and cerebellum data arrays that the plotting
 functions take.
-
-.. currentmodule:: cmb.visualization
 
 .. autosummary::
    :toctree: generated/
