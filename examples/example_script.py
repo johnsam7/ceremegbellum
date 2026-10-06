@@ -10,7 +10,6 @@ from mne.datasets import sample
 from cmb import (
     create_cerebellar_surface,
     get_cerebellum_data,
-    get_plot_data_from_stc,
     get_subsampled_cerebellum_labels,
     segment_cerebellum,
     setup_full_source_space,
@@ -197,7 +196,7 @@ estimate = mne.minimum_norm.apply_inverse(
 assert isinstance(estimate, mne.SourceEstimate)
 
 # %% Extract the estimated activation for cerebellum and cortex.
-estimate_cortex, estimate_cerebellum = get_plot_data_from_stc(
+estimate_cortex, estimate_cerebellum = cmb_viz.get_plot_data_from_stc(
     stc=estimate,
     fwd_src=fwd["src"],
     time_point=0,
