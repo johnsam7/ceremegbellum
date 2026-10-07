@@ -90,7 +90,7 @@ numpydoc_xref_ignore = {
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",
     "gallery_dirs": "auto_examples",
-    "plot_gallery": "False",
+    "plot_gallery": False,
     "filename_pattern": r"^$",
     "download_all_examples": False,
     "write_computation_times": False,
