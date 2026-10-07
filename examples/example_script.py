@@ -1,9 +1,20 @@
-# %% Cere-MEG-Bellum end-to-end example on the MNE sample subject.
-# Steps: segment the cerebellum, fit the atlas mesh to it, set up a source space
-# with cortex and cerebellum, compute the forward and inverse operators, then
-# simulate a cerebellar patch, estimate it back and plot sensitivity maps.
-# Works with both current MNE-Python releases and the upcoming release that adds
-# mne.setup_subcortical_source_space (see the source space cell below).
+"""
+End-to-end example on the MNE sample subject
+============================================
+
+This example walks through the whole Cere-MEG-Bellum pipeline on the MNE sample
+subject:
+
+1. segment the cerebellum,
+2. fit the cerebellar atlas mesh to the subject,
+3. set up a source space with both cerebral and cerebellar cortex,
+4. compute the forward and inverse operators,
+5. simulate activity in a cerebellar patch and estimate it back, and
+6. plot sensitivity maps.
+
+The example works with both current MNE-Python releases and the upcoming release
+that adds ``mne.setup_subcortical_source_space`` (see the source space step below).
+"""
 
 import logging
 import pickle
@@ -14,6 +25,7 @@ import numpy as np
 from mne.datasets import sample
 
 from cmb import (
+    CMB_DATA_DIR,
     create_cerebellar_surface,
     get_cerebellum_data,
     get_subsampled_cerebellum_labels,
@@ -29,8 +41,9 @@ from cmb import (
 logging.basicConfig(level=logging.INFO)
 
 # Where the cerebellum data is stored.
-# Data will be downloaded to this location if not already present.
-cmb_dir = Path("/u/69/taivait1/unix/cmb_data")
+# Data will be downloaded to this location if not already present. By default this is
+# the package installation directory; pass your own path if it is not writable.
+cmb_dir = Path(CMB_DATA_DIR)
 
 # Set paths to subject data.
 data_path = Path(sample.data_path())
@@ -44,16 +57,19 @@ trans = sample_dir / "sample_audvis_raw-trans.fif"
 fname_cov = sample_dir / "sample_audvis-cov.fif"
 evoked_fname = sample_dir / "sample_audvis-ave.fif"
 
-# %% Check if the required data are available and download if not.
+# %%
+# Check if the required data are available and download if not.
 get_cerebellum_data(cmb_dir=cmb_dir)
 
-# %% Set source space parameters.
+# %%
+# Set source space parameters.
 # Use spacing 2 to get an approximately equal grid density in cerebral
 # and cerebellar cortices
 cerebral_spacing = 2
 cerebellum_subsampling = "sparse"
 
-# %% Segment the cerebellum (or get existing segmentation).
+# %%
+# Segment the cerebellum (or get existing segmentation).
 segmentation = segment_cerebellum(
     subject,
     subjects_dir,
@@ -61,7 +77,8 @@ segmentation = segment_cerebellum(
     segmentation_fname=None,  # use the default location
 )
 
-# %% Fit the atlas to the cerebellum of the subject,
+# %%
+# Fit the atlas to the cerebellum of the subject,
 # yielding a cerebellar mesh in the subject space.
 rr, tris = create_cerebellar_surface(
     subject,
@@ -77,18 +94,20 @@ mesh_fname = (
     subjects_dir / subject / "surf" / f"cerebellum_{cerebellum_subsampling}.white"
 )
 
-# %% Visualize the cerebellar mesh in the subject's MRI volume.
+# %%
+# Visualize the cerebellar mesh in the subject's MRI volume.
 _ = cmb_viz.plot_sagittal(
     vol_fname=subjects_dir / subject / "mri" / "T1.mgz",
     mesh_fname=mesh_fname,
 )
 
-# %% # Setup source space with cerebellum and cortex using the created mesh.
+# %%
+# Setup source space with cerebellum and cortex using the created mesh.
 # Newer MNE versions (in October 2026 only the dev version) can build the cerebellar
-# source space directly from the mesh, giving a mixed source space [lh, rh, cerebellum].
-# With older MNE versions, CMB handles source space building as [cortex, cerebellum],
-# where the two cortical hemispheres are joined into one. The rest of this example works
-# with both layouts.
+# source space directly from the mesh, giving a mixed source space
+# ``[lh, rh, cerebellum]``. With older MNE versions, CMB handles source space building
+# as ``[cortex, cerebellum]``, where the two cortical hemispheres are joined into one.
+# The rest of this example works with both layouts.
 use_mne_mixed_api = hasattr(mne, "setup_subcortical_source_space")
 
 if use_mne_mixed_api:
@@ -115,7 +134,8 @@ else:
         spacing=cerebral_spacing,
     )
 
-# %% Compute forward and inverse operators
+# %%
+# Compute forward and inverse operators
 conductivity = (0.3, 0.006, 0.3)
 # Important not to use too large mindist because the cerebellar cortex and inner skull
 # boundary are usually within 5 mm.
@@ -142,12 +162,14 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
     fixed=True,  # pyright: ignore[reportArgumentType]
 )
 
-# %% Load the cerebellum geometry for simulations and visualization.
+# %%
+# Load the cerebellum geometry for simulations and visualization.
 with open(cmb_dir / "data" / "cerebellum_geo", "rb") as f:
     cb_data = pickle.load(f)
 
-# %% Get the cortical and cerebellar parts of the source space.
-# Cerebellum source space is the last element in the SourceSpaces list.
+# %%
+# Get the cortical and cerebellar parts of the source space.
+# Cerebellum source space is the last element in the ``SourceSpaces`` list.
 cerebellum_src_index = len(fwd["src"]) - 1
 # Cortical sources precede the cerebellar ones in the leadfield columns.
 n_cortex_vertices = sum(s["nuse"] for s in fwd["src"][:cerebellum_src_index])
@@ -158,7 +180,8 @@ if cerebellum_src_index == 1:
 else:
     fwd_cortex_src = join_cortical_source_spaces(fwd["src"][:2])
 
-# %% Example forward simulation from patch in right lobule VIIIa
+# %%
+# Example forward simulation from patch in right lobule VIIIa
 
 labels = get_subsampled_cerebellum_labels(
     cb_data, subsampling=cerebellum_subsampling, set_hemi_cerebellum=True
@@ -170,7 +193,8 @@ cerebellum_active_verts = np.where(np.isin(cb_fwd_vertices, label.vertices))[0]
 cerebellum_activation = np.zeros(fwd["src"][cerebellum_src_index]["nuse"])
 cerebellum_activation[cerebellum_active_verts] = 1
 
-# %% Plot the cerebellar activation patch
+# %%
+# Plot the cerebellar activation patch
 
 # Need to interpolate the cerebellar data to the full chosen subsampling
 # (sparse or dense) for visualization.
@@ -209,7 +233,8 @@ _ = cmb_viz.plot_flatmap(
     screenshot_fname=None,
 )
 
-# %% Project the simulated cerebellar activation to the sensor space.
+# %%
+# Project the simulated cerebellar activation to the sensor space.
 # Read real evoked to use as a template.
 evoked = mne.read_evokeds(evoked_fname)[0]  # pyright: ignore[reportIndexIssue]
 
@@ -227,13 +252,15 @@ evoked._data[channels] = np.repeat(
     axis=1,
 )
 
-# %% Estimate source activation from the simulated data.
+# %%
+# Estimate source activation from the simulated data.
 estimate = mne.minimum_norm.apply_inverse(
     evoked, inverse_operator, 1 / 9, "sLORETA", verbose="WARNING"
 )
 assert isinstance(estimate, (mne.SourceEstimate, mne.MixedSourceEstimate))
 
-# %% Extract the estimated activation for cerebellum and cortex.
+# %%
+# Extract the estimated activation for cerebellum and cortex.
 estimate_cortex, estimate_cerebellum = cmb_viz.get_plot_data_from_stc(
     stc=estimate,
     fwd_src=fwd["src"],
@@ -244,7 +271,8 @@ estimate_cortex, estimate_cerebellum = cmb_viz.get_plot_data_from_stc(
     cerebellum_smooth=0,
 )
 
-# %% Plot the estimated activation on cerebellum and cortex.
+# %%
+# Plot the estimated activation on cerebellum and cortex.
 
 _ = cmb_viz.plot_normal(
     src_cerebellum=fwd["src"][cerebellum_src_index],
@@ -260,7 +288,8 @@ _ = cmb_viz.plot_flatmap(
     cmap="coolwarm",
 )
 
-# %% Sensitivity maps - cerebellum only
+# %%
+# Sensitivity maps - cerebellum only
 for ch_type in ["mag", "grad", "eeg"]:
     ch_inds = mne.channel_indices_by_type(fwd["info"])
     signal_norms_cb = np.linalg.norm(
@@ -284,7 +313,8 @@ for ch_type in ["mag", "grad", "eeg"]:
         cb_data, signal_norms_cb_prepared, cerebellum_subsampling, cmap="Reds"
     )
 
-# %% Sensitivity maps - with cortex
+# %%
+# Sensitivity maps - with cortex
 for ch_type in ["mag", "grad", "eeg"]:
     ch_inds = mne.channel_indices_by_type(fwd["info"])
     signal_norms = np.linalg.norm(fwd["sol"]["data"][ch_inds[ch_type], :], axis=0)

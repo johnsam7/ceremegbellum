@@ -17,5 +17,6 @@
 ```{toctree}
 :hidden:
 
+auto_examples/index
 api
 ```

@@ -24,6 +24,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "myst_parser",
+    "sphinx_gallery.gen_gallery",
 ]
 
 templates_path = ["_templates"]
@@ -80,6 +81,19 @@ numpydoc_xref_ignore = {
     "n_known",
     "n_used",
     "...",
+}
+
+# -- sphinx-gallery ----------------------------------------------------------
+
+# The examples need a GPU, ANTs and the MNE sample dataset, so they are rendered but
+# never executed when building the docs.
+sphinx_gallery_conf = {
+    "examples_dirs": "../../examples",
+    "gallery_dirs": "auto_examples",
+    "plot_gallery": "False",
+    "filename_pattern": r"^$",
+    "download_all_examples": False,
+    "write_computation_times": False,
 }
 
 # -- Intersphinx -------------------------------------------------------------

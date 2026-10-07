@@ -80,7 +80,7 @@ The full documentation, including the API reference, is available at
 
 ## Quick start
 
-See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
+See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset. It is also rendered on the [Examples page](https://ceremegbellum.readthedocs.io/en/latest/auto_examples/example_script.html) of the documentation.
 
 The example works with both current MNE-Python releases and the upcoming release
 that adds `mne.setup_subcortical_source_space`, and picks the source space layout
