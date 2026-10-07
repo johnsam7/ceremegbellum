@@ -107,12 +107,12 @@ Follow steps 1 and 2 from regular installation, then install the package from so
 git clone https://github.com/johnsam7/ceremegbellum.git
 cd ceremegbellum
 
-pip install -e ".[dev,viz-qt]"
+pip install -e ".[dev,docs,viz-qt]"
 # or
-uv pip install -e ".[dev,viz-qt]"
+uv pip install -e ".[dev,docs,viz-qt]"
 ```
 
-`-e` flag stands for editable mode (changes to source code will be reflected immediately).
+`-e` flag stands for editable mode (changes to source code will be reflected immediately). The `dev` extra has the test, lint and type-checking tools, and `docs` has the tools for building the documentation.
 
 ### Running tests
 

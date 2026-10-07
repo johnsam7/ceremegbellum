@@ -50,6 +50,8 @@ dev = [
     "pytest-mock",
     "ruff",
     "pyright",
+]
+docs = [
     "sphinx",
     "pydata-sphinx-theme",
     "myst-parser",
