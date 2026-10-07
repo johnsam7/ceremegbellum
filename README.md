@@ -128,8 +128,7 @@ pytest tests/ -m "not requires_data"
 
 The documentation is built with [Sphinx](https://www.sphinx-doc.org/) and hosted on
 [Read the Docs](https://ceremegbellum.readthedocs.io). The front page is generated from this README,
-and the API reference from the NumPy-style docstrings. The documentation dependencies are included in
-the `dev` extra.
+and the API reference from the NumPy-style docstrings.
 
 ```bash
 cd docs
