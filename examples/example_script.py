@@ -1,4 +1,10 @@
-# %%
+# %% Cere-MEG-Bellum end-to-end example on the MNE sample subject.
+# Steps: segment the cerebellum, fit the atlas mesh to it, set up a source space
+# with cortex and cerebellum, compute the forward and inverse operators, then
+# simulate a cerebellar patch, estimate it back and plot sensitivity maps.
+# Works with both current MNE-Python releases and the upcoming release that adds
+# mne.setup_subcortical_source_space (see the source space cell below).
+
 import logging
 import pickle
 from pathlib import Path
