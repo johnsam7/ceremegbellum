@@ -240,7 +240,6 @@ estimate_cortex, estimate_cerebellum = cmb_viz.get_plot_data_from_stc(
     time_point=0,
     cerebellum_geo=cb_data,
     cerebellum_subsampling=cerebellum_subsampling,
-    cerebellum_idx=cerebellum_src_index,
     cortex_smooth=None,
     cerebellum_smooth=0,
 )

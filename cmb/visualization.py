@@ -936,7 +936,7 @@ def get_plot_data_from_stc(
     time_point: float,
     cerebellum_geo: dict,
     cerebellum_subsampling: Literal["sparse", "dense"],
-    cerebellum_idx: int = 1,
+    cerebellum_idx: int | None = None,
     cortex_smooth: int | None | Literal["nearest"] = None,
     cerebellum_smooth: int = 0,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
@@ -961,10 +961,11 @@ def get_plot_data_from_stc(
         The cerebellum geometry data loaded from the cerebellum_geo file.
     cerebellum_subsampling : "sparse" | "dense"
         The subsampling used for the cerebellum source space.
-    cerebellum_idx : int
+    cerebellum_idx : int | None
         The index of the cerebellum source space in the `SourceSpaces` list.
         Allowed values are 1 (legacy CMB source space) or 2 (mixed source space).
-        Defaults to 1.
+        If None (default), the cerebellum is taken to be the last source space,
+        i.e. ``len(fwd_src) - 1``.
     cortex_smooth : int | "nearest" | None
         Passed for `mne.morph._hemi_morph`.
         Controls spatial interpolation smoothing. If an integer, applies exactly
@@ -985,6 +986,8 @@ def get_plot_data_from_stc(
         Data for each vertex in the subsampled cerebellar mesh at the specified time
         point.
     """
+    if cerebellum_idx is None:
+        cerebellum_idx = len(fwd_src) - 1
     if cerebellum_idx not in [1, 2]:
         raise ValueError(f"Invalid cerebellum index: {cerebellum_idx}. Must be 1 or 2.")
     if cerebellum_idx == 1:
