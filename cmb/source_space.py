@@ -765,6 +765,22 @@ def setup_full_source_space(
     src_whole : mne.SourceSpaces
         List containing two source space elements: the cerebral cortex and the
         cerebellar cortex.
+
+    Notes
+    -----
+    The next MNE-Python release adds ``mne.setup_subcortical_source_space``, which
+    can build the cerebellar source space directly from the mesh written by
+    `create_cerebellar_surface`::
+
+        src = mne.setup_source_space(subject, spacing=spacing) + (
+            mne.setup_subcortical_source_space(
+                subject, surface=mesh_fname, keep_largest_component=False
+            )
+        )
+
+    This gives a mixed source space ``[lh, rh, cerebellum]`` instead of
+    ``[cortex, cerebellum]``, but the same source points and forward solution. It is
+    expected to replace this function once that MNE-Python version is released.
     """
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
     assert subjects_dir is not None, (

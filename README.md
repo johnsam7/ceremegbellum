@@ -82,6 +82,19 @@ The full documentation, including the API reference, is available at
 
 See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
 
+The example works with both current MNE-Python releases and the upcoming release
+that adds `mne.setup_subcortical_source_space`, and picks the source space layout
+from the installed version:
+
+- Current MNE-Python: `cmb.setup_full_source_space` gives `[cortex, cerebellum]`.
+- Upcoming MNE-Python: `mne.setup_source_space(...) + mne.setup_subcortical_source_space(...)`
+  gives a mixed source space `[lh, rh, cerebellum]`.
+
+Both give the same forward solution. In either layout the cerebellum is the last
+source space, `fwd["src"][-1]`. To plot the cortex of a mixed source space with the
+CMB plotting functions, join the hemispheres with
+`cmb.join_cortical_source_spaces(fwd["src"][:2])`.
+
 <!-- docs-end -->
 
 ## For developers
