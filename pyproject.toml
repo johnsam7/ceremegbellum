@@ -50,10 +50,13 @@ dev = [
     "pytest-mock",
     "ruff",
     "pyright",
+]
+docs = [
     "sphinx",
     "pydata-sphinx-theme",
     "myst-parser",
     "numpydoc",
+    "sphinx-gallery",
 ]
 
 [project.urls]
@@ -81,6 +84,9 @@ ignore = [
   "D104",  # Missing docstring in public package
   "D413",  # Missing blank line after last section
 ]
+[tool.ruff.lint.per-file-ignores]
+# sphinx-gallery examples start with an rST title block, not a docstring summary line.
+"examples/*" = ["D205", "D400"]
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [

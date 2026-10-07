@@ -80,7 +80,7 @@ The full documentation, including the API reference, is available at
 
 ## Quick start
 
-See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset.
+See [`examples/example_script.py`](https://github.com/johnsam7/ceremegbellum/blob/main/examples/example_script.py) for a complete end-to-end example using the MNE sample dataset. It is also rendered on the [Examples page](https://ceremegbellum.readthedocs.io/en/latest/auto_examples/example_script.html) of the documentation.
 
 The example works with both current MNE-Python releases and the upcoming release
 that adds `mne.setup_subcortical_source_space`, and picks the source space layout
@@ -107,12 +107,12 @@ Follow steps 1 and 2 from regular installation, then install the package from so
 git clone https://github.com/johnsam7/ceremegbellum.git
 cd ceremegbellum
 
-pip install -e ".[dev,viz-qt]"
+pip install -e ".[dev,docs,viz-qt]"
 # or
-uv pip install -e ".[dev,viz-qt]"
+uv pip install -e ".[dev,docs,viz-qt]"
 ```
 
-`-e` flag stands for editable mode (changes to source code will be reflected immediately).
+`-e` flag stands for editable mode (changes to source code will be reflected immediately). The `dev` extra has the test, lint and type-checking tools, and `docs` has the tools for building the documentation.
 
 ### Running tests
 
@@ -128,8 +128,7 @@ pytest tests/ -m "not requires_data"
 
 The documentation is built with [Sphinx](https://www.sphinx-doc.org/) and hosted on
 [Read the Docs](https://ceremegbellum.readthedocs.io). The front page is generated from this README,
-and the API reference from the NumPy-style docstrings. The documentation dependencies are included in
-the `dev` extra.
+and the API reference from the NumPy-style docstrings.
 
 ```bash
 cd docs

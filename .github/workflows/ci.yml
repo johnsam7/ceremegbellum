@@ -24,7 +24,8 @@ jobs:
           python-version: 3.12  # run linting and type checking on Python 3.12
 
       - name: Install the project and dependencies
-        run: uv sync --all-extras
+        # viz-qt so that pyright sees the PyVista types; docs tools are not needed.
+        run: uv sync --extra dev --extra viz-qt
 
       - name: Run Ruff linter
         run: uv run ruff check --no-cache .
