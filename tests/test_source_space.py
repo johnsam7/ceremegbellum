@@ -15,8 +15,8 @@ from numpy.testing import assert_allclose, assert_array_equal
 from pytest_mock import MockerFixture
 
 from cmb.source_space import (
-    _join_source_spaces,
     create_cerebellar_surface,
+    join_cortical_source_spaces,
     setup_full_source_space,
 )
 
@@ -446,10 +446,10 @@ class TestSetupFullSourceSpaceSurfName:
 
 @pytest.mark.requires_data
 class TestSourceSpaceJoining:
-    """Test the _join_source_spaces function for different 'use_tris' scenarios."""
+    """Test join_cortical_source_spaces for different 'use_tris' scenarios."""
 
     def test_source_space_joining_with_use_tris(self) -> None:
-        """Test that _join_source_spaces correctly joins two source spaces.
+        """Test that join_cortical_source_spaces correctly joins two source spaces.
 
         Covers the case where the 'use_tris' field is not None, which occurs
         when using spacing defined with a string.
@@ -462,7 +462,7 @@ class TestSourceSpaceJoining:
         src_file = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
         src = mne.read_source_spaces(src_file, verbose=False)
         src_orig = src.copy()
-        src_joined = _join_source_spaces(src)
+        src_joined = join_cortical_source_spaces(src)
 
         self._assert_correct_joining(src_orig, src_joined)
         # Check "use_tris" separately.
@@ -473,7 +473,7 @@ class TestSourceSpaceJoining:
         assert_array_equal(src_joined["use_tris"], expected_use_tris)
 
     def test_source_space_joining_without_use_tris(self) -> None:
-        """Test that _join_source_spaces correctly joins two source spaces.
+        """Test that join_cortical_source_spaces correctly joins two source spaces.
 
         Covers the case where the 'use_tris' field is None, which occurs
         when using spacing defined with an integer.
@@ -493,7 +493,7 @@ class TestSourceSpaceJoining:
         assert src[1]["use_tris"] is None
 
         src_orig = src.copy()
-        src_joined = _join_source_spaces(src)
+        src_joined = join_cortical_source_spaces(src)
 
         self._assert_correct_joining(src_orig, src_joined)
         # Check "use_tris" separately.

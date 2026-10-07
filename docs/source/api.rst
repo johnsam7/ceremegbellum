@@ -1,7 +1,7 @@
 API reference
 =============
 
-The API is unstable and may change without notice.
+The package is under active development, and API changes are possible.
 
 Pipeline
 --------
@@ -11,9 +11,25 @@ Pipeline
 The main workflow has three stages: segment the subject's cerebellum
 (:func:`segment_cerebellum`), fit the atlas surface to it
 (:func:`create_cerebellar_surface`), and build a combined cerebral and cerebellar
-source space for MNE-Python (:func:`setup_full_source_space`).
+source space for MNE-Python.
 :func:`get_cerebellum_data` is a one-time setup step that downloads the atlas and
 the nnU-Net models used by the first two stages.
+
+The third stage can be done in two ways, depending on the MNE-Python version:
+
+- With current MNE-Python releases, :func:`setup_full_source_space` returns
+  ``[cortex, cerebellum]``, with the two cortical hemispheres joined into one
+  source space.
+- The next MNE-Python release adds ``mne.setup_subcortical_source_space``, which
+  builds the cerebellar source space directly from the mesh written by
+  :func:`create_cerebellar_surface` (pass ``keep_largest_component=False`` to keep
+  the vertex indices aligned with the atlas). Adding it to
+  :func:`mne.setup_source_space` gives a mixed source space
+  ``[lh, rh, cerebellum]``, and the inverse solution is a
+  :class:`mne.MixedSourceEstimate`.
+
+Both give the same source points and forward solution. In either layout the
+cerebellum is the last source space, ``fwd["src"][-1]``.
 
 .. autosummary::
    :toctree: generated/
@@ -68,10 +84,16 @@ Utilities
 
 .. currentmodule:: cmb
 
+The plotting functions expect the cortex as a single source space. With a mixed
+``[lh, rh, cerebellum]`` source space, use
+``join_cortical_source_spaces(fwd["src"][:2])`` to get one.
+:func:`~cmb.visualization.get_plot_data_from_stc` does this automatically.
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
+   join_cortical_source_spaces
    get_subsampled_cerebellum_labels
 
 

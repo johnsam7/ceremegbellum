@@ -13,11 +13,13 @@ them with MNE-Python cortical source spaces.
 # License: MIT
 # ---------------------------------------------------------------------------
 
+import copy
 import logging
 import os
 import os.path as op
 import pickle
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -763,6 +765,22 @@ def setup_full_source_space(
     src_whole : mne.SourceSpaces
         List containing two source space elements: the cerebral cortex and the
         cerebellar cortex.
+
+    Notes
+    -----
+    The next MNE-Python release adds ``mne.setup_subcortical_source_space``, which
+    can build the cerebellar source space directly from the mesh written by
+    `create_cerebellar_surface`::
+
+        src = mne.setup_source_space(subject, spacing=spacing) + (
+            mne.setup_subcortical_source_space(
+                subject, surface=mesh_fname, keep_largest_component=False
+            )
+        )
+
+    This gives a mixed source space ``[lh, rh, cerebellum]`` instead of
+    ``[cortex, cerebellum]``, but the same source points and forward solution. It is
+    expected to replace this function once that MNE-Python version is released.
     """
     subjects_dir = mne.utils.get_subjects_dir(subjects_dir, raise_error=True)  # pyright: ignore[reportAssignmentType]
     assert subjects_dir is not None, (
@@ -818,7 +836,7 @@ def setup_full_source_space(
     logger.info("Concatenating cerebellar source space with cerebral source space...")
 
     src_whole = src_cort.copy()
-    hemi_src = _join_source_spaces(src_cort)
+    hemi_src = join_cortical_source_spaces(src_cort)
     src_whole[0] = hemi_src
 
     src_whole[1]["rr"] = cerb_rr  # pyright: ignore[reportCallIssue, reportArgumentType]
@@ -838,13 +856,29 @@ def setup_full_source_space(
     return src_whole
 
 
-def _join_source_spaces(src_orig: mne.SourceSpaces) -> dict:
-    """Join the two hemispheric source spaces into a single source space."""
+def join_cortical_source_spaces(src_orig: Sequence[dict]) -> dict:
+    """Join the two hemispheric source spaces into a single source space.
+
+    Useful for passing the cortex of a mixed ``[lh, rh, cerebellum]`` source space to
+    the plotting functions in :mod:`cmb.visualization`.
+
+    Parameters
+    ----------
+    src_orig : sequence of dict
+        Exactly two source space dictionaries, the left and right hemisphere, e.g.
+        ``fwd["src"][:2]``.
+
+    Returns
+    -------
+    src_joined : dict
+        Source space dictionary with the vertices, triangles and normals of the two
+        hemispheres concatenated.
+    """
     if len(src_orig) != 2:
         raise ValueError("Input must be two source spaces")
 
     # Use the left hemisphere source space as the base for the joined source space.
-    src_joined = src_orig.copy()[0]
+    src_joined = copy.deepcopy(src_orig[0])
     assert isinstance(src_joined, dict), "Source space should be a dictionary."
 
     src_joined["inuse"] = np.concatenate((src_orig[0]["inuse"], src_orig[1]["inuse"]))
