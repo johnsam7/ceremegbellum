@@ -4,7 +4,7 @@
 
 CMB is a Python package for fitting a high-resolution cerebellar atlas to standard MRI (ARCUS) and MEG/EEG source space computation including the cerebellum.
 
-Currently under active development: **API may change without notice**. Please report any issues or feature requests on the [GitHub issue tracker](https://github.com/johnsam7/ceremegbellum/issues).
+Currently under active development: **API changes are possible**. Please report any issues or feature requests on the [GitHub issue tracker](https://github.com/johnsam7/ceremegbellum/issues).
 
 For more information about the method, please see:
 

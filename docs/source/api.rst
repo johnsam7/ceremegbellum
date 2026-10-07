@@ -1,7 +1,7 @@
 API reference
 =============
 
-The API is unstable and may change without notice.
+The package is under active development, and API changes are possible.
 
 Pipeline
 --------
