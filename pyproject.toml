@@ -9,7 +9,7 @@ description = "Cere-MEG-Bellum (CMB) - Cerebellum segmentation and MNE-Python co
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     {name = "John Gustaf Wilhelm Samuelsson", email = "johnsam@mit.edu"},
     {name = "Christoph Dinh", email = "christoph.dinh@brain-link.de"},
@@ -20,9 +20,9 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
     "Operating System :: POSIX",
     "Operating System :: Unix",

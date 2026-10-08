@@ -1,6 +1,9 @@
 # Cere-MEG-Bellum (CMB)
 
-[![Documentation Status](https://readthedocs.org/projects/ceremegbellum/badge/?version=latest)](https://ceremegbellum.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/cmb.svg)](https://pypi.org/project/cmb/)
+[![License: MIT](https://img.shields.io/pypi/l/cmb.svg)](https://github.com/johnsam7/ceremegbellum/blob/main/LICENSE)
+[![CI](https://github.com/johnsam7/ceremegbellum/actions/workflows/ci.yml/badge.svg)](https://github.com/johnsam7/ceremegbellum/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/ceremegbellum/badge/?version=stable)](https://ceremegbellum.readthedocs.io/en/stable/)
 
 CMB is a Python package for fitting a high-resolution cerebellar atlas to standard MRI (ARCUS) and MEG/EEG source space computation including the cerebellum.
 
@@ -28,7 +31,7 @@ The full documentation, including the API reference, is available at
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
 - [nnU-Net (v1)](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) (installed automatically as a dependency)
 - [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) (not required to run the package, but `recon-all` outputs are required)
 
