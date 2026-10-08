@@ -1,6 +1,6 @@
 # Cere-MEG-Bellum (CMB)
 
-[![Documentation Status](https://readthedocs.org/projects/ceremegbellum/badge/?version=latest)](https://ceremegbellum.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/ceremegbellum/badge/?version=stable)](https://ceremegbellum.readthedocs.io/en/stable/)
 
 CMB is a Python package for fitting a high-resolution cerebellar atlas to standard MRI (ARCUS) and MEG/EEG source space computation including the cerebellum.
 
